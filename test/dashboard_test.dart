@@ -218,16 +218,23 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: DriverDashboardPage(
-          username: 'BK-2026-10025',
-          onNavigateToProfile: () {},
-          onNavigateToTracking: () {},
-          onNavigateToOrders: () {},
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<TripsBloc>(create: (_) => di.sl<TripsBloc>()),
+          BlocProvider<AuthBloc>(create: (_) => di.sl<AuthBloc>()),
+        ],
+        child: MaterialApp(
+          home: DriverDashboardPage(
+            username: 'BK-2026-10025',
+            onNavigateToProfile: () {},
+            onNavigateToTracking: () {},
+            onNavigateToOrders: () {},
+          ),
         ),
       ),
     );
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(DriverDashboardPage), findsOneWidget);
   });
 

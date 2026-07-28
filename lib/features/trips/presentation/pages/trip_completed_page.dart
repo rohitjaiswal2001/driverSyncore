@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import 'driver_main_shell.dart';
 
@@ -256,36 +258,77 @@ class TripCompletedPage extends StatelessWidget {
 
               const Spacer(flex: 2),
 
-              // Back to My Trips Button
-              FilledButton(
-                onPressed: () {
-                  // Route back to the orders list (index 1) of the DriverMainShell
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DriverMainShell(
-                        username: 'Driver',
-                        initialIndex: 1,
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        final prefs = di.sl<SharedPreferences>();
+                        await prefs.remove('active_booking_order_id');
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DriverMainShell(
+                                username: 'Driver',
+                                initialIndex: 0,
+                              ),
+                            ),
+                            (route) => false,
+                          );
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0F2C59),
+                        side: const BorderSide(color: AppColors.border, width: 1.5),
+                        minimumSize: const Size.fromHeight(54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'New Order ID',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    (route) => false,
-                  );
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-                child: const Text(
-                  'Back to My Trips',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DriverMainShell(
+                              username: 'Driver',
+                              initialIndex: 1,
+                            ),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F2C59),
+                        minimumSize: const Size.fromHeight(54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Back to Trips',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),

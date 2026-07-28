@@ -1,145 +1,284 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 
+/// Hero card at the top of the driver profile.
+///
+/// Shows identity (avatar, name, company) plus the two facts a driver checks
+/// most often — duty state and account verification — above their contact
+/// details.
 class DriverProfileHeader extends StatelessWidget {
   final String name;
-  final String username;
+  final String company;
+  final String phone;
+  final String? email;
   final String? profileImage;
   final bool isOnDuty;
+  final bool isVerified;
+  final String avatarHeroTag;
+
+  /// Opens the full-screen photo viewer. Null when there is no photo to open.
   final VoidCallback? onAvatarTap;
+
+  /// Opens the edit-profile flow (also used by the camera badge).
+  final VoidCallback onEditProfile;
 
   const DriverProfileHeader({
     super.key,
     required this.name,
-    required this.username,
-    this.profileImage,
+    required this.company,
+    required this.phone,
+    required this.onEditProfile,
     required this.isOnDuty,
+    required this.isVerified,
     this.onAvatarTap,
+    this.email,
+    this.profileImage,
+    this.avatarHeroTag = 'profile_avatar_hero',
   });
 
   @override
   Widget build(BuildContext context) {
-    // Extract initials
-    String initials = '';
-    if (name.isNotEmpty) {
-      final parts = name.trim().split(' ');
-      if (parts.isNotEmpty) {
-        initials += parts[0][0].toUpperCase();
-        if (parts.length > 1 && parts.last.isNotEmpty) {
-          initials += parts.last[0][0].toUpperCase();
-        }
-      }
-    }
-    if (initials.isEmpty) initials = 'D';
+    final hasPhoto = profileImage != null && profileImage!.trim().isNotEmpty;
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.navy, AppColors.navyDeep],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(5),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: AppColors.navy.withValues(alpha: 0.22),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAvatar(hasPhoto),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.4,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      company,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withValues(alpha: 0.72),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Quick access to the primary action on this screen.
+              Semantics(
+                button: true,
+                label: 'Edit profile',
+                child: Material(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: onEditProfile,
+                    child: const SizedBox(
+                      width: 38,
+                      height: 38,
+                      child: Icon(
+                        Icons.edit_outlined,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Full card width, so the chips are never crushed by the name block.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _StatusChip(
+                label: isOnDuty ? 'ON DUTY' : 'OFF DUTY',
+                color: isOnDuty ? AppColors.accentGreen : AppColors.textLight,
+                showDot: true,
+              ),
+              _StatusChip(
+                label: isVerified ? 'VERIFIED' : 'UNVERIFIED',
+                color: isVerified
+                    ? AppColors.accentGreen
+                    : AppColors.accentOrange,
+                icon: isVerified
+                    ? Icons.verified_rounded
+                    : Icons.error_outline_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Divider(color: Colors.white.withValues(alpha: 0.14), height: 1),
+          const SizedBox(height: 14),
+          _ContactRow(icon: Icons.phone_rounded, value: phone),
+          if (email != null && email!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _ContactRow(icon: Icons.mail_outline_rounded, value: email!.trim()),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(bool hasPhoto) {
+    final avatar = UserAvatar(
+      name: name,
+      imageUrl: profileImage,
+      radius: 34,
+      backgroundColor: Colors.white.withValues(alpha: 0.18),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 2),
+    );
+
+    return Semantics(
+      button: hasPhoto,
+      label: hasPhoto ? 'View profile photo' : 'Profile photo',
+      child: GestureDetector(
+        onTap: hasPhoto ? onAvatarTap : onEditProfile,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Only the photo participates in the hero flight to the viewer.
+            hasPhoto ? Hero(tag: avatarHeroTag, child: avatar) : avatar,
+            Positioned(
+              bottom: -2,
+              right: -2,
+              child: Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.navy, width: 2),
+                ),
+                child: Icon(
+                  hasPhoto ? Icons.zoom_in_rounded : Icons.photo_camera_rounded,
+                  color: AppColors.navy,
+                  size: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData? icon;
+  final bool showDot;
+
+  const _StatusChip({
+    required this.label,
+    required this.color,
+    this.icon,
+    this.showDot = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(
-            onTap: onAvatarTap,
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: AppColors.primary.withAlpha(26),
-                  backgroundImage: profileImage != null && profileImage!.isNotEmpty
-                      ? NetworkImage(profileImage!)
-                      : null,
-                  child: profileImage == null || profileImage!.isEmpty
-                      ? Text(
-                          initials,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        )
-                      : null,
-                ),
-                if (onAvatarTap != null)
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name.isNotEmpty ? name : 'Driver Name',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Driver ID: DRV-${username.isNotEmpty ? username : "88902"}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textMedium,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isOnDuty
-                        ? const Color(0xFFD1FAE5)
-                        : const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    isOnDuty ? 'ON DUTY' : 'OFF DUTY',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: isOnDuty
-                          ? const Color(0xFF059669)
-                          : AppColors.textMedium,
-                    ),
-                  ),
-                ),
-              ],
+          if (showDot)
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            )
+          else if (icon != null)
+            Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  final IconData icon;
+  final String value;
+
+  const _ContactRow({required this.icon, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.6)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.92),
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

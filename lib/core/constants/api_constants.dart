@@ -18,4 +18,5 @@ class ApiConstants {
   static const String bookingQuote = '/booking/quote';
   static const String confirmBooking = '/booking';
   static const String dashboard = '/dashboard';
+  static const String shipmentDetails = '/shipment-details';
 }

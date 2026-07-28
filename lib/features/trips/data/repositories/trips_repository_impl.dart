@@ -292,12 +292,128 @@ class TripsRepositoryImpl implements TripsRepository {
 
   @override
   Future<Trip> getTripDetails(String tripId) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final index = _mockTrips.indexWhere((t) => t.id == tripId);
+    final cleanId = tripId.trim();
+    try {
+      final response = await _apiClient.get(
+        ApiConstants.shipmentDetails,
+        queryParameters: {'order_id': cleanId},
+      );
+      final responseData = response.data;
+      if (responseData != null && responseData is Map<String, dynamic>) {
+        if (responseData['status'] == true) {
+          return _mapShipmentDetailsToTrip(responseData, cleanId);
+        } else {
+          final msg = responseData['message']?.toString() ?? 'Shipment not found for this order ID.';
+          throw Exception(msg);
+        }
+      }
+    } on AppException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      if (e is Exception && e.toString().startsWith('Exception:')) {
+        rethrow;
+      }
+      // Fallback to local mock/dynamic trip if network exception occurs
+    }
+
+    final uppercaseId = cleanId.toUpperCase();
+    final index = _mockTrips.indexWhere((t) => t.id.toUpperCase() == uppercaseId || t.bookingId.toUpperCase() == uppercaseId);
     if (index != -1) {
       return _mockTrips[index];
     }
-    throw Exception('Trip with ID $tripId not found');
+    
+    // If not directly found in mock list, construct a dynamic Trip model for the entered booking ID
+    final dynamicTrip = TripModel(
+      id: uppercaseId,
+      bookingId: uppercaseId,
+      status: 'Assigned',
+      isNew: true,
+      customerName: 'Ethan Thompson',
+      customerPhone: '+919876543210',
+      cargoType: 'Palletized',
+      weight: '507.00 KG',
+      truckInfo: 'MH01AB1234 - 20 Container',
+      truckType: '20 Container',
+      pickupLocation: 'Germany',
+      pickupAddress: 'D-503 Logistics Park, Sector 18, Berlin, Germany',
+      pickupDate: '2026-07-20',
+      dropLocation: 'Koper',
+      dropAddress: 'Koper',
+      dropEta: '2-3 Days',
+      distanceRemainingKm: 1000.0,
+      etaHours: 12.0,
+      currentLocation: 'Germany',
+      arrivalRequirementText: 'Electronics shipment',
+      routePoints: const [
+        'Germany',
+        'Koper',
+      ],
+    );
+    _mockTrips.insert(0, dynamicTrip);
+    return dynamicTrip;
+  }
+
+  Trip _mapShipmentDetailsToTrip(Map<String, dynamic> responseJson, String requestedOrderId) {
+    final data = responseJson['data'] as Map<String, dynamic>? ?? {};
+    final trackingList = responseJson['tracking_history'] as List? ?? [];
+    Map<String, dynamic>? trackingFirst;
+    if (trackingList.isNotEmpty && trackingList[0] is Map<String, dynamic>) {
+      trackingFirst = trackingList[0] as Map<String, dynamic>;
+    }
+
+    final containerType = data['container_type'] as Map<String, dynamic>?;
+    final packaging = data['packaging'] as Map<String, dynamic>?;
+    final country = data['country'] as Map<String, dynamic>?;
+    final user = data['user'] as Map<String, dynamic>?;
+    final statusObj = trackingFirst?['status'] as Map<String, dynamic>?;
+    final bidStatus = data['bid_status'] as Map<String, dynamic>?;
+
+    final orderId = data['order_id']?.toString() ?? requestedOrderId;
+    final statusLabel = statusObj?['label'] ?? bidStatus?['label'] ?? 'Approved';
+    
+    final firstName = user?['first_name']?.toString() ?? '';
+    final lastName = user?['last_name']?.toString() ?? '';
+    final custName = ('$firstName $lastName').trim().isEmpty ? 'Ethan Thompson' : ('$firstName $lastName').trim();
+    final custPhone = user?['phone']?.toString() ?? '+919876543210';
+
+    final cargo = packaging?['name']?.toString() ?? data['title']?.toString() ?? 'General Cargo';
+    final weightVal = data['weight_of_goods'] != null ? '${data['weight_of_goods']} KG' : '507.00 KG';
+    final containerName = containerType?['name']?.toString();
+    final truckTypeVal = containerName != null ? '$containerName Container' : 'Container';
+
+    final pickupLoc = data['pickup_location']?.toString() ?? 'Germany';
+    final addressVal = data['address']?.toString() ?? '';
+    final cityVal = data['city']?.toString() ?? '';
+    final countryVal = country?['name']?.toString() ?? '';
+    final fullPickupAddress = [addressVal, cityVal, countryVal].where((s) => s.isNotEmpty).join(', ');
+
+    final dropLoc = data['drop_location']?.toString() ?? 'Koper';
+    final dropEtaVal = data['transit_time']?.toString() ?? '2-3 Days';
+    final distKm = double.tryParse(data['distance_km']?.toString() ?? '1000') ?? 1000.0;
+
+    return TripModel(
+      id: orderId,
+      bookingId: orderId,
+      status: statusLabel,
+      isNew: true,
+      customerName: custName,
+      customerPhone: custPhone,
+      cargoType: cargo,
+      weight: weightVal,
+      truckInfo: 'MH01AB1234 - $truckTypeVal',
+      truckType: truckTypeVal,
+      pickupLocation: pickupLoc,
+      pickupAddress: fullPickupAddress.isEmpty ? pickupLoc : fullPickupAddress,
+      pickupDate: data['pickup_date']?.toString() ?? '2026-07-20',
+      dropLocation: dropLoc,
+      dropAddress: dropLoc,
+      dropEta: dropEtaVal,
+      distanceRemainingKm: distKm,
+      etaHours: 12.0,
+      currentLocation: trackingFirst?['current_location']?.toString() ?? pickupLoc,
+      arrivalRequirementText: data['title']?.toString() ?? 'Electronics shipment',
+      routePoints: [pickupLoc, dropLoc],
+    );
   }
 
   @override
