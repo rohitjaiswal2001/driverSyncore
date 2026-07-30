@@ -11,8 +11,15 @@ import 'features/trips/presentation/bloc/dashboard_bloc.dart';
 import 'features/trips/presentation/bloc/dashboard_event.dart';
 import 'features/trips/presentation/pages/driver_main_shell.dart';
 
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final mapsImplementation = GoogleMapsFlutterPlatform.instance;
+  if (mapsImplementation is GoogleMapsFlutterAndroid) {
+    mapsImplementation.useAndroidViewSurface = true;
+  }
   await di.init();
   runApp(const MyApp());
 }

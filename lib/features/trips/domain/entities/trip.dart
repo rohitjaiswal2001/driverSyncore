@@ -23,6 +23,22 @@ class Trip extends Equatable {
   final String arrivalRequirementText;
   final List<String> routePoints;
 
+  /// Live-tracking session state for this shipment (NOT_STARTED,
+  /// SHIPMENT_START, ONGOING, SHIPPING_DONE, FAILED) - distinct from [status],
+  /// the free-text workflow label. Null for trips the tracking API hasn't
+  /// reported on yet (e.g. local mock data).
+  final String? trackingStatusCode;
+  final String? trackingStatusLabel;
+  final int? trackingStatusId;
+
+  /// Shipment direction from the booking ('import' or 'export'). Null when
+  /// the source data doesn't carry it (e.g. a booking-quote-derived trip).
+  final String? direction;
+
+  /// Fully-qualified URL to the booking PDF, resolved from the shipment
+  /// -details response. Null when no document has been generated yet.
+  final String? documentUrl;
+
   const Trip({
     required this.id,
     required this.bookingId,
@@ -45,6 +61,11 @@ class Trip extends Equatable {
     required this.currentLocation,
     required this.arrivalRequirementText,
     required this.routePoints,
+    this.trackingStatusCode,
+    this.trackingStatusLabel,
+    this.trackingStatusId,
+    this.direction,
+    this.documentUrl,
   });
 
   Trip copyWith({
@@ -69,6 +90,11 @@ class Trip extends Equatable {
     String? currentLocation,
     String? arrivalRequirementText,
     List<String>? routePoints,
+    String? trackingStatusCode,
+    String? trackingStatusLabel,
+    int? trackingStatusId,
+    String? direction,
+    String? documentUrl,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -92,6 +118,11 @@ class Trip extends Equatable {
       currentLocation: currentLocation ?? this.currentLocation,
       arrivalRequirementText: arrivalRequirementText ?? this.arrivalRequirementText,
       routePoints: routePoints ?? this.routePoints,
+      trackingStatusCode: trackingStatusCode ?? this.trackingStatusCode,
+      trackingStatusLabel: trackingStatusLabel ?? this.trackingStatusLabel,
+      trackingStatusId: trackingStatusId ?? this.trackingStatusId,
+      direction: direction ?? this.direction,
+      documentUrl: documentUrl ?? this.documentUrl,
     );
   }
 
@@ -118,5 +149,10 @@ class Trip extends Equatable {
         currentLocation,
         arrivalRequirementText,
         routePoints,
+        trackingStatusCode,
+        trackingStatusLabel,
+        trackingStatusId,
+        direction,
+        documentUrl,
       ];
 }

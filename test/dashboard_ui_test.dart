@@ -5,8 +5,10 @@ import 'package:syntracore_driver/features/trips/domain/entities/trip.dart';
 import 'package:syntracore_driver/features/trips/presentation/widgets/active_trip_card.dart';
 import 'package:syntracore_driver/features/trips/presentation/widgets/booking_id_entry_card.dart';
 import 'package:syntracore_driver/features/trips/presentation/widgets/dashboard_quick_action_grid.dart';
+import 'package:syntracore_driver/features/trips/presentation/widgets/direction_badge.dart';
 import 'package:syntracore_driver/features/trips/presentation/widgets/driver_profile_header.dart';
 import 'package:syntracore_driver/features/trips/presentation/widgets/profile_setting_tile.dart';
+import 'package:syntracore_driver/features/trips/presentation/widgets/trip_documents_card.dart';
 import 'package:syntracore_driver/features/trips/presentation/widgets/trip_status_chip.dart';
 
 Trip buildTrip({
@@ -16,10 +18,14 @@ Trip buildTrip({
   double distanceRemainingKm = 128.4,
   double etaHours = 3.35,
   String truckType = '14 Ft Truck',
+  String? direction,
+  String? documentUrl,
 }) {
   return Trip(
     id: '1',
-    bookingId: 'BK-2026-10025',
+    bookingId: '72531348',
+    direction: direction,
+    documentUrl: documentUrl,
     status: status,
     isNew: false,
     customerName: customerName,
@@ -76,7 +82,7 @@ void main() {
 
       expect(find.text('Mumbai'), findsOneWidget);
       expect(find.text('Pune'), findsOneWidget);
-      expect(find.text('BK-2026-10025'), findsOneWidget);
+      expect(find.text('72531348'), findsOneWidget);
       expect(find.text('Track Map'), findsOneWidget);
     });
 
@@ -284,6 +290,68 @@ void main() {
 
     test('never renders an empty label', () {
       expect(TripStatusStyle.of('   ').label, 'Unknown');
+    });
+  });
+
+  group('DirectionBadge', () {
+    testWidgets('labels an import as inbound to Koper', (tester) async {
+      await pumpNarrow(tester, const DirectionBadge(direction: 'import'));
+      expect(find.text('IMPORT · TO KOPER'), findsOneWidget);
+    });
+
+    testWidgets('labels an export as outbound from Koper', (tester) async {
+      await pumpNarrow(tester, const DirectionBadge(direction: 'export'));
+      expect(find.text('EXPORT · FROM KOPER'), findsOneWidget);
+    });
+
+    testWidgets('renders nothing when the API sent no direction', (
+      tester,
+    ) async {
+      await pumpNarrow(tester, const DirectionBadge(direction: null));
+      expect(find.textContaining('KOPER'), findsNothing);
+    });
+
+    testWidgets('renders nothing for an unrecognised value', (tester) async {
+      await pumpNarrow(tester, const DirectionBadge(direction: 'sideways'));
+      expect(find.textContaining('KOPER'), findsNothing);
+    });
+  });
+
+  group('TripDocumentsCard', () {
+    testWidgets('offers the real booking PDF when one exists', (tester) async {
+      await pumpNarrow(
+        tester,
+        const TripDocumentsCard(
+          documentUrl: 'https://example.test/booking-72531348.pdf',
+          bookingId: '72531348',
+        ),
+      );
+
+      expect(find.text('Booking Confirmation'), findsOneWidget);
+      expect(find.text('PDF · Booking 72531348'), findsOneWidget);
+    });
+
+    testWidgets('says so plainly when no document is published', (
+      tester,
+    ) async {
+      await pumpNarrow(
+        tester,
+        const TripDocumentsCard(documentUrl: null, bookingId: '72531348'),
+      );
+
+      expect(find.text('Booking Confirmation'), findsNothing);
+      expect(
+        find.textContaining('No documents have been published'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('treats a blank url as no document', (tester) async {
+      await pumpNarrow(
+        tester,
+        const TripDocumentsCard(documentUrl: '   ', bookingId: '72531348'),
+      );
+      expect(find.text('Booking Confirmation'), findsNothing);
     });
   });
 

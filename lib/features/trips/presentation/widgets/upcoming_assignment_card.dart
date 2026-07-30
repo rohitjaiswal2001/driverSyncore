@@ -38,7 +38,7 @@ class UpcomingAssignmentCard extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F2C59),
+                  color: AppColors.navy,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(

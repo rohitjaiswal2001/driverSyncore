@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/active_order_store.dart';
 import 'driver_main_shell.dart';
 
 class TripCompletedPage extends StatelessWidget {
   final String bookingId;
-  final String earnings;
-  final String duration;
-  final String completionTime;
+
+  /// Transit time from the booking (e.g. "2-3 Days"). Empty when unknown.
+  final String transitTime;
+
+  /// Drop location from the booking. Empty when unknown.
+  final String dropLocation;
 
   const TripCompletedPage({
     super.key,
     required this.bookingId,
-    this.earnings = '₹18,500',
-    this.duration = '8.5 Hrs',
-    this.completionTime = '22 Jun 2026, 10:00 AM',
+    this.transitTime = '',
+    this.dropLocation = '',
   });
 
   @override
@@ -134,7 +136,7 @@ class TripCompletedPage extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              bookingId.isNotEmpty ? bookingId : 'BK-2026-10024',
+                              bookingId,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -164,94 +166,15 @@ class TripCompletedPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const Divider(height: 24, color: AppColors.divider),
-
-                    // Earnings and Duration metrics
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'TOTAL EARNINGS',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textMedium,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                earnings,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 32,
-                          color: AppColors.divider,
-                        ),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'TRIP DURATION',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textMedium,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                duration,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24, color: AppColors.divider),
-
-                    // Completion Time Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'COMPLETION TIME',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textMedium,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        Text(
-                          completionTime,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                      ],
-                    ),
+                    if (transitTime.isNotEmpty || dropLocation.isNotEmpty) ...[
+                      const Divider(height: 24, color: AppColors.divider),
+                      if (dropLocation.isNotEmpty)
+                        _DetailRow(label: 'DESTINATION', value: dropLocation),
+                      if (dropLocation.isNotEmpty && transitTime.isNotEmpty)
+                        const SizedBox(height: 12),
+                      if (transitTime.isNotEmpty)
+                        _DetailRow(label: 'TRANSIT TIME', value: transitTime),
+                    ],
                   ],
                 ),
               ),
@@ -264,8 +187,7 @@ class TripCompletedPage extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () async {
-                        final prefs = di.sl<SharedPreferences>();
-                        await prefs.remove('active_booking_order_id');
+                        await di.sl<ActiveOrderStore>().clear();
                         if (context.mounted) {
                           Navigator.pushAndRemoveUntil(
                             context,
@@ -280,7 +202,7 @@ class TripCompletedPage extends StatelessWidget {
                         }
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF0F2C59),
+                        foregroundColor: AppColors.navy,
                         side: const BorderSide(color: AppColors.border, width: 1.5),
                         minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
@@ -312,7 +234,7 @@ class TripCompletedPage extends StatelessWidget {
                         );
                       },
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0F2C59),
+                        backgroundColor: AppColors.navy,
                         minimumSize: const Size.fromHeight(54),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -334,6 +256,44 @@ class TripCompletedPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textMedium,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

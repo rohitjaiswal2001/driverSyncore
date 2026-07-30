@@ -8,15 +8,6 @@ abstract class TripsEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadTrips extends TripsEvent {
-  final String role;
-
-  const LoadTrips({required this.role});
-
-  @override
-  List<Object?> get props => [role];
-}
-
 class LoadTripDetails extends TripsEvent {
   final String tripId;
 

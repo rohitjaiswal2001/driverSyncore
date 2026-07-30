@@ -19,4 +19,12 @@ class ApiConstants {
   static const String confirmBooking = '/booking';
   static const String dashboard = '/dashboard';
   static const String shipmentDetails = '/shipment-details';
+
+  // Live Tracking Endpoints
+  /// Confirmed: GET returns the fixed list of tracking statuses
+  /// (NOT_STARTED, SHIPMENT_START, ONGOING, SHIPPING_DONE, FAILED).
+  static const String trackingStatuses = '/tracking-statuses';
+
+  /// Live location & status update endpoint: POST /tracking/update
+  static const String updateTrackingStatus = '/tracking/update';
 }

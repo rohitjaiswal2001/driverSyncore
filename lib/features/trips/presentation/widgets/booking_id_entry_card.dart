@@ -153,7 +153,7 @@ class _BookingIdEntryCardState extends State<BookingIdEntryCard> {
               letterSpacing: 0.5,
             ),
             decoration: InputDecoration(
-              hintText: 'e.g. BK-102938',
+              hintText: 'e.g 102938',
               hintStyle: const TextStyle(
                 color: AppColors.textLight,
                 fontSize: 14,

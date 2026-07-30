@@ -83,7 +83,8 @@ class QuoteMasterData {
 Quote mapBookingQuoteResponseToQuote(Map<String, dynamic> json, String address, String mobileNumber) {
   final data = json['data'] as Map<String, dynamic>;
   final id = data['id'].toString();
-  final quoteId = 'BK-2026-100${data['id']}';
+  // Matches how the admin panel labels bookings (e.g. "#29").
+  final quoteId = '#${data['id']}';
   
   // Check if weight class is ON_REQUEST or auto_pricing is "0"
   final weightClass = data['weight_class'] as Map<String, dynamic>?;
@@ -93,15 +94,15 @@ Quote mapBookingQuoteResponseToQuote(Map<String, dynamic> json, String address, 
        weightClass['auto_pricing'] == 0);
   
   final price = isOnRequest ? 'On Request' : '€${data['raw_price'] ?? 0}';
-  final route = '${data['pickup_location'] ?? 'Koper'} ➔ ${data['drop_location'] ?? 'Germany'}';
+  final route = '${data['pickup_location'] ?? ''} ➔ ${data['drop_location'] ?? ''}';
   
-  final containerName = (data['container_type'] as Map<String, dynamic>?)?['name']?.toString() ?? '20';
-  final packagingName = (data['packaging'] as Map<String, dynamic>?)?['name']?.toString() ?? 'Palletized';
-  final countryName = (data['country'] as Map<String, dynamic>?)?['name']?.toString() ?? 'Germany';
+  final containerName = (data['container_type'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
+  final packagingName = (data['packaging'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
+  final countryName = (data['country'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
   final bidStatusCode = (data['bid_status'] as Map<String, dynamic>?)?['code']?.toString();
   
   final rawDistance = data['distance_km'];
-  final distanceKm = rawDistance != null ? (double.tryParse(rawDistance.toString())?.toInt() ?? 1000) : 1000;
+  final distanceKm = rawDistance != null ? (double.tryParse(rawDistance.toString())?.toInt() ?? 0) : 0;
 
   return Quote(
     id: id,
@@ -109,25 +110,25 @@ Quote mapBookingQuoteResponseToQuote(Map<String, dynamic> json, String address, 
     price: price,
     route: route,
     vehicleType: containerName,
-    date: data['pickup_date'] as String? ?? '2026-07-15',
+    date: data['pickup_date'] as String? ?? '',
     status: bidStatusCode ?? (isOnRequest ? 'ON_REQUEST' : 'CALCULATED'),
-    pickupLocation: data['pickup_location'] as String? ?? 'Koper',
-    dropLocation: data['drop_location'] as String? ?? 'Germany',
+    pickupLocation: data['pickup_location'] as String? ?? '',
+    dropLocation: data['drop_location'] as String? ?? '',
     mobileNumber: mobileNumber,
     address: address,
-    city: data['city'] as String? ?? 'Berlin',
+    city: data['city'] as String? ?? '',
     country: countryName,
     postalCode: data['postal_code'] as String? ?? '',
     packagingType: packagingName,
     weight: '${data['weight_of_goods']} KG',
     distanceKm: distanceKm,
-    transitTime: data['transit_time'] as String? ?? '2-3 Days',
+    transitTime: data['transit_time'] as String? ?? '',
   );
 }
 
 Quote mapBookingItemToQuote(Map<String, dynamic> data) {
   final id = data['id']?.toString() ?? '';
-  final quoteId = 'BK-2026-100$id';
+  final quoteId = '#$id';
   
   final rawPrice = data['raw_price'];
   final priceVal = rawPrice != null ? double.tryParse(rawPrice.toString()) : null;
@@ -143,8 +144,8 @@ Quote mapBookingItemToQuote(Map<String, dynamic> data) {
   final rawDistance = data['distance_km'];
   final distanceKm = rawDistance != null ? (double.tryParse(rawDistance.toString())?.toInt() ?? 0) : 0;
   
-  final containerName = (data['container_type'] as Map<String, dynamic>?)?['name']?.toString() ?? '20\' Container';
-  final packagingName = (data['packaging'] as Map<String, dynamic>?)?['name']?.toString() ?? 'Palletized';
+  final containerName = (data['container_type'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
+  final packagingName = (data['packaging'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
   final countryName = (data['country'] as Map<String, dynamic>?)?['name']?.toString() ?? '';
   
   String dateStr = '2026-07-14';
@@ -172,6 +173,6 @@ Quote mapBookingItemToQuote(Map<String, dynamic> data) {
     packagingType: packagingName,
     weight: data['weight_of_goods'] != null ? '${data['weight_of_goods']} KG' : '500 KG',
     distanceKm: distanceKm,
-    transitTime: data['transit_time']?.toString() ?? '2-3 Days',
+    transitTime: data['transit_time']?.toString() ?? '',
   );
 }

@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/usecases/get_trips_usecase.dart';
 import '../../domain/usecases/get_trip_details_usecase.dart';
 import '../../domain/usecases/update_trip_status_usecase.dart';
 import '../../domain/usecases/get_quotes_usecase.dart';
@@ -11,7 +10,6 @@ import 'trips_event.dart';
 import 'trips_state.dart';
 
 class TripsBloc extends Bloc<TripsEvent, TripsState> {
-  final GetTripsUseCase getTripsUseCase;
   final GetTripDetailsUseCase getTripDetailsUseCase;
   final UpdateTripStatusUseCase updateTripStatusUseCase;
   final GetQuotesUseCase getQuotesUseCase;
@@ -21,7 +19,6 @@ class TripsBloc extends Bloc<TripsEvent, TripsState> {
   final CreateBookingQuoteUseCase createBookingQuoteUseCase;
 
   TripsBloc({
-    required this.getTripsUseCase,
     required this.getTripDetailsUseCase,
     required this.updateTripStatusUseCase,
     required this.getQuotesUseCase,
@@ -30,7 +27,6 @@ class TripsBloc extends Bloc<TripsEvent, TripsState> {
     required this.getQuoteMasterDataUseCase,
     required this.createBookingQuoteUseCase,
   }) : super(TripsInitial()) {
-    on<LoadTrips>(_onLoadTrips);
     on<LoadTripDetails>(_onLoadTripDetails);
     on<UpdateTripStatus>(_onUpdateTripStatus);
     on<LoadQuotes>(_onLoadQuotes);
@@ -38,18 +34,6 @@ class TripsBloc extends Bloc<TripsEvent, TripsState> {
     on<AcceptQuote>(_onAcceptQuote);
     on<FetchQuoteMasterData>(_onFetchQuoteMasterData);
     on<CreateBookingQuote>(_onCreateBookingQuote);
-  }
-
-  Future<void> _onLoadTrips(LoadTrips event, Emitter<TripsState> emit) async {
-    emit(TripsLoading());
-    try {
-      final trips = await getTripsUseCase(role: event.role);
-      emit(TripsLoaded(trips: trips));
-    } catch (e) {
-      emit(
-        TripsError(errorMessage: e.toString().replaceAll('Exception: ', '')),
-      );
-    }
   }
 
   Future<void> _onLoadTripDetails(

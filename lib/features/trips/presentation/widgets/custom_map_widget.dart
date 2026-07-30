@@ -303,7 +303,7 @@ class MapPainter extends CustomPainter {
       canvas.drawCircle(currentPosition, 8.0, paint);
 
       // Draw inner blue circle
-      paint.color = const Color(0xFF1A3B8B);
+      paint.color = AppColors.primary;
       canvas.drawCircle(currentPosition, 6.0, paint);
 
       // Draw navigation triangle (arrow direction)

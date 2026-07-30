@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
+
+import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
-import '../bloc/trips_bloc.dart';
-import '../bloc/trips_event.dart';
-import '../bloc/trips_state.dart';
+import '../../../../core/widgets/top_snack_bar.dart';
+import '../../../../core/utils/recent_orders_store.dart';
 import '../../domain/entities/trip.dart';
+import '../../domain/repositories/trips_repository.dart';
+import '../widgets/direction_badge.dart';
 import '../widgets/route_timeline.dart';
+import '../widgets/trip_status_chip.dart';
 import 'trip_details_page.dart';
 
+/// Lists the shipments this driver has looked up on this device.
+///
+/// There is no backend endpoint that returns "all orders assigned to me"
+/// (see [RecentOrdersStore]), so each row here is a real
+/// GET /shipment-details response for an order ID the driver previously
+/// entered - never placeholder data. Looking up a new ID adds it to the list.
 class MyTripsPage extends StatefulWidget {
   final String userRole;
   final String username;
@@ -25,315 +35,233 @@ class MyTripsPage extends StatefulWidget {
 }
 
 class _MyTripsPageState extends State<MyTripsPage> {
-  final ValueNotifier<String> _activeTab = ValueNotifier<String>('Assigned');
-  final ValueNotifier<bool> _isSearching = ValueNotifier<bool>(false);
   final _searchController = TextEditingController();
+
+  String _activeTab = 'Assigned';
+  bool _isLoading = true;
+  String? _loadError;
+  List<Trip> _trips = const [];
+
+  /// Order IDs remembered locally whose lookup failed this session (deleted
+  /// server-side, not approved yet, offline...).
+  final Map<String, String> _failedLookups = {};
 
   @override
   void initState() {
     super.initState();
-    // Load trips when page opens
-    context.read<TripsBloc>().add(LoadTrips(role: widget.userRole));
+    _loadTrips();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _activeTab.dispose();
-    _isSearching.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTrips() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    final orderIds = di.sl<RecentOrdersStore>().read();
+    if (orderIds.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _trips = const [];
+        _failedLookups.clear();
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final repository = di.sl<TripsRepository>();
+    final results = await Future.wait(
+      orderIds.map((id) async {
+        try {
+          return (
+            id: id,
+            trip: await repository.getTripDetails(id),
+            error: null,
+          );
+        } catch (e) {
+          return (
+            id: id,
+            trip: null,
+            error: e.toString().replaceAll('Exception: ', ''),
+          );
+        }
+      }),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _failedLookups
+        ..clear()
+        ..addEntries(
+          results
+              .where((r) => r.trip == null)
+              .map((r) => MapEntry(r.id, r.error ?? 'Lookup failed')),
+        );
+      _trips = results.map((r) => r.trip).whereType<Trip>().toList();
+      _isLoading = false;
+      if (_trips.isEmpty && _failedLookups.isNotEmpty) {
+        _loadError = _failedLookups.values.first;
+      }
+    });
+  }
+
+  /// Looks up a booking order ID typed into the search box and remembers it.
+  Future<void> _lookUpOrder(String rawId) async {
+    final orderId = rawId.trim().toUpperCase();
+    if (orderId.isEmpty) return;
+
+    FocusScope.of(context).unfocus();
+    HapticFeedback.selectionClick();
+    setState(() => _isLoading = true);
+
+    try {
+      final trip = await di.sl<TripsRepository>().getTripDetails(orderId);
+      await di.sl<RecentOrdersStore>().record(trip.bookingId);
+      if (!mounted) return;
+      _searchController.clear();
+      await _loadTrips();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      TopSnackBar.show(
+        context,
+        message: e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: AppColors.danger,
+        icon: Icons.error_outline,
+      );
+    }
+  }
+
+  Future<void> _forget(String orderId) async {
+    await di.sl<RecentOrdersStore>().remove(orderId);
+    await _loadTrips();
+  }
+
+  List<Trip> get _filteredTrips {
+    final query = _searchController.text.toLowerCase().trim();
+    return _trips.where((trip) {
+      if (query.isNotEmpty) {
+        final haystack = [
+          trip.bookingId,
+          trip.pickupLocation,
+          trip.dropLocation,
+          trip.cargoType,
+        ].join(' ').toLowerCase();
+        if (!haystack.contains(query)) return false;
+      }
+
+      final isFinished = TripStatusStyle.of(trip.status).isTerminal;
+      return _activeTab == 'Assigned' ? !isFinished : isFinished;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: ValueListenableBuilder<bool>(
-          valueListenable: _isSearching,
-          builder: (context, isSearchingVal, _) {
-            return AppBar(
-              backgroundColor: Colors.white,
-              elevation: 0.5,
-              leading: isSearchingVal
-                  ? IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.textDark,
-                      ),
-                      onPressed: () {
-                        _isSearching.value = false;
-                        _searchController.clear();
-                      },
-                    )
-                  : GestureDetector(
-                      onTap: widget.onProfileTap,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 16.0),
-                        child: CircleAvatar(
-                          backgroundColor: AppColors.primaryLight,
-                          backgroundImage: const NetworkImage(
-                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-                          ),
-                          radius: 20,
-                          child: const Align(
-                            alignment: Alignment.bottomRight,
-                            child: CircleAvatar(
-                              backgroundColor: AppColors.driverAccent,
-                              radius: 6,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-              title: isSearchingVal
-                  ? TextField(
-                      controller: _searchController,
-                      autofocus: true,
-                      style: const TextStyle(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      decoration: const InputDecoration(
-                        hintText: 'Search bookings, routes, cargo...',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    )
-                  : const Text(
-                      'My Trips',
-                      style: TextStyle(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-              actions: isSearchingVal
-                  ? [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close,
-                          color: AppColors.textDark,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      ),
-                    ]
-                  : [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.search,
-                          color: AppColors.textDark,
-                        ),
-                        onPressed: () {
-                          _isSearching.value = true;
-                        },
-                      ),
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.notifications_none_outlined,
-                              color: AppColors.textDark,
-                            ),
-                            onPressed: () => _showNotificationsSheet(context),
-                          ),
-                          Positioned(
-                            right: 12,
-                            top: 12,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppColors.accentOrange,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-            );
-          },
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        title: const Text(
+          'My Trips',
+          style: TextStyle(
+            color: AppColors.textDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textDark),
+            onPressed: _isLoading ? null : _loadTrips,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
-          // Tab Switcher
-          ValueListenableBuilder<String>(
-            valueListenable: _activeTab,
-            builder: (context, activeTabVal, _) {
-              return Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildTabButton('Assigned', activeTabVal),
+          _buildSearchAndTabs(),
+          Expanded(child: _buildBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndTabs() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            textCapitalization: TextCapitalization.characters,
+            textInputAction: TextInputAction.search,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: _lookUpOrder,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search or add a Booking Order ID',
+              hintStyle: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textLight,
+              ),
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchController.text.trim().isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Look up this order',
+                      icon: const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 20,
+                        color: AppColors.primary,
                       ),
-                      Expanded(
-                        child: _buildTabButton('Completed', activeTabVal),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Trips List Content
-          Expanded(
-            child: BlocBuilder<TripsBloc, TripsState>(
-              builder: (context, state) {
-                if (state is TripsLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  );
-                } else if (state is TripsLoaded) {
-                  return AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _activeTab,
-                      _searchController,
-                    ]),
-                    builder: (context, _) {
-                      final activeTabVal = _activeTab.value;
-                      final query = _searchController.text.toLowerCase().trim();
-
-                      // Prepare list of trips, dynamically adding the logged-in Booking ID if not present
-                      final displayTrips = List<Trip>.from(state.trips);
-                      if (widget.userRole.toLowerCase() == 'driver' &&
-                          widget.username.isNotEmpty) {
-                        final hasLoggedTrip = displayTrips.any(
-                          (trip) =>
-                              trip.bookingId.toLowerCase() ==
-                              widget.username.toLowerCase(),
-                        );
-                        if (!hasLoggedTrip) {
-                          displayTrips.insert(
-                            0,
-                            Trip(
-                              id: widget.username,
-                              bookingId: widget.username,
-                              status: 'Assigned',
-                              isNew: true,
-                              customerName: 'Rahul Sharma',
-                              customerPhone: '+91 9876543210',
-                              cargoType: 'Furniture',
-                              weight: '500 KG',
-                              truckInfo: 'MH01AB1234 - 14 Ft Truck',
-                              truckType: '14 Ft Truck',
-                              pickupLocation: 'To Koper Warehouse',
-                              pickupAddress: 'To Koper, Maharashtra',
-                              pickupDate: '24 Jun 2026, 10:00 AM',
-                              dropLocation: 'Caspian Sea',
-                              dropAddress: 'Okhla',
-                              dropEta: '25 Jun 2026, 11:00 PM',
-                              distanceRemainingKm: 850.0,
-                              etaHours: 12.0,
-                              currentLocation: 'Nashik, Maharashtra',
-                              arrivalRequirementText:
-                                  'Arrival required in 45 minutes',
-                              routePoints: const [
-                                'To Koper Warehouse, MH',
-                                'Nashik, Maharashtra',
-                                'Caspian Sea',
-                              ],
-                            ),
-                          );
-                        }
-                      }
-
-                      // Filter list based on selected tab and search query
-                      final filteredTrips = displayTrips.where((trip) {
-                        if (query.isNotEmpty) {
-                          final matchBooking = trip.bookingId
-                              .toLowerCase()
-                              .contains(query);
-                          final matchPickup = trip.pickupLocation
-                              .toLowerCase()
-                              .contains(query);
-                          final matchDrop = trip.dropLocation
-                              .toLowerCase()
-                              .contains(query);
-                          final matchCargo = trip.cargoType
-                              .toLowerCase()
-                              .contains(query);
-                          if (!matchBooking &&
-                              !matchPickup &&
-                              !matchDrop &&
-                              !matchCargo) {
-                            return false;
-                          }
-                        }
-                        if (activeTabVal == 'Assigned') {
-                          return trip.status != 'Completed' &&
-                              trip.status != 'Delivered';
-                        } else {
-                          return trip.status == 'Completed' ||
-                              trip.status == 'Delivered';
-                        }
-                      }).toList();
-
-                      if (filteredTrips.isEmpty) {
-                        return _buildEmptyState(activeTabVal);
-                      }
-
-                      return ListView.builder(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
-                        itemCount: filteredTrips.length,
-                        itemBuilder: (context, index) {
-                          return _buildTripCard(context, filteredTrips[index]);
-                        },
-                      );
-                    },
-                  );
-                } else if (state is TripsError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.red,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          state.errorMessage,
-                          style: const TextStyle(color: AppColors.textMedium),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.read<TripsBloc>().add(
-                              LoadTrips(role: widget.userRole),
-                            );
-                          },
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                      onPressed: () => _lookUpOrder(_searchController.text),
                     ),
-                  );
-                }
-                return const Center(child: Text('Loading trips details...'));
-              },
+              filled: true,
+              fillColor: AppColors.inputBackground,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.6,
+                ),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                Expanded(child: _buildTabButton('Assigned')),
+                Expanded(child: _buildTabButton('Completed')),
+              ],
             ),
           ),
         ],
@@ -341,12 +269,10 @@ class _MyTripsPageState extends State<MyTripsPage> {
     );
   }
 
-  Widget _buildTabButton(String tabName, String activeTabVal) {
-    final isSelected = activeTabVal == tabName;
+  Widget _buildTabButton(String tabName) {
+    final isSelected = _activeTab == tabName;
     return GestureDetector(
-      onTap: () {
-        _activeTab.value = tabName;
-      },
+      onTap: () => setState(() => _activeTab = tabName),
       child: Container(
         height: 40,
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -356,12 +282,12 @@ class _MyTripsPageState extends State<MyTripsPage> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withAlpha(51),
+                    color: AppColors.primary.withValues(alpha: 0.20),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ]
-              : [],
+              : const [],
         ),
         child: Center(
           child: Text(
@@ -377,38 +303,194 @@ class _MyTripsPageState extends State<MyTripsPage> {
     );
   }
 
-  Widget _buildEmptyState(String activeTabVal) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (_trips.isEmpty && _loadError != null) {
+      return _buildMessageState(
+        icon: Icons.cloud_off_rounded,
+        title: "Couldn't load your trips",
+        message: _loadError!,
+        actionLabel: 'Try again',
+        onAction: _loadTrips,
+      );
+    }
+
+    if (_trips.isEmpty) {
+      return _buildMessageState(
+        icon: Icons.local_shipping_outlined,
+        title: 'No trips yet',
+        message:
+            'Look up a Booking Order ID above and it will be saved here for '
+            'quick access.',
+      );
+    }
+
+    final filtered = _filteredTrips;
+    if (filtered.isEmpty) {
+      return _buildMessageState(
+        icon: _activeTab == 'Assigned'
+            ? Icons.assignment_outlined
+            : Icons.check_circle_outline,
+        title: 'No $_activeTab trips',
+        message: _searchController.text.trim().isEmpty
+            ? 'Nothing here right now.'
+            : 'No saved trip matches your search.',
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadTrips,
+      color: AppColors.primary,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.all(16),
         children: [
-          Icon(
-            activeTabVal == 'Assigned'
-                ? Icons.assignment_outlined
-                : Icons.check_circle_outline,
-            size: 64,
-            color: AppColors.textLight,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No $activeTabVal Trips Found',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textMedium,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'There are currently no shipments here.',
-            style: TextStyle(fontSize: 13, color: AppColors.textLight),
-          ),
+          for (final trip in filtered) _buildTripCard(trip),
+          if (_failedLookups.isNotEmpty) _buildFailedLookups(),
         ],
       ),
     );
   }
 
-  Widget _buildTripCard(BuildContext context, Trip trip) {
+  Widget _buildFailedLookups() {
+    return Container(
+      margin: const EdgeInsets.only(top: 4, bottom: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.warningBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: AppColors.warning,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${_failedLookups.length} saved order'
+                  '${_failedLookups.length == 1 ? '' : 's'} unavailable',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final entry in _failedLookups.entries)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${entry.key} — ${entry.value}',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        height: 1.3,
+                        color: AppColors.textMedium,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(0, 30),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      foregroundColor: AppColors.warning,
+                    ),
+                    onPressed: () => _forget(entry.key),
+                    child: const Text(
+                      'Remove',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageState({
+    required IconData icon,
+    required String title,
+    required String message,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 64, color: AppColors.textLight),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    color: AppColors.textLight,
+                  ),
+                ),
+                if (actionLabel != null && onAction != null) ...[
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    onPressed: onAction,
+                    child: Text(actionLabel),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTripCard(Trip trip) {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
@@ -417,7 +499,7 @@ class _MyTripsPageState extends State<MyTripsPage> {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(10),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -426,102 +508,59 @@ class _MyTripsPageState extends State<MyTripsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'BOOKING ID',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textMedium,
-                        letterSpacing: 0.5,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'BOOKING ID',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textMedium,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      trip.bookingId,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
+                      const SizedBox(height: 2),
+                      Text(
+                        trip.bookingId,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                if (trip.isNew)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'NEW',
-                      style: TextStyle(
-                        color: AppColors.accentGreen,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          trip.status == 'In Transit' ||
-                              trip.status == 'Trip Started'
-                          ? AppColors.primaryLight
-                          : AppColors.inputBackground,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      trip.status,
-                      style: TextStyle(
-                        color:
-                            trip.status == 'In Transit' ||
-                                trip.status == 'Trip Started'
-                            ? AppColors.primary
-                            : AppColors.textMedium,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                      if (trip.direction != null) ...[
+                        const SizedBox(height: 8),
+                        DirectionBadge(direction: trip.direction, compact: true),
+                      ],
+                    ],
                   ),
+                ),
+                const SizedBox(width: 10),
+                TripStatusChip(status: trip.status, compact: true),
               ],
             ),
           ),
           const Divider(height: 1, color: AppColors.divider),
-
-          // Timeline
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: RouteTimeline(
               pickupLocation: trip.pickupLocation,
               pickupAddress: trip.pickupAddress,
               pickupTime: trip.pickupDate,
               dropLocation: trip.dropLocation,
               dropAddress: trip.dropAddress,
-              dropTime: 'Estimated: ${trip.dropEta}',
+              dropTime: trip.dropEta.isEmpty ? '' : 'Estimated: ${trip.dropEta}',
             ),
           ),
-
-          // Detail Info Grid (4 items: Cargo, Weight, Container, Pickup Date)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final boxWidth = (constraints.maxWidth - 12) / 2;
@@ -529,62 +568,64 @@ class _MyTripsPageState extends State<MyTripsPage> {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    _buildInfoBox(
-                      boxWidth,
-                      Icons.inventory_2_outlined,
-                      'Cargo',
-                      trip.cargoType,
-                    ),
-                    _buildInfoBox(
-                      boxWidth,
-                      Icons.line_weight,
-                      'Weight',
-                      trip.weight,
-                    ),
-                    _buildInfoBox(
-                      boxWidth,
-                      Icons.local_shipping_outlined,
-                      'Truck/Container',
-                      trip.truckType,
-                    ),
-                    _buildInfoBox(
-                      boxWidth,
-                      Icons.calendar_today_outlined,
-                      'Pickup Date',
-                      trip.pickupDate.split(',')[0],
-                    ),
+                    if (trip.cargoType.isNotEmpty)
+                      _buildInfoBox(
+                        boxWidth,
+                        Icons.inventory_2_outlined,
+                        'Cargo',
+                        trip.cargoType,
+                      ),
+                    if (trip.weight.isNotEmpty)
+                      _buildInfoBox(
+                        boxWidth,
+                        Icons.line_weight,
+                        'Weight',
+                        trip.weight,
+                      ),
+                    if (trip.truckType.isNotEmpty)
+                      _buildInfoBox(
+                        boxWidth,
+                        Icons.local_shipping_outlined,
+                        'Container',
+                        trip.truckType,
+                      ),
+                    if (trip.pickupDate.isNotEmpty)
+                      _buildInfoBox(
+                        boxWidth,
+                        Icons.calendar_today_outlined,
+                        'Pickup Date',
+                        trip.pickupDate.split(',').first,
+                      ),
                   ],
                 );
               },
             ),
           ),
-
-          // Action Button
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
                 minimumSize: const Size.fromHeight(48),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: () {
-                final tripsBloc = context.read<TripsBloc>();
-                Navigator.push(
+              onPressed: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
+                    builder: (_) =>
                         TripDetailsPage(tripId: trip.id, initialTrip: trip),
                   ),
-                ).then((_) {
-                  tripsBloc.add(LoadTrips(role: widget.userRole));
-                });
+                );
+                if (mounted) await _loadTrips();
               },
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text('View Details'),
                   SizedBox(width: 8),
                   Icon(Icons.arrow_forward, size: 16),
@@ -630,145 +671,19 @@ class _MyTripsPageState extends State<MyTripsPage> {
                 const SizedBox(height: 2),
                 Text(
                   value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textDark,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
         ],
       ),
-    );
-  }
-
-  void _showNotificationsSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Notifications',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: AppColors.textMedium,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildNotificationTile(
-                  icon: Icons.assignment_outlined,
-                  color: AppColors.customerAccent,
-                  title: 'New Trip Assigned',
-                  subtitle:
-                      'Trip BK-2026-10024 has been assigned to your vehicle.',
-                  time: '2 mins ago',
-                ),
-                const SizedBox(height: 12),
-                _buildNotificationTile(
-                  icon: Icons.check_circle_outline,
-                  color: AppColors.driverAccent,
-                  title: 'Trip Started Successfully',
-                  subtitle: 'You initiated the trip to Caspian Sea.',
-                  time: '1 hour ago',
-                ),
-                const SizedBox(height: 12),
-                _buildNotificationTile(
-                  icon: Icons.info_outline,
-                  color: AppColors.accentOrange,
-                  title: 'Route Warning',
-                  subtitle:
-                      'Heavy traffic reported near Nashik bypass. Drive safely.',
-                  time: '3 hours ago',
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildNotificationTile({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String subtitle,
-    required String time,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withAlpha(26),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textMedium,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                time,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppColors.textLight,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

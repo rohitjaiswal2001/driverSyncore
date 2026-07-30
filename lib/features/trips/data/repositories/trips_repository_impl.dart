@@ -2,7 +2,7 @@ import '../../domain/entities/trip.dart';
 import '../../domain/repositories/trips_repository.dart';
 import '../../domain/entities/quote.dart';
 import '../../domain/entities/dashboard_data.dart';
-import '../models/trip_model.dart';
+import '../../domain/entities/tracking_status.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_exceptions.dart';
 import '../../../../core/constants/api_constants.dart';
@@ -32,264 +32,6 @@ class TripsRepositoryImpl implements TripsRepository {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
-  // In-memory mock list of trips to make status changes fully interactive
-  final List<Trip> _mockTrips = [
-    const TripModel(
-      id: 'BK-2026-10024',
-      bookingId: 'BK-2026-10024',
-      status: 'Assigned',
-      isNew: true,
-      customerName: 'Rahul Sharma',
-      customerPhone: '+91 9876543210',
-      cargoType: 'Furniture',
-      weight: '500 KG',
-      truckInfo: 'MH01AB1234 - 14 Ft Truck',
-      truckType: '14 Ft Truck',
-      pickupLocation: 'To Koper Warehouse',
-      pickupAddress: 'To Koper, Maharashtra',
-      pickupDate: '20 Jun 2026, 10:00 AM',
-      dropLocation: 'Caspian Sea',
-      dropAddress: 'Okhla',
-      dropEta: '21 Jun 2026, 11:00 PM',
-      distanceRemainingKm: 850.0,
-      etaHours: 12.0,
-      currentLocation: 'Nashik, Maharashtra',
-      arrivalRequirementText: 'Arrival required in 45 minutes',
-      routePoints: [
-        'To Koper Warehouse, MH',
-        'Nashik, Maharashtra',
-        'Caspian Sea',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-10031',
-      bookingId: 'BK-2026-10031',
-      status: 'In Transit',
-      isNew: false,
-      customerName: 'Ankit Verma',
-      customerPhone: '+91 9988776655',
-      cargoType: 'Industrial Machinery',
-      weight: '3200 KG',
-      truckInfo: 'GJ05CD4321 - 20 Ft Container',
-      truckType: '20 Ft Container',
-      pickupLocation: 'Surat Industrial Hub',
-      pickupAddress: 'Hazira, Surat, Gujarat',
-      pickupDate: '22 Jun 2026, 07:00 AM',
-      dropLocation: 'Chennai Port',
-      dropAddress: 'Kattupalli Port, Tamil Nadu',
-      dropEta: '24 Jun 2026, 06:00 PM',
-      distanceRemainingKm: 420.0,
-      etaHours: 6.5,
-      currentLocation: 'Hyderabad, Telangana',
-      arrivalRequirementText: 'Port gate closes at 8 PM',
-      routePoints: [
-        'Surat Industrial Hub',
-        'Pune Bypass',
-        'Hyderabad',
-        'Chennai Port',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-10038',
-      bookingId: 'BK-2026-10038',
-      status: 'Assigned',
-      isNew: true,
-      customerName: 'Priya Mehta',
-      customerPhone: '+91 7654321098',
-      cargoType: 'Perishable Goods',
-      weight: '800 KG',
-      truckInfo: 'RJ14MN9876 - Refrigerated Van',
-      truckType: 'Van',
-      pickupLocation: 'Jaipur Cold Storage',
-      pickupAddress: 'Sitapura Industrial Area, Jaipur',
-      pickupDate: '24 Jun 2026, 05:00 AM',
-      dropLocation: 'Delhi INA Market',
-      dropAddress: 'INA Colony, New Delhi',
-      dropEta: '24 Jun 2026, 01:00 PM',
-      distanceRemainingKm: 270.0,
-      etaHours: 4.0,
-      currentLocation: 'Jaipur, Rajasthan',
-      arrivalRequirementText: 'Refrigeration must be maintained at 4°C',
-      routePoints: [
-        'Jaipur Cold Storage',
-        'Alwar, Rajasthan',
-        'Delhi INA Market',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-10045',
-      bookingId: 'BK-2026-10045',
-      status: 'Assigned',
-      isNew: true,
-      customerName: 'Amit Singhania',
-      customerPhone: '+91 9988771122',
-      cargoType: 'Chemical Drums',
-      weight: '4500 KG',
-      truckInfo: 'HR55XY9988 - 20 Ft Container',
-      truckType: '20 Ft Container',
-      pickupLocation: 'Gurugram Sector 34',
-      pickupAddress: 'Sector 34 Industrial Area, Gurugram, Haryana',
-      pickupDate: '25 Jun 2026, 09:00 AM',
-      dropLocation: 'Kolkata Port',
-      dropAddress: 'Kidderpore, Kolkata, West Bengal',
-      dropEta: '28 Jun 2026, 05:00 PM',
-      distanceRemainingKm: 1450.0,
-      etaHours: 24.0,
-      currentLocation: 'Gurugram Sector 34',
-      arrivalRequirementText: 'Hazmat handling certification required',
-      routePoints: [
-        'Gurugram Sector 34',
-        'Varanasi Bypass',
-        'Kolkata Port',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-10052',
-      bookingId: 'BK-2026-10052',
-      status: 'Assigned',
-      isNew: true,
-      customerName: 'Vikram Singh',
-      customerPhone: '+91 9543210987',
-      cargoType: 'Agricultural Produce',
-      weight: '2200 KG',
-      truckInfo: 'PB10CZ5544 - 14 Ft Truck',
-      truckType: '14 Ft Truck',
-      pickupLocation: 'Ludhiana Mandi',
-      pickupAddress: 'Gill Road Grain Market, Ludhiana, Punjab',
-      pickupDate: '26 Jun 2026, 06:00 AM',
-      dropLocation: 'Mumbai JNPT',
-      dropAddress: 'JN Port, Nhava Sheva, Maharashtra',
-      dropEta: '29 Jun 2026, 10:00 AM',
-      distanceRemainingKm: 1380.0,
-      etaHours: 22.0,
-      currentLocation: 'Ludhiana Mandi',
-      arrivalRequirementText: 'Ventilation must be kept open',
-      routePoints: [
-        'Ludhiana Mandi',
-        'Delhi Bypass',
-        'Ahmedabad Ring Road',
-        'Mumbai JNPT',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-10060',
-      bookingId: 'BK-2026-10060',
-      status: 'Assigned',
-      isNew: true,
-      customerName: 'Sanjay Kumar',
-      customerPhone: '+91 8899001122',
-      cargoType: 'Electronics Components',
-      weight: '650 KG',
-      truckInfo: 'KA03ZZ7788 - Refrigerated Van',
-      truckType: 'Van',
-      pickupLocation: 'Bangalore Electronic City',
-      pickupAddress: 'Phase 1, Electronic City, Bengaluru',
-      pickupDate: '27 Jun 2026, 02:00 PM',
-      dropLocation: 'Hyderabad Gachibowli',
-      dropAddress: 'DLF Cyber City, Gachibowli, Hyderabad',
-      dropEta: '28 Jun 2026, 04:00 AM',
-      distanceRemainingKm: 570.0,
-      etaHours: 8.0,
-      currentLocation: 'Bangalore Electronic City',
-      arrivalRequirementText: 'ESD protected transport mandatory',
-      routePoints: [
-        'Bangalore Electronic City',
-        'Anantapur Bypass',
-        'Hyderabad Gachibowli',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-09412',
-      bookingId: 'BK-2026-09412',
-      status: 'Completed',
-      isNew: false,
-      customerName: 'Suresh Patel',
-      customerPhone: '+91 9123456789',
-      cargoType: 'Electronic Goods',
-      weight: '1200 KG',
-      truckInfo: 'DL01ZA5678 - 20 Ft Container',
-      truckType: '20 Ft Container',
-      pickupLocation: 'Mumbai Port',
-      pickupAddress: 'JNPT, Navi Mumbai',
-      pickupDate: '15 Jun 2026, 08:00 AM',
-      dropLocation: 'Delhi Warehouse',
-      dropAddress: 'Okhla Phase III, Delhi',
-      dropEta: '17 Jun 2026, 04:00 PM',
-      distanceRemainingKm: 0.0,
-      etaHours: 0.0,
-      currentLocation: 'Delhi Warehouse',
-      arrivalRequirementText: 'Delivered on time',
-      routePoints: [
-        'Mumbai Port',
-        'Surat',
-        'Jaipur',
-        'Delhi Warehouse',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-09205',
-      bookingId: 'BK-2026-09205',
-      status: 'Delivered',
-      isNew: false,
-      customerName: 'Nirmala Krishnan',
-      customerPhone: '+91 8012345678',
-      cargoType: 'Textiles',
-      weight: '950 KG',
-      truckInfo: 'TN07PQ1122 - 14 Ft Truck',
-      truckType: '14 Ft Truck',
-      pickupLocation: 'Coimbatore Mills',
-      pickupAddress: 'Peelamedu, Coimbatore, TN',
-      pickupDate: '10 Jun 2026, 09:00 AM',
-      dropLocation: 'Bangalore Garments Hub',
-      dropAddress: 'Peenya Industrial Area, Bengaluru',
-      dropEta: '11 Jun 2026, 03:00 PM',
-      distanceRemainingKm: 0.0,
-      etaHours: 0.0,
-      currentLocation: 'Bangalore Garments Hub',
-      arrivalRequirementText: 'Delivered ahead of schedule',
-      routePoints: [
-        'Coimbatore Mills',
-        'Salem',
-        'Bangalore Garments Hub',
-      ],
-    ),
-    const TripModel(
-      id: 'BK-2026-09118',
-      bookingId: 'BK-2026-09118',
-      status: 'Completed',
-      isNew: false,
-      customerName: 'Deepak Joshi',
-      customerPhone: '+91 9321654870',
-      cargoType: 'Auto Parts',
-      weight: '1800 KG',
-      truckInfo: 'MP09RS3344 - 20 Ft Container',
-      truckType: '20 Ft Container',
-      pickupLocation: 'Pithampur Auto Zone',
-      pickupAddress: 'Pithampur, Madhya Pradesh',
-      pickupDate: '05 Jun 2026, 06:30 AM',
-      dropLocation: 'Pune Auto Cluster',
-      dropAddress: 'Chakan, Pune, Maharashtra',
-      dropEta: '06 Jun 2026, 08:00 AM',
-      distanceRemainingKm: 0.0,
-      etaHours: 0.0,
-      currentLocation: 'Pune Auto Cluster',
-      arrivalRequirementText: 'All parts received intact',
-      routePoints: [
-        'Pithampur Auto Zone',
-        'Indore',
-        'Nashik',
-        'Pune Auto Cluster',
-      ],
-    ),
-  ];
-
-  @override
-  Future<List<Trip>> getTrips({required String role}) async {
-    // Simulate minor network delay
-    await Future.delayed(const Duration(milliseconds: 600));
-    return _mockTrips;
-  }
-
   @override
   Future<Trip> getTripDetails(String tripId) async {
     final cleanId = tripId.trim();
@@ -299,61 +41,29 @@ class TripsRepositoryImpl implements TripsRepository {
         queryParameters: {'order_id': cleanId},
       );
       final responseData = response.data;
-      if (responseData != null && responseData is Map<String, dynamic>) {
+      if (responseData is Map<String, dynamic>) {
         if (responseData['status'] == true) {
           return _mapShipmentDetailsToTrip(responseData, cleanId);
-        } else {
-          final msg = responseData['message']?.toString() ?? 'Shipment not found for this order ID.';
-          throw Exception(msg);
         }
+        final msg = responseData['message']?.toString() ??
+            'Shipment not found for this order ID.';
+        throw Exception(msg);
       }
+      throw Exception('Shipment not found for this order ID.');
     } on AppException catch (e) {
       throw Exception(e.message);
     } catch (e) {
       if (e is Exception && e.toString().startsWith('Exception:')) {
         rethrow;
       }
-      // Fallback to local mock/dynamic trip if network exception occurs
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
-
-    final uppercaseId = cleanId.toUpperCase();
-    final index = _mockTrips.indexWhere((t) => t.id.toUpperCase() == uppercaseId || t.bookingId.toUpperCase() == uppercaseId);
-    if (index != -1) {
-      return _mockTrips[index];
-    }
-    
-    // If not directly found in mock list, construct a dynamic Trip model for the entered booking ID
-    final dynamicTrip = TripModel(
-      id: uppercaseId,
-      bookingId: uppercaseId,
-      status: 'Assigned',
-      isNew: true,
-      customerName: 'Ethan Thompson',
-      customerPhone: '+919876543210',
-      cargoType: 'Palletized',
-      weight: '507.00 KG',
-      truckInfo: 'MH01AB1234 - 20 Container',
-      truckType: '20 Container',
-      pickupLocation: 'Germany',
-      pickupAddress: 'D-503 Logistics Park, Sector 18, Berlin, Germany',
-      pickupDate: '2026-07-20',
-      dropLocation: 'Koper',
-      dropAddress: 'Koper',
-      dropEta: '2-3 Days',
-      distanceRemainingKm: 1000.0,
-      etaHours: 12.0,
-      currentLocation: 'Germany',
-      arrivalRequirementText: 'Electronics shipment',
-      routePoints: const [
-        'Germany',
-        'Koper',
-      ],
-    );
-    _mockTrips.insert(0, dynamicTrip);
-    return dynamicTrip;
   }
 
-  Trip _mapShipmentDetailsToTrip(Map<String, dynamic> responseJson, String requestedOrderId) {
+  Trip _mapShipmentDetailsToTrip(
+    Map<String, dynamic> responseJson,
+    String requestedOrderId,
+  ) {
     final data = responseJson['data'] as Map<String, dynamic>? ?? {};
     final trackingList = responseJson['tracking_history'] as List? ?? [];
     Map<String, dynamic>? trackingFirst;
@@ -369,51 +79,86 @@ class TripsRepositoryImpl implements TripsRepository {
     final bidStatus = data['bid_status'] as Map<String, dynamic>?;
 
     final orderId = data['order_id']?.toString() ?? requestedOrderId;
-    final statusLabel = statusObj?['label'] ?? bidStatus?['label'] ?? 'Approved';
-    
+    final statusLabel = statusObj?['label']?.toString() ??
+        bidStatus?['label']?.toString() ??
+        'Unknown';
+
     final firstName = user?['first_name']?.toString() ?? '';
     final lastName = user?['last_name']?.toString() ?? '';
-    final custName = ('$firstName $lastName').trim().isEmpty ? 'Ethan Thompson' : ('$firstName $lastName').trim();
-    final custPhone = user?['phone']?.toString() ?? '+919876543210';
+    final custName = ('$firstName $lastName').trim();
+    final custPhone = user?['phone']?.toString() ?? '';
 
-    final cargo = packaging?['name']?.toString() ?? data['title']?.toString() ?? 'General Cargo';
-    final weightVal = data['weight_of_goods'] != null ? '${data['weight_of_goods']} KG' : '507.00 KG';
+    final cargo = packaging?['name']?.toString() ??
+        data['title']?.toString() ??
+        'General Cargo';
+    final weightVal =
+        data['weight_of_goods'] != null ? '${data['weight_of_goods']} KG' : '';
     final containerName = containerType?['name']?.toString();
-    final truckTypeVal = containerName != null ? '$containerName Container' : 'Container';
+    final truckTypeVal = containerName != null ? '$containerName Container' : '';
 
-    final pickupLoc = data['pickup_location']?.toString() ?? 'Germany';
+    final pickupLoc = data['pickup_location']?.toString() ?? '';
     final addressVal = data['address']?.toString() ?? '';
     final cityVal = data['city']?.toString() ?? '';
     final countryVal = country?['name']?.toString() ?? '';
-    final fullPickupAddress = [addressVal, cityVal, countryVal].where((s) => s.isNotEmpty).join(', ');
+    final fullPickupAddress =
+        [addressVal, cityVal, countryVal].where((s) => s.isNotEmpty).join(', ');
 
-    final dropLoc = data['drop_location']?.toString() ?? 'Koper';
-    final dropEtaVal = data['transit_time']?.toString() ?? '2-3 Days';
-    final distKm = double.tryParse(data['distance_km']?.toString() ?? '1000') ?? 1000.0;
+    final dropLoc = data['drop_location']?.toString() ?? '';
+    final dropEtaVal = data['transit_time']?.toString() ?? '';
+    final distKm = double.tryParse(data['distance_km']?.toString() ?? '') ?? 0.0;
 
-    return TripModel(
+    final trackingStatusId = statusObj?['id'] is int
+        ? statusObj!['id'] as int
+        : int.tryParse('${statusObj?['id']}');
+
+    final documentUrl = _resolveDocumentUrl(
+      pdfUrl: responseJson['pdf_url']?.toString(),
+      pdfPath: data['pdf_path']?.toString(),
+    );
+
+    return Trip(
       id: orderId,
       bookingId: orderId,
       status: statusLabel,
-      isNew: true,
+      isNew: false,
       customerName: custName,
       customerPhone: custPhone,
       cargoType: cargo,
       weight: weightVal,
-      truckInfo: 'MH01AB1234 - $truckTypeVal',
+      truckInfo: truckTypeVal,
       truckType: truckTypeVal,
       pickupLocation: pickupLoc,
       pickupAddress: fullPickupAddress.isEmpty ? pickupLoc : fullPickupAddress,
-      pickupDate: data['pickup_date']?.toString() ?? '2026-07-20',
+      pickupDate: data['pickup_date']?.toString() ?? '',
       dropLocation: dropLoc,
       dropAddress: dropLoc,
       dropEta: dropEtaVal,
       distanceRemainingKm: distKm,
-      etaHours: 12.0,
-      currentLocation: trackingFirst?['current_location']?.toString() ?? pickupLoc,
-      arrivalRequirementText: data['title']?.toString() ?? 'Electronics shipment',
+      etaHours: 0.0,
+      currentLocation:
+          trackingFirst?['current_location']?.toString() ?? pickupLoc,
+      arrivalRequirementText: data['title']?.toString() ?? '',
+      trackingStatusId: trackingStatusId,
+      trackingStatusCode: statusObj?['code']?.toString(),
+      trackingStatusLabel: statusObj?['label']?.toString(),
+      direction: data['direction']?.toString(),
+      documentUrl: documentUrl,
       routePoints: [pickupLoc, dropLoc],
     );
+  }
+
+  /// The API sometimes returns a ready-to-use `pdf_url`; when it doesn't,
+  /// derive one from `pdf_path` using the storage host confirmed against the
+  /// staging API (note: no `/public` segment, unlike the API's own base URL).
+  String? _resolveDocumentUrl({String? pdfUrl, String? pdfPath}) {
+    if (pdfUrl != null && pdfUrl.trim().isNotEmpty) return pdfUrl.trim();
+    if (pdfPath == null || pdfPath.trim().isEmpty) return null;
+
+    final apiBase = Uri.parse(ApiConstants.baseUrl);
+    final storageBase = apiBase.replace(
+      path: apiBase.path.replaceFirst(RegExp(r'/public/api/?$'), '/storage'),
+    );
+    return '$storageBase/${pdfPath.trim()}';
   }
 
   @override
@@ -421,80 +166,129 @@ class TripsRepositoryImpl implements TripsRepository {
     required String tripId,
     required String status,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    final index = _mockTrips.indexWhere((t) => t.id == tripId);
-    if (index != -1) {
-      // Create updated trip and replace in list
-      final updatedTrip = _mockTrips[index].copyWith(
-        status: status,
-        // If status becomes Completed, set remaining distance to 0, etc.
-        distanceRemainingKm: status == 'Completed' || status == 'Delivered' ? 0.0 : null,
-        etaHours: status == 'Completed' || status == 'Delivered' ? 0.0 : null,
-        isNew: false,
-      );
-      _mockTrips[index] = updatedTrip;
-      return updatedTrip;
-    }
-    throw Exception('Trip with ID $tripId not found');
+    // No confirmed write endpoint exists yet for this granular workflow
+    // status (distinct from the tracking-status enum backing live tracking -
+    // see ApiConstants.updateTrackingStatus). Re-fetch the real trip and
+    // apply the change locally so the UI reflects the driver's intent without
+    // fabricating a persisted server state.
+    final trip = await getTripDetails(tripId);
+    return trip.copyWith(
+      status: status,
+      distanceRemainingKm:
+          status == 'Completed' || status == 'Delivered' ? 0.0 : null,
+      etaHours: status == 'Completed' || status == 'Delivered' ? 0.0 : null,
+      isNew: false,
+    );
   }
 
-  // In-memory mock list of quotes
-  static final List<Quote> _mockQuotes = [
-    const Quote(
-      id: 'QT-2026-0012',
-      quoteId: 'QT-2026-0012',
-      price: '€5,200',
-      route: 'To Koper — Germany',
-      vehicleType: 'Van',
-      date: '24 Jun 2026',
-      status: 'Accepted',
-      pickupLocation: 'Germany Warehouse',
-      dropLocation: 'To Koper Warehouse',
-      mobileNumber: '+91 9876543210',
-      address: '15 Liberation Board',
-      city: 'Munich',
-      country: 'Germany',
-      postalCode: '80331',
-      packagingType: 'Pallets',
-      weight: '500 KG',
-    ),
-    const Quote(
-      id: 'QT-2026-0013',
-      quoteId: 'QT-2026-0013',
-      price: '€3,150',
-      route: 'Berlin — Warsaw',
-      vehicleType: '14 Ft Truck',
-      date: '25 Jun 2026',
-      status: 'Pending',
-      pickupLocation: 'Berlin Terminal',
-      dropLocation: 'Warsaw Depot',
-      mobileNumber: '+91 9876543210',
-      address: 'Kaiser Strasse 10',
-      city: 'Berlin',
-      country: 'Germany',
-      postalCode: '10115',
-      packagingType: 'Boxes',
-      weight: '1200 KG',
-    ),
-    const Quote(
-      id: 'QT-2026-0014',
-      quoteId: 'QT-2026-0014',
-      price: '€7,800',
-      route: 'Paris — Madrid',
-      vehicleType: '20 Ft Container',
-      date: '26 Jun 2026',
-      status: 'Pending',
-      pickupLocation: 'Paris Nord',
-      dropLocation: 'Madrid Sur',
-      mobileNumber: '+91 9876543210',
-      address: 'Rue de Rivoli 45',
-      city: 'Paris',
-      country: 'France',
-      postalCode: '75001',
-      packagingType: 'Container',
-      weight: '5000 KG',
-    ),
-  ];
+  List<TrackingStatus>? _cachedTrackingStatuses;
+
+  @override
+  Future<List<TrackingStatus>> getTrackingStatuses() async {
+    final cached = _cachedTrackingStatuses;
+    if (cached != null) return cached;
+
+    try {
+      final response = await _apiClient.get(ApiConstants.trackingStatuses);
+      final responseData = response.data;
+      if (responseData is Map<String, dynamic> && responseData['status'] == true) {
+        final list = responseData['data'] as List? ?? [];
+        final statuses = list
+            .whereType<Map<String, dynamic>>()
+            .map(TrackingStatus.fromJson)
+            .toList();
+        _cachedTrackingStatuses = statuses;
+        return statuses;
+      }
+      final errorMessage = (responseData is Map<String, dynamic>
+          ? responseData['message']
+          : null) ?? 'Failed to load tracking statuses';
+      throw Exception(errorMessage);
+    } on AppException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      if (e is Exception && e.toString().startsWith('Exception:')) {
+        rethrow;
+      }
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  @override
+  Future<void> pingTrackingLocation({
+    required String orderId,
+    required double latitude,
+    required double longitude,
+    String? address,
+    String? notes,
+    String status = 'ONGOING',
+    int? statusId,
+  }) async {
+    try {
+      await _apiClient.post(
+        ApiConstants.updateTrackingStatus,
+        data: {
+          'order_id': orderId,
+          'latitude': latitude,
+          'longitude': longitude,
+          if (address != null && address.trim().isNotEmpty)
+            'address': address.trim(),
+          if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+          'status': status,
+          // ignore: use_null_aware_elements
+          if (statusId != null) 'tracking_status_id': statusId,
+        },
+      );
+    } catch (_) {
+      // Swallowed - best-effort telemetry ping
+    }
+  }
+
+  @override
+  Future<void> updateTrackingStatus({
+    required String orderId,
+    required int statusId,
+    String? status,
+    double? latitude,
+    double? longitude,
+    String? address,
+    String? notes,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.updateTrackingStatus,
+        data: {
+          'order_id': orderId,
+          'tracking_status_id': statusId,
+          'status': status ?? 'ONGOING',
+          // ignore: use_null_aware_elements
+          if (latitude != null) 'latitude': latitude,
+          // ignore: use_null_aware_elements
+          if (longitude != null) 'longitude': longitude,
+          if (address != null && address.trim().isNotEmpty)
+            'address': address.trim(),
+          if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+        },
+      );
+      final responseData = response.data;
+      if (responseData is Map<String, dynamic> &&
+          responseData['status'] == false) {
+        throw Exception(
+          responseData['message']?.toString() ??
+              'Failed to update tracking status',
+        );
+      }
+    } on AppException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      if (e is Exception && e.toString().startsWith('Exception:')) rethrow;
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  // Client-side cache populated only by real API responses (getQuotes,
+  // requestQuote, createBookingQuote) - never seeded with placeholder data.
+  static final List<Quote> _mockQuotes = [];
 
   @override
   Future<List<Quote>> getQuotes({String? status}) async {
@@ -560,62 +354,16 @@ class TripsRepositoryImpl implements TripsRepository {
       }
     }
 
-    // 2. Find and update local mock list so the UI updates
+    // Update the local cache (populated only from real API responses) so the
+    // quotes tab reflects the change immediately.
     final index = _mockQuotes.indexWhere((q) => q.quoteId == quoteId);
     if (index != -1) {
       final updatedQuote = _mockQuotes[index].copyWith(status: 'Accepted');
       _mockQuotes[index] = updatedQuote;
-      
-      // Also automatically create an associated active trip for the driver when a quote is accepted!
-      final newTripId = 'BK-2026-100${25 + index}';
-      final newTrip = Trip(
-        id: newTripId,
-        bookingId: newTripId,
-        status: 'Assigned',
-        isNew: true,
-        customerName: 'Rahul Sharma',
-        customerPhone: updatedQuote.mobileNumber,
-        cargoType: updatedQuote.packagingType,
-        weight: updatedQuote.weight,
-        truckInfo: 'MH01AB1234 - ${updatedQuote.vehicleType}',
-        truckType: updatedQuote.vehicleType,
-        pickupLocation: updatedQuote.pickupLocation,
-        pickupAddress: updatedQuote.address,
-        pickupDate: '${updatedQuote.date}, 10:00 AM',
-        dropLocation: updatedQuote.dropLocation,
-        dropAddress: '${updatedQuote.city}, ${updatedQuote.country}',
-        dropEta: '28 Jun 2026, 06:00 PM',
-        distanceRemainingKm: 1200.0,
-        etaHours: 18.0,
-        currentLocation: updatedQuote.pickupLocation,
-        arrivalRequirementText: 'Shipment scheduled for delivery',
-        routePoints: [updatedQuote.pickupLocation, updatedQuote.dropLocation],
-      );
-      
-      _mockTrips.insert(0, newTrip);
-      
       return updatedQuote;
     }
-    
-    // If not in cache (e.g. freshly created direct quote), return a default quote
-    return Quote(
-      id: quoteId,
-      quoteId: quoteId,
-      status: 'Accepted',
-      date: 'Today',
-      vehicleType: '20',
-      packagingType: 'Palletized',
-      weight: '25000 KG',
-      country: 'Germany',
-      city: 'Berlin',
-      pickupLocation: 'Koper',
-      dropLocation: 'Germany',
-      price: '4500 EUR',
-      route: 'Koper ➔ Germany',
-      address: '',
-      mobileNumber: '',
-      postalCode: '',
-    );
+
+    throw Exception('Quote $quoteId not found');
   }
 
   @override

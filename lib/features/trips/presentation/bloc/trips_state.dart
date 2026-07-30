@@ -14,15 +14,6 @@ class TripsInitial extends TripsState {}
 
 class TripsLoading extends TripsState {}
 
-class TripsLoaded extends TripsState {
-  final List<Trip> trips;
-
-  const TripsLoaded({required this.trips});
-
-  @override
-  List<Object?> get props => [trips];
-}
-
 class TripDetailsLoaded extends TripsState {
   final Trip trip;
 

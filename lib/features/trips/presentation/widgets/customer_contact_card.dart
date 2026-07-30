@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/top_snack_bar.dart';
 
 class CustomerContactCard extends StatelessWidget {
   final String customerName;
@@ -76,20 +77,18 @@ class CustomerContactCard extends StatelessWidget {
           // Dialer Button
           InkWell(
             onTap: () async {
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
               final Uri launchUri = Uri(
                 scheme: 'tel',
                 path: customerPhone,
               );
               if (await canLaunchUrl(launchUri)) {
                 await launchUrl(launchUri);
-              } else {
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Could not launch dialer for this number',
-                    ),
-                  ),
+              } else if (context.mounted) {
+                TopSnackBar.show(
+                  context,
+                  message: 'Could not launch dialer for this number',
+                  backgroundColor: AppColors.danger,
+                  icon: Icons.error_outline,
                 );
               }
             },

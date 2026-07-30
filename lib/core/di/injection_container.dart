@@ -2,6 +2,9 @@ import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_client.dart';
+import '../utils/active_order_store.dart';
+import '../utils/document_downloader.dart';
+import '../utils/recent_orders_store.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
@@ -20,7 +23,6 @@ import '../../features/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../features/trips/data/repositories/trips_repository_impl.dart';
 import '../../features/trips/domain/repositories/trips_repository.dart';
-import '../../features/trips/domain/usecases/get_trips_usecase.dart';
 import '../../features/trips/domain/usecases/get_trip_details_usecase.dart';
 import '../../features/trips/domain/usecases/update_trip_status_usecase.dart';
 import '../../features/trips/domain/usecases/get_quotes_usecase.dart';
@@ -38,8 +40,13 @@ Future<void> init() async {
   // Core
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
+  sl.registerLazySingleton(() => RecentOrdersStore(sharedPreferences));
+  sl.registerLazySingleton(() => ActiveOrderStore(sharedPreferences));
   sl.registerLazySingleton(() => Dio());
   sl.registerLazySingleton(() => ApiClient(sl()));
+  // Its own Dio: document hosts are outside the API base URL and must not
+  // inherit the API client's baseUrl or auth header.
+  sl.registerLazySingleton(() => DocumentDownloader(Dio()));
 
   // Features - Auth
 
@@ -82,7 +89,6 @@ Future<void> init() async {
   // Bloc
   sl.registerFactory(
     () => TripsBloc(
-      getTripsUseCase: sl(),
       getTripDetailsUseCase: sl(),
       updateTripStatusUseCase: sl(),
       getQuotesUseCase: sl(),
@@ -95,7 +101,6 @@ Future<void> init() async {
   sl.registerFactory(() => DashboardBloc(getDashboardDataUseCase: sl()));
 
   // Use cases
-  sl.registerLazySingleton(() => GetTripsUseCase(sl()));
   sl.registerLazySingleton(() => GetTripDetailsUseCase(sl()));
   sl.registerLazySingleton(() => UpdateTripStatusUseCase(sl()));
   sl.registerLazySingleton(() => GetQuotesUseCase(sl()));

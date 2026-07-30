@@ -24,6 +24,10 @@
 		<string>????</string>
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>GMSApiKey</key>
+		<string>$(MAPS_API_KEY)</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Syntracore uses your location to show your live position on the map while a trip is in progress.</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UIApplicationSceneManifest</key>

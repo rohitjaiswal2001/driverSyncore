@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ShiftTimerCard extends StatelessWidget {
   final String formattedDuration;
@@ -18,11 +19,11 @@ class ShiftTimerCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F2C59),
+        color: AppColors.navy,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F2C59).withValues(alpha: 0.2),
+            color: AppColors.navy.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),

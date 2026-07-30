@@ -125,10 +125,8 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => FullscreenImageViewer(
-          imageUrl: imageUrl,
-          heroTag: _avatarHeroTag,
-        ),
+        builder: (_) =>
+            FullscreenImageViewer(imageUrl: imageUrl, heroTag: _avatarHeroTag),
       ),
     );
   }

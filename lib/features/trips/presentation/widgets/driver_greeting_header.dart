@@ -33,7 +33,7 @@ class DriverGreetingHeader extends StatelessWidget {
           style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w900,
-            color: Color(0xFF0F2C59),
+            color: AppColors.navy,
             letterSpacing: -0.5,
           ),
         ),

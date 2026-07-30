@@ -5,7 +5,7 @@
 /// only change needed to switch Help & Support from an informational sheet to
 /// working call/email actions.
 class AppInfo {
-  static const String appName = 'SyntraCore Fleet Management';
+  static const String appName = 'Globelink';
 
   /// Keep in sync with `version:` in pubspec.yaml.
   static const String version = '1.0.0';

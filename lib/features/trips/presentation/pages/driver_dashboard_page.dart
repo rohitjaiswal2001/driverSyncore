@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_info.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/active_order_store.dart';
+import '../../../../core/utils/recent_orders_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_info_sheet.dart';
 import '../../../../core/widgets/skeleton_box.dart';
@@ -44,8 +45,6 @@ class DriverDashboardPage extends StatefulWidget {
 }
 
 class _DriverDashboardPageState extends State<DriverDashboardPage> {
-  static const String _activeBookingIdKey = 'active_booking_order_id';
-
   String? _activeBookingId;
   Trip? _activeTrip;
   User? _cachedUser;
@@ -84,10 +83,9 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   // ---------------------------------------------------------------------------
 
   Future<void> _restoreActiveBooking() async {
-    final prefs = di.sl<SharedPreferences>();
-    final savedBookingId = prefs.getString(_activeBookingIdKey)?.trim();
+    final savedBookingId = di.sl<ActiveOrderStore>().read();
 
-    if (savedBookingId != null && savedBookingId.isNotEmpty) {
+    if (savedBookingId != null) {
       _activeBookingId = savedBookingId;
       await _fetchTripForBookingId(savedBookingId, saveToPrefs: false);
     }
@@ -108,11 +106,9 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       final trip = await di.sl<TripsRepository>().getTripDetails(bookingId);
 
       if (saveToPrefs) {
-        await di.sl<SharedPreferences>().setString(
-          _activeBookingIdKey,
-          bookingId.trim().toUpperCase(),
-        );
+        await di.sl<ActiveOrderStore>().set(bookingId);
       }
+      await di.sl<RecentOrdersStore>().record(trip.bookingId);
 
       if (!mounted) return;
       setState(() {
@@ -158,7 +154,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
     if (!confirmed) return;
 
-    await di.sl<SharedPreferences>().remove(_activeBookingIdKey);
+    await di.sl<ActiveOrderStore>().clear();
     if (!mounted) return;
     setState(() {
       _activeBookingId = null;

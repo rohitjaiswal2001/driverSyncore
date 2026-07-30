@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors
-  static const Color primary = Color(0xFF1A3B8B); // Syntracore Royal Blue
-  static const Color primaryLight = Color(0xFFEFF3FD);
-  static const Color navy = Color(0xFF0F2C59); // Deep brand navy for headings
-  static const Color navyDeep = Color(0xFF0A1F40); // Gradient end for navy
+  // Brand Colors - matched to the Syntracore admin web panel's indigo-blue
+  static const Color primary = Color(0xFF4F46E5); // Admin panel active pill
+  static const Color primaryLight = Color(0xFFEEF2FF);
+  static const Color navy = Color(0xFF312E81); // Deep indigo for headings
+  static const Color navyDeep = Color(0xFF1E1B4B); // Gradient end for navy
   static const Color accentBlue = Color(0xFF2563EB);
   static const Color accentOrange = Color(0xFFF97316);
   static const Color accentGreen = Color(0xFF10B981);

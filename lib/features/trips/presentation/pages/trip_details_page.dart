@@ -169,7 +169,10 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   const SizedBox(height: 16),
 
                   // 6. Documents List Card
-                  const TripDocumentsCard(),
+                  TripDocumentsCard(
+                    documentUrl: trip.documentUrl,
+                    bookingId: trip.bookingId,
+                  ),
                   const SizedBox(height: 80), // bottom spacing
                 ],
               ),

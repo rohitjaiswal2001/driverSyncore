@@ -21,6 +21,7 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _companyController = TextEditingController();
   final _emailController = TextEditingController();
@@ -42,6 +43,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void dispose() {
     _firstNameController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
     _companyController.dispose();
     _emailController.dispose();
@@ -69,7 +71,7 @@ class _RegisterPageState extends State<RegisterPage> {
       context.read<AuthBloc>().add(
         RegisterSubmitted(
           firstName: _firstNameController.text.trim(),
-          lastName: '',
+          lastName: _lastNameController.text.trim(),
           email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
           role: 'driver',
@@ -199,6 +201,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     const SizedBox(height: 8),
                                     TextFormField(
                                       controller: _firstNameController,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
                                       keyboardType: TextInputType.name,
                                       textCapitalization:
                                           TextCapitalization.words,
@@ -224,6 +228,45 @@ class _RegisterPageState extends State<RegisterPage> {
                                     ),
                                     const SizedBox(height: 20),
 
+                                    // Last Name field
+                                    const Text(
+                                      'Last Name',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textDark,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextFormField(
+                                      controller: _lastNameController,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
+                                      keyboardType: TextInputType.name,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textDark,
+                                      ),
+                                      validator: (val) {
+                                        if (val == null || val.trim().isEmpty) {
+                                          return 'Enter your last name';
+                                        }
+                                        return null;
+                                      },
+                                      decoration: const InputDecoration(
+                                        hintText: 'Last Name',
+                                        prefixIcon: Icon(
+                                          Icons.person_outline,
+                                          color: AppColors.textMedium,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+
                                     // Phone Number field
                                     const Text(
                                       'Phone Number (Optional)',
@@ -236,6 +279,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     const SizedBox(height: 8),
                                     TextFormField(
                                       controller: _phoneController,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
                                       keyboardType: TextInputType.phone,
                                       style: const TextStyle(
                                         fontSize: 16,
@@ -275,6 +320,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     const SizedBox(height: 8),
                                     TextFormField(
                                       controller: _companyController,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
                                       keyboardType: TextInputType.text,
                                       style: const TextStyle(
                                         fontSize: 16,
@@ -305,6 +352,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                     const SizedBox(height: 8),
                                     TextFormField(
                                       controller: _emailController,
+                                      autovalidateMode:
+                                          AutovalidateMode.onUserInteraction,
                                       keyboardType: TextInputType.emailAddress,
                                       style: const TextStyle(
                                         fontSize: 16,
@@ -347,13 +396,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                       builder: (context, visible, _) {
                                         return TextFormField(
                                           controller: _passwordController,
+                                          autovalidateMode: AutovalidateMode
+                                              .onUserInteraction,
                                           obscureText: !visible,
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                             color: AppColors.textDark,
                                           ),
-                                          validator: Validators.validatePassword,
+                                          validator:
+                                              Validators.validatePassword,
                                           decoration: InputDecoration(
                                             hintText:
                                                 'Create a strong password',
@@ -398,6 +450,8 @@ class _RegisterPageState extends State<RegisterPage> {
                                         return TextFormField(
                                           controller:
                                               _confirmPasswordController,
+                                          autovalidateMode: AutovalidateMode
+                                              .onUserInteraction,
                                           obscureText: !visible,
                                           style: const TextStyle(
                                             fontSize: 16,
