@@ -24,6 +24,16 @@ class TripStatusStyle {
     return normalised == 'completed' || normalised == 'delivered';
   }
 
+  /// True once the shipment has already moved past the pre-start state and is
+  /// actively being tracked.
+  bool get isTrackingStarted {
+    final normalised = label.toLowerCase();
+    return normalised == 'trip started' ||
+        normalised == 'in transit' ||
+        normalised == 'ongoing' ||
+        normalised == 'shipment_start';
+  }
+
   static TripStatusStyle of(String status) {
     final label = status.trim().isEmpty ? 'Unknown' : status.trim();
 

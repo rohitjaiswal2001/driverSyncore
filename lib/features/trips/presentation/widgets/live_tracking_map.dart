@@ -281,10 +281,20 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     final distanceKm = _calculateDistanceKm(driver, destination);
     if (distanceKm.isNaN || distanceKm.isInfinite) return '';
 
-    final rounded = distanceKm < 1
+    final roundedDistance = distanceKm < 1
         ? distanceKm.toStringAsFixed(1)
         : distanceKm.toStringAsFixed(0);
-    return '$rounded km';
+
+    const averageSpeedKmh = 45.0;
+    final etaMinutes = averageSpeedKmh <= 0
+        ? 0
+        : (distanceKm / averageSpeedKmh * 60).round();
+
+    final etaText = etaMinutes < 60
+        ? '$etaMinutes min'
+        : '${(etaMinutes / 60).floor()}h ${etaMinutes % 60}m';
+
+    return '$roundedDistance km • ETA $etaText';
   }
 
   double _calculateDistanceKm(LatLng a, LatLng b) {
@@ -363,6 +373,9 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
             onCameraMoveStarted: () {
               _isUserInteracting = true;
             },
+            onCameraIdle: () {
+              _isUserInteracting = false;
+            },
           ),
 
           // Top left: Status overlay pill
@@ -387,16 +400,6 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
             ),
 
           // Top right: Waiting/GPS status pill if driver location unavailable
-          if (waitingMessage != null)
-            Positioned(
-              top: 14,
-              right: 14,
-              child: _MapStatusPill(
-                icon: Icons.gps_not_fixed_rounded,
-                label: waitingMessage,
-              ),
-            ),
-
           if (widget.isLive && widget.driverPosition != null)
             const Positioned(left: 16, top: 54, child: _LiveGpsBadge()),
 
@@ -497,10 +500,10 @@ class _DistanceOverlayPill extends StatelessWidget {
           const Icon(Icons.route_rounded, color: Colors.white, size: 15),
           const SizedBox(width: 6),
           Text(
-            'REM. $distanceText',
+            distanceText.toUpperCase(),
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.3,
             ),

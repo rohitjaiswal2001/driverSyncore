@@ -4,19 +4,25 @@ import '../../../../core/theme/app_colors.dart';
 class TransitStatusBar extends StatelessWidget {
   final String statusText;
   final String statusLabel;
+  final String? badgeText;
 
   const TransitStatusBar({
     super.key,
     required this.statusText,
     this.statusLabel = 'IN TRANSIT',
+    this.badgeText,
   });
 
   @override
   Widget build(BuildContext context) {
+    final displayBadgeText = (badgeText ?? statusText).trim();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.primary.withAlpha(242), // Semi-transparent blue/primary
+        color: AppColors.primary.withAlpha(
+          242,
+        ), // Semi-transparent blue/primary
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withAlpha(38)),
       ),
@@ -60,7 +66,7 @@ class TransitStatusBar extends StatelessWidget {
               ],
             ),
           ),
-          // Live Activity Badge
+          // Tracking status badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -79,9 +85,9 @@ class TransitStatusBar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                const Text(
-                  'Active',
-                  style: TextStyle(
+                Text(
+                  displayBadgeText.toUpperCase(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,

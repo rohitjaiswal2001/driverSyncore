@@ -28,6 +28,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   LocationTrackingController? _locationController;
 
   bool _isLoading = true;
+  bool _isTrackingEnabled = true;
   String? _loadError;
 
   @override
@@ -319,7 +320,22 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 
                       // Beautiful Live Tracking In Progress Card (if status is ongoing / shipment started)
                       if (isTrackingEligible) ...[
-                        _LiveTrackingInProgressCard(
+                        _LiveTrackingToggleCard(
+                          isEnabled: _isTrackingEnabled,
+                          statusLabel:
+                              resolvedTrackingStatus?.label ?? trip.status,
+                          onToggleChanged: (value) {
+                            setState(() => _isTrackingEnabled = value);
+                            if (!value) {
+                              _locationController?.dispose();
+                              _locationController = null;
+                            } else {
+                              _handleActiveTrip(trip);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _StatusHistoryStrip(
                           statusLabel:
                               resolvedTrackingStatus?.label ?? trip.status,
                         ),
@@ -484,18 +500,23 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 }
 
 /// Animated Live Tracking Card displayed when shipment tracking is in progress.
-class _LiveTrackingInProgressCard extends StatefulWidget {
+class _LiveTrackingToggleCard extends StatefulWidget {
   final String statusLabel;
+  final bool isEnabled;
+  final ValueChanged<bool> onToggleChanged;
 
-  const _LiveTrackingInProgressCard({required this.statusLabel});
+  const _LiveTrackingToggleCard({
+    required this.statusLabel,
+    required this.isEnabled,
+    required this.onToggleChanged,
+  });
 
   @override
-  State<_LiveTrackingInProgressCard> createState() =>
-      __LiveTrackingInProgressCardState();
+  State<_LiveTrackingToggleCard> createState() =>
+      __LiveTrackingToggleCardState();
 }
 
-class __LiveTrackingInProgressCardState
-    extends State<_LiveTrackingInProgressCard>
+class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animController;
 
@@ -580,9 +601,9 @@ class __LiveTrackingInProgressCardState
                         color: AppColors.accentGreen.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
-                        'LIVE',
-                        style: TextStyle(
+                      child: Text(
+                        widget.isEnabled ? 'LIVE' : 'PAUSED',
+                        style: const TextStyle(
                           color: AppColors.accentGreen,
                           fontWeight: FontWeight.bold,
                           fontSize: 10,
@@ -592,23 +613,83 @@ class __LiveTrackingInProgressCardState
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Tracking In Progress',
-                  style: TextStyle(
+                Text(
+                  widget.isEnabled ? 'Tracking In Progress' : 'Tracking Paused',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'Location updates sent automatically every 10s',
-                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                Text(
+                  widget.isEnabled
+                      ? 'Location updates are sent automatically every 30 minutes'
+                      : 'Tap the switch to resume live tracking',
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 12),
+          Switch.adaptive(
+            value: widget.isEnabled,
+            activeColor: AppColors.accentGreen,
+            onChanged: widget.onToggleChanged,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatusHistoryStrip extends StatelessWidget {
+  final String statusLabel;
+
+  const _StatusHistoryStrip({required this.statusLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = <String>['Started', 'In Transit', statusLabel];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: List.generate(steps.length, (index) {
+          final isLast = index == steps.length - 1;
+          return Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: isLast ? AppColors.primary : AppColors.accentGreen,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    steps[index],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isLast ? FontWeight.w700 : FontWeight.w600,
+                      color: isLast ? AppColors.textDark : AppColors.textMedium,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (!isLast) const SizedBox(width: 6),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }

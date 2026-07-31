@@ -339,6 +339,8 @@ class ActiveTripCard extends StatelessWidget {
   }
 
   Widget _buildActions(TripStatusStyle status) {
+    final showTrackMap = status.isTrackingStarted;
+
     return Row(
       children: [
         Expanded(
@@ -369,7 +371,9 @@ class ActiveTripCard extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: status.isTerminal
                     ? AppColors.accentGreen
-                    : AppColors.navy,
+                    : showTrackMap
+                    ? AppColors.navy
+                    : AppColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
@@ -379,17 +383,27 @@ class ActiveTripCard extends StatelessWidget {
               icon: Icon(
                 status.isTerminal
                     ? Icons.add_circle_outline_rounded
-                    : Icons.map_outlined,
+                    : showTrackMap
+                    ? Icons.edit_note_rounded
+                    : Icons.play_circle_outline_rounded,
                 size: 17,
               ),
               label: Text(
-                status.isTerminal ? 'New Trip' : 'Track Map',
+                status.isTerminal
+                    ? 'New Trip'
+                    : showTrackMap
+                    ? 'Update Shipment Status'
+                    : 'Start Shipment',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              onPressed: status.isTerminal ? onChangeBooking : onTrackMap,
+              onPressed: status.isTerminal
+                  ? onChangeBooking
+                  : showTrackMap
+                  ? onTrackMap
+                  : () {},
             ),
           ),
         ),

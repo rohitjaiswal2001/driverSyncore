@@ -10,7 +10,6 @@ import '../bloc/trips_bloc.dart';
 import '../bloc/trips_event.dart';
 import '../bloc/trips_state.dart';
 import '../controllers/location_tracking_controller.dart';
-import '../widgets/direction_badge.dart';
 import '../widgets/route_timeline.dart';
 import '../widgets/trip_details_map_card.dart';
 import '../widgets/customer_contact_card.dart';
@@ -18,6 +17,7 @@ import '../widgets/cargo_metrics_row.dart';
 import '../widgets/trip_documents_card.dart';
 import '../widgets/transit_status_bar.dart';
 import '../widgets/truck_info_card.dart';
+import '../widgets/trip_status_chip.dart';
 import 'update_status_page.dart';
 
 class TripInProgressPage extends StatefulWidget {
@@ -168,33 +168,6 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Direction Badge Header Row
-                  if (trip.direction != null && trip.direction!.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        DirectionBadge(direction: trip.direction),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withAlpha(20),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            trip.status.toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ],
 
                   // 1. Live Google Map Card at the Top
                   TripDetailsMapCard(
@@ -211,10 +184,11 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
 
                   // 2. Active Transit Status Bar
                   TransitStatusBar(
-                    statusLabel: 'IN TRANSIT',
+                    statusLabel: 'TRACKING STATUS',
                     statusText: trip.status == 'Trip Started'
                         ? 'Moving to Destination'
                         : trip.status,
+                    badgeText: trip.trackingStatusLabel ?? trip.status,
                   ),
                   const SizedBox(height: 16),
 
@@ -278,6 +252,9 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
           }
           if (_cachedTrip != null) {
             final trip = _cachedTrip!;
+            final statusStyle = TripStatusStyle.of(trip.status);
+            final isStarted = statusStyle.isTrackingStarted;
+
             return Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -304,12 +281,18 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.list_alt_rounded, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
+                  children: [
+                    Icon(
+                      isStarted
+                          ? Icons.edit_note_rounded
+                          : Icons.play_circle_outline_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      'Update Status',
-                      style: TextStyle(
+                      isStarted ? 'Update Shipment Status' : 'Start Trip',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
