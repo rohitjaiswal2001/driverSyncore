@@ -1,10 +1,49 @@
-import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+
+List<LatLng> decodeGooglePolyline(String encoded) {
+  final points = <LatLng>[];
+  if (encoded.isEmpty) return points;
+
+  var index = 0;
+  final length = encoded.length;
+  var lat = 0;
+  var lng = 0;
+
+  while (index < length) {
+    var bit = 0;
+    var result = 0;
+    do {
+      final byte = encoded.codeUnitAt(index++) - 63;
+      result |= (byte & 0x1f) << bit;
+      bit += 5;
+    } while (encoded.codeUnitAt(index - 1) - 63 >= 0x20);
+
+    final deltaLat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+    lat += deltaLat;
+
+    bit = 0;
+    result = 0;
+    do {
+      final byte = encoded.codeUnitAt(index++) - 63;
+      result |= (byte & 0x1f) << bit;
+      bit += 5;
+    } while (encoded.codeUnitAt(index - 1) - 63 >= 0x20);
+
+    final deltaLng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+    lng += deltaLng;
+
+    points.add(LatLng(lat / 1e5, lng / 1e5));
+  }
+
+  return points;
+}
 
 /// Live Google Map for the "Trip In Progress" screen.
 ///
@@ -45,9 +84,11 @@ class LiveTrackingMap extends StatefulWidget {
 
 class _LiveTrackingMapState extends State<LiveTrackingMap> {
   final Geocoding _geocoding = Geocoding();
+  final Dio _dio = Dio();
   GoogleMapController? _mapController;
   LatLng? _pickupLatLng;
   LatLng? _dropLatLng;
+  List<LatLng> _routePoints = const [];
   bool _hasCenteredOnDriver = false;
   bool _isUserInteracting = false;
 
@@ -74,10 +115,19 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     final pickup = await _geocode(widget.pickupLabel);
     final drop = await _geocode(widget.dropLabel);
     if (!mounted) return;
+
     setState(() {
       _pickupLatLng = pickup;
       _dropLatLng = drop;
+      _routePoints = const [];
     });
+
+    if (pickup != null && drop != null) {
+      final routePoints = await _fetchRoutePolyline(pickup, drop);
+      if (!mounted) return;
+      setState(() => _routePoints = routePoints);
+    }
+
     if (!_isUserInteracting) {
       _fitToVisibleMarkers();
     }
@@ -108,15 +158,54 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     }
   }
 
+  Future<List<LatLng>> _fetchRoutePolyline(
+    LatLng origin,
+    LatLng destination,
+  ) async {
+    const apiKey = String.fromEnvironment(
+      'MAPS_API_KEY',
+      defaultValue: 'AIzaSyDKjnNPu8LL8i1S8ac3cXCEkJhJ6p5Por0',
+    );
+
+    if (apiKey.isEmpty) return const [];
+
+    try {
+      final response = await _dio.get(
+        'https://maps.googleapis.com/maps/api/directions/json',
+        queryParameters: {
+          'origin': '${origin.latitude},${origin.longitude}',
+          'destination': '${destination.latitude},${destination.longitude}',
+          'mode': 'driving',
+          'key': apiKey,
+        },
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) return const [];
+
+      final routes = data['routes'] as List? ?? const [];
+      if (routes.isEmpty) return const [];
+
+      final firstRoute = routes.first as Map<String, dynamic>?;
+      final encodedPoints = firstRoute?['overview_polyline']?['points']
+          ?.toString();
+      if (encodedPoints == null || encodedPoints.isEmpty) return const [];
+
+      return decodeGooglePolyline(encodedPoints);
+    } catch (_) {
+      return const [];
+    }
+  }
+
   void _fitToVisibleMarkers() {
     final controller = _mapController;
     if (controller == null || _isUserInteracting) return;
 
-    final points = <LatLng>[
-      ?widget.driverPosition,
-      ?_pickupLatLng,
-      ?_dropLatLng,
-    ];
+    final points = <LatLng>[];
+    if (widget.driverPosition != null) points.add(widget.driverPosition!);
+    if (_pickupLatLng != null) points.add(_pickupLatLng!);
+    if (_dropLatLng != null) points.add(_dropLatLng!);
+    if (_routePoints.isNotEmpty) points.addAll(_routePoints);
     if (points.length < 2) return;
 
     final bounds = _boundsFor(points);
@@ -184,12 +273,41 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     return markers;
   }
 
+  String _remainingDistanceText() {
+    final driver = widget.driverPosition;
+    final destination = _dropLatLng;
+    if (driver == null || destination == null) return '';
+
+    final distanceKm = _calculateDistanceKm(driver, destination);
+    if (distanceKm.isNaN || distanceKm.isInfinite) return '';
+
+    final rounded = distanceKm < 1
+        ? distanceKm.toStringAsFixed(1)
+        : distanceKm.toStringAsFixed(0);
+    return '$rounded km';
+  }
+
+  double _calculateDistanceKm(LatLng a, LatLng b) {
+    const earthRadiusKm = 6371.0;
+    final lat1 = a.latitude * (3.141592653589793 / 180);
+    final lat2 = b.latitude * (3.141592653589793 / 180);
+    final deltaLng = (b.longitude - a.longitude) * (3.141592653589793 / 180);
+
+    final haversine =
+        (math.sin(lat1) * math.sin(lat2)) +
+        (math.cos(lat1) * math.cos(lat2) * math.cos(deltaLng));
+    final centralAngle = math.acos(haversine.clamp(-1.0, 1.0));
+    return earthRadiusKm * centralAngle;
+  }
+
   Set<Polyline> _buildPolylines() {
     final polylines = <Polyline>{};
-    final points = <LatLng>[];
-    if (_pickupLatLng != null) points.add(_pickupLatLng!);
-    if (widget.driverPosition != null) points.add(widget.driverPosition!);
-    if (_dropLatLng != null) points.add(_dropLatLng!);
+    final points = _routePoints.isNotEmpty
+        ? _routePoints
+        : <LatLng>[
+            if (_pickupLatLng != null) _pickupLatLng!,
+            if (_dropLatLng != null) _dropLatLng!,
+          ];
 
     if (points.length >= 2) {
       polylines.add(
@@ -256,6 +374,15 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
               child: _StatusOverlayPill(
                 label: widget.trackingStatusText!,
                 isLive: widget.isLive,
+              ),
+            ),
+
+          if (_remainingDistanceText().isNotEmpty)
+            Positioned(
+              top: 14,
+              right: 14,
+              child: _DistanceOverlayPill(
+                distanceText: _remainingDistanceText(),
               ),
             ),
 
@@ -342,6 +469,40 @@ class _StatusOverlayPill extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DistanceOverlayPill extends StatelessWidget {
+  final String distanceText;
+
+  const _DistanceOverlayPill({required this.distanceText});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.route_rounded, color: Colors.white, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            'REM. $distanceText',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
             ),
           ),
         ],

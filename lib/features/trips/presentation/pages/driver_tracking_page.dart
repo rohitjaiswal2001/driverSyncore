@@ -260,7 +260,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final mapHeight = constraints.maxHeight * 0.58;
+        final mapHeight = constraints.maxHeight * 0.66;
 
         return Column(
           children: [

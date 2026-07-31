@@ -24,7 +24,7 @@ enum LocationAccessState {
 /// and never once the shipment is done or has failed. Outside that window a
 /// single best-effort position fetch still runs so the map has a starting pin.
 class LocationTrackingController extends ChangeNotifier {
-  static const _pingInterval = Duration(seconds: 10);
+  static const _pingInterval = Duration(minutes: 30);
 
   final TripsRepository repository;
   final String orderId;
@@ -57,22 +57,26 @@ class LocationTrackingController extends ChangeNotifier {
 
     try {
       _currentPosition ??= await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
       _safeNotify();
     } catch (_) {}
 
-    _positionSubscription ??= Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      ),
-    ).listen((position) {
-      _currentPosition = position;
-      _safeNotify();
-    });
+    _positionSubscription ??=
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10,
+          ),
+        ).listen((position) {
+          _currentPosition = position;
+          _safeNotify();
+        });
 
-    if (_pingTimer == null && (_trackingStatus?.isLiveTrackingEligible ?? false)) {
+    if (_pingTimer == null &&
+        (_trackingStatus?.isLiveTrackingEligible ?? false)) {
       _pingTimer = Timer.periodic(_pingInterval, (_) => _sendPing());
       unawaited(_sendPing()); // fire the first ping immediately
     }
@@ -92,7 +96,9 @@ class LocationTrackingController extends ChangeNotifier {
     }
     try {
       _currentPosition = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
       );
     } catch (_) {
       // Best-effort only - the map falls back to the pickup location.

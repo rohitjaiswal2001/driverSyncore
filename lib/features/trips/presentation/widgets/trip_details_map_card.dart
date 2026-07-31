@@ -11,6 +11,7 @@ class TripDetailsMapCard extends StatelessWidget {
   final bool isTripInProgress;
   final String speedText;
   final String? statusMessage;
+  final String? trackingStatusText;
   final double height;
 
   const TripDetailsMapCard({
@@ -22,6 +23,7 @@ class TripDetailsMapCard extends StatelessWidget {
     this.isTripInProgress = false,
     this.speedText = '62 km/h',
     this.statusMessage,
+    this.trackingStatusText,
     this.height = 260,
   });
 
@@ -49,6 +51,7 @@ class TripDetailsMapCard extends StatelessWidget {
               dropLabel: toLocation,
               isLive: isTripInProgress,
               statusMessage: statusMessage,
+              trackingStatusText: trackingStatusText,
               borderRadius: BorderRadius.circular(24),
             ),
           ),
@@ -60,8 +63,10 @@ class TripDetailsMapCard extends StatelessWidget {
               left: 16,
               top: 16,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B).withAlpha(210),
                   borderRadius: BorderRadius.circular(16),
@@ -96,8 +101,10 @@ class TripDetailsMapCard extends StatelessWidget {
               left: 16,
               bottom: 16,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B).withAlpha(210),
                   borderRadius: BorderRadius.circular(16),

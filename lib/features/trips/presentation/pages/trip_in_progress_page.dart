@@ -103,7 +103,9 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppColors.primary),
             onPressed: () {
-              context.read<TripsBloc>().add(LoadTripDetails(tripId: widget.tripId));
+              context.read<TripsBloc>().add(
+                LoadTripDetails(tripId: widget.tripId),
+              );
               _locationController?.retryLocationAccess();
             },
           ),
@@ -113,9 +115,9 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
       body: BlocConsumer<TripsBloc, TripsState>(
         listener: (context, state) {
           if (state is TripsError && _cachedTrip != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.errorMessage)));
           }
         },
         builder: (context, state) {
@@ -138,7 +140,9 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      context.read<TripsBloc>().add(LoadTripDetails(tripId: widget.tripId));
+                      context.read<TripsBloc>().add(
+                        LoadTripDetails(tripId: widget.tripId),
+                      );
                     },
                     child: const Text('Retry'),
                   ),
@@ -150,8 +154,9 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
           if (_cachedTrip != null) {
             final trip = _cachedTrip!;
             final pos = _locationController?.currentPosition;
-            final driverLatLng =
-                pos != null ? LatLng(pos.latitude, pos.longitude) : null;
+            final driverLatLng = pos != null
+                ? LatLng(pos.latitude, pos.longitude)
+                : null;
             final speedKmH = pos != null && pos.speed > 0
                 ? '${(pos.speed * 3.6).toStringAsFixed(0)} km/h'
                 : '62 km/h';
@@ -170,7 +175,9 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withAlpha(20),
                             borderRadius: BorderRadius.circular(12),
@@ -197,6 +204,7 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
                     progress: 0.55,
                     isTripInProgress: true,
                     speedText: speedKmH,
+                    trackingStatusText: trip.trackingStatusLabel ?? trip.status,
                     height: 280,
                   ),
                   const SizedBox(height: 16),
@@ -259,7 +267,8 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
             );
           }
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary));
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         },
       ),
       bottomNavigationBar: BlocBuilder<TripsBloc, TripsState>(
@@ -285,10 +294,8 @@ class _TripInProgressPageState extends State<TripInProgressPage> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => UpdateStatusPage(
-                        tripId: trip.id,
-                        initialTrip: trip,
-                      ),
+                      builder: (context) =>
+                          UpdateStatusPage(tripId: trip.id, initialTrip: trip),
                     ),
                   );
                   if (result == true && mounted) {

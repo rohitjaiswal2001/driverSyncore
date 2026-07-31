@@ -127,6 +127,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                     toLocation: trip.dropLocation,
                     progress: 0.08,
                     isTripInProgress: false,
+                    trackingStatusText: trip.trackingStatusLabel ?? trip.status,
                   ),
                   const SizedBox(height: 16),
 
