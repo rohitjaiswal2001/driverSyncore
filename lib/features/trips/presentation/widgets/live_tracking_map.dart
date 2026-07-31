@@ -49,6 +49,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   LatLng? _pickupLatLng;
   LatLng? _dropLatLng;
   bool _hasCenteredOnDriver = false;
+  bool _isUserInteracting = false;
 
   @override
   void initState() {
@@ -77,7 +78,9 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
       _pickupLatLng = pickup;
       _dropLatLng = drop;
     });
-    _fitToVisibleMarkers();
+    if (!_isUserInteracting) {
+      _fitToVisibleMarkers();
+    }
   }
 
   Future<LatLng?> _geocode(String query) async {
@@ -95,7 +98,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   void _followDriver() {
     final controller = _mapController;
     final position = widget.driverPosition;
-    if (controller == null || position == null) return;
+    if (controller == null || position == null || _isUserInteracting) return;
 
     if (!_hasCenteredOnDriver) {
       _hasCenteredOnDriver = true;
@@ -107,7 +110,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
 
   void _fitToVisibleMarkers() {
     final controller = _mapController;
-    if (controller == null) return;
+    if (controller == null || _isUserInteracting) return;
 
     final points = <LatLng>[
       ?widget.driverPosition,
@@ -232,8 +235,15 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
             compassEnabled: true,
             onMapCreated: (controller) {
               _mapController = controller;
-              _fitToVisibleMarkers();
-              if (widget.driverPosition != null) _followDriver();
+              if (!_isUserInteracting) {
+                _fitToVisibleMarkers();
+              }
+              if (widget.driverPosition != null && !_isUserInteracting) {
+                _followDriver();
+              }
+            },
+            onCameraMoveStarted: () {
+              _isUserInteracting = true;
             },
           ),
 
@@ -275,6 +285,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                   ? 'Centre on me'
                   : 'Fit route',
               onTap: () {
+                _isUserInteracting = false;
                 if (widget.driverPosition != null) {
                   _hasCenteredOnDriver = false;
                   _followDriver();
