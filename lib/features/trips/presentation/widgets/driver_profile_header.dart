@@ -121,29 +121,7 @@ class DriverProfileHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Full card width, so the chips are never crushed by the name block.
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _StatusChip(
-                label: isOnDuty ? 'ON DUTY' : 'OFF DUTY',
-                color: isOnDuty ? AppColors.accentGreen : AppColors.textLight,
-                showDot: true,
-              ),
-              _StatusChip(
-                label: isVerified ? 'VERIFIED' : 'UNVERIFIED',
-                color: isVerified
-                    ? AppColors.accentGreen
-                    : AppColors.accentOrange,
-                icon: isVerified
-                    ? Icons.verified_rounded
-                    : Icons.error_outline_rounded,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+
           Divider(color: Colors.white.withValues(alpha: 0.14), height: 1),
           const SizedBox(height: 14),
           _ContactRow(icon: Icons.phone_rounded, value: phone),
@@ -195,59 +173,6 @@ class DriverProfileHeader extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final IconData? icon;
-  final bool showDot;
-
-  const _StatusChip({
-    required this.label,
-    required this.color,
-    this.icon,
-    this.showDot = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.45)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showDot)
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            )
-          else if (icon != null)
-            Icon(icon, size: 12, color: color),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: color,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

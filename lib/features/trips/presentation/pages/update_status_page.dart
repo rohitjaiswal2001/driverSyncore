@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
@@ -104,9 +105,23 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     HapticFeedback.mediumImpact();
 
     try {
+      double? lat;
+      double? lng;
+      try {
+        final pos = await Geolocator.getLastKnownPosition() ??
+            await Geolocator.getCurrentPosition(
+              timeLimit: const Duration(seconds: 3),
+            );
+        lat = pos.latitude;
+        lng = pos.longitude;
+      } catch (_) {}
+
       await di.sl<TripsRepository>().updateTrackingStatus(
         orderId: trip.bookingId,
         statusId: selected.id,
+        status: selected.code,
+        latitude: lat,
+        longitude: lng,
         notes: _notesController.text,
       );
 
@@ -144,6 +159,15 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         icon: Icons.error_outline,
       );
     }
+  }
+
+  int _getCurrentStatusIndex() {
+    final code = _trip?.trackingStatusCode;
+    if (code == null || code.isEmpty) return 0;
+    for (int i = 0; i < _statuses.length; i++) {
+      if (_statuses[i].code == code) return i;
+    }
+    return 0;
   }
 
   @override
@@ -212,6 +236,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     }
 
     final trip = _trip;
+    final currentIndex = _getCurrentStatusIndex();
 
     return Column(
       children: [
@@ -224,7 +249,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
               children: [
                 if (trip != null) ...[
                   _buildTripSummary(trip),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                 ],
                 const Text(
                   'SELECT NEW STATUS',
@@ -235,8 +260,17 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 12),
-                for (final status in _statuses) _buildStatusOption(status),
+                const SizedBox(height: 3),
+                const Text(
+                  'Status moves forward only. Previous statuses are locked.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                for (int i = 0; i < _statuses.length; i++)
+                  _buildStatusOption(_statuses[i], i, currentIndex),
                 if (_requiresNotes) _buildFailureNotes(),
               ],
             ),
@@ -391,35 +425,43 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     );
   }
 
-  Widget _buildStatusOption(TrackingStatus status) {
+  Widget _buildStatusOption(TrackingStatus status, int index, int currentIndex) {
     final isSelected = _selected?.id == status.id;
-    final isCurrent = _trip?.trackingStatusCode == status.code;
+    final isCurrent = index == currentIndex;
+    final isPast = index < currentIndex;
 
     return GestureDetector(
-      onTap: () => setState(() {
-        _selected = status;
-        // Don't carry a failure reason over to a non-failure status.
-        if (!status.isFailed) {
-          _notesController.clear();
-          _notesFocus.unfocus();
-        }
-      }),
+      onTap: isPast
+          ? null
+          : () => setState(() {
+                HapticFeedback.selectionClick();
+                _selected = status;
+                // Don't carry a failure reason over to a non-failure status.
+                if (!status.isFailed) {
+                  _notesController.clear();
+                  _notesFocus.unfocus();
+                }
+              }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: isPast ? const Color(0xFFF8FAFC) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 1.8 : 1,
+            color: isSelected
+                ? AppColors.primary
+                : isPast
+                    ? AppColors.border.withValues(alpha: 0.5)
+                    : AppColors.border,
+            width: isSelected ? 2.0 : 1.0,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.10),
-                    blurRadius: 8,
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ]
@@ -428,24 +470,36 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         child: Row(
           children: [
             Container(
-              width: 20,
-              height: 20,
+              width: 22,
+              height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.textLight,
+                  color: isSelected
+                      ? AppColors.primary
+                      : isPast
+                          ? const Color(0xFFCBD5E1)
+                          : AppColors.textLight,
                   width: 2,
                 ),
               ),
               child: Center(
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? AppColors.primary : Colors.transparent,
-                  ),
-                ),
+                child: isPast
+                    ? const Icon(
+                        Icons.lock_rounded,
+                        size: 11,
+                        color: Color(0xFF94A3B8),
+                      )
+                    : Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.transparent,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 14),
@@ -453,25 +507,48 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
               child: Text(
                 status.label,
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? AppColors.primary : AppColors.textDark,
+                  fontSize: 14.5,
+                  fontWeight: isSelected || isCurrent
+                      ? FontWeight.bold
+                      : FontWeight.w500,
+                  color: isPast
+                      ? const Color(0xFF94A3B8)
+                      : isSelected
+                          ? AppColors.primary
+                          : AppColors.textDark,
                 ),
               ),
             ),
             if (isCurrent)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.textLight.withValues(alpha: 0.14),
+                  color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
                   'CURRENT',
                   style: TextStyle(
-                    fontSize: 9,
+                    fontSize: 9.5,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textMedium,
+                    color: AppColors.primary,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              )
+            else if (isPast)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'PASSED',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF94A3B8),
                     letterSpacing: 0.4,
                   ),
                 ),

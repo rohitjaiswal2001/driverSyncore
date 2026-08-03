@@ -5,7 +5,7 @@
 /// only change needed to switch Help & Support from an informational sheet to
 /// working call/email actions.
 class AppInfo {
-  static const String appName = 'Globelink';
+  static const String appName = 'GlobeLink Driver';
 
   /// Keep in sync with `version:` in pubspec.yaml.
   static const String version = '1.0.0';

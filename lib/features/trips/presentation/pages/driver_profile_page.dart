@@ -6,18 +6,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_info.dart';
+import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_info_sheet.dart';
 import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../../auth/domain/entities/user.dart';
+import '../../../auth/domain/usecases/logout_usecase.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc_extensions.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/pages/edit_profile_page.dart';
 import '../../../auth/presentation/pages/fullscreen_image_viewer.dart';
+import '../../../auth/presentation/pages/login_page.dart';
 import '../../../auth/presentation/pages/profile_details_page.dart';
 import '../widgets/driver_profile_header.dart';
 import '../widgets/profile_setting_tile.dart';
@@ -114,10 +117,19 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
       confirmLabel: 'Log out',
       accentColor: AppColors.danger,
       accentBackground: AppColors.dangerBg,
+      onConfirmAsync: () async {
+        try {
+          await di.sl<LogoutUseCase>()();
+        } catch (_) {}
+      },
     );
 
     if (shouldLogout && mounted) {
       context.read<AuthBloc>().add(const LogoutRequested());
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
     }
   }
 
@@ -308,52 +320,51 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
             accentColor: AppColors.accentBlue,
             onTap: () => _openPage(const EditProfilePage()),
           ),
-          ProfileSettingTile(
-            icon: Icons.assignment_outlined,
-            title: 'Documents',
-            subtitle: 'KYC, permits and insurance',
-            accentColor: AppColors.accentPurple,
-            badge: 'SOON',
-            badgeColor: AppColors.accentOrange,
-            onTap: () => _showComingSoon(
-              icon: Icons.assignment_outlined,
-              title: 'Documents',
-              message:
-                  'Uploading and tracking KYC, permits and insurance from the '
-                  'app is coming in a future update.',
-            ),
-          ),
+          // ProfileSettingTile(
+          //   icon: Icons.assignment_outlined,
+          //   title: 'Documents',
+          //   subtitle: 'KYC, permits and insurance',
+          //   accentColor: AppColors.accentPurple,
+          //   badge: 'SOON',
+          //   badgeColor: AppColors.accentOrange,
+          //   onTap: () => _showComingSoon(
+          //     icon: Icons.assignment_outlined,
+          //     title: 'Documents',
+          //     message:
+          //         'Uploading and tracking KYC, permits and insurance from the '
+          //         'app is coming in a future update.',
+          //   ),
+          // ),
         ]),
         const SizedBox(height: 24),
 
-        _sectionHeader('SUPPORT & SECURITY'),
-        const SizedBox(height: 10),
-        _group([
-          ProfileSettingTile(
-            icon: Icons.shield_outlined,
-            title: 'Security',
-            subtitle: 'PIN, permissions and device access',
-            accentColor: AppColors.accentGreen,
-            badge: 'SOON',
-            badgeColor: AppColors.accentOrange,
-            onTap: () => _showComingSoon(
-              icon: Icons.shield_outlined,
-              title: 'Security',
-              message:
-                  'App PIN and device permission controls are coming in a '
-                  'future update.',
-            ),
-          ),
-          ProfileSettingTile(
-            icon: Icons.help_outline_rounded,
-            title: 'Help & Support',
-            subtitle: 'Reach the fleet desk',
-            accentColor: AppColors.accentOrange,
-            onTap: _showSupport,
-          ),
-        ]),
-        const SizedBox(height: 28),
-
+        // _sectionHeader('SUPPORT & SECURITY'),
+        // const SizedBox(height: 10),
+        // _group([
+        //   ProfileSettingTile(
+        //     icon: Icons.shield_outlined,
+        //     title: 'Security',
+        //     subtitle: 'PIN, permissions and device access',
+        //     accentColor: AppColors.accentGreen,
+        //     badge: 'SOON',
+        //     badgeColor: AppColors.accentOrange,
+        //     onTap: () => _showComingSoon(
+        //       icon: Icons.shield_outlined,
+        //       title: 'Security',
+        //       message:
+        //           'App PIN and device permission controls are coming in a '
+        //           'future update.',
+        //     ),
+        //   ),
+        //   ProfileSettingTile(
+        //     icon: Icons.help_outline_rounded,
+        //     title: 'Help & Support',
+        //     subtitle: 'Reach the fleet desk',
+        //     accentColor: AppColors.accentOrange,
+        //     onTap: _showSupport,
+        //   ),
+        // ]),
+        // const SizedBox(height: 28),
         _buildLogoutButton(),
         const SizedBox(height: 20),
 

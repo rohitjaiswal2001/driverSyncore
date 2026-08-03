@@ -67,7 +67,9 @@ class TripsRepositoryImpl implements TripsRepository {
     final data = responseJson['data'] as Map<String, dynamic>? ?? {};
     final trackingList = responseJson['tracking_history'] as List? ?? [];
     Map<String, dynamic>? trackingFirst;
-    if (trackingList.isNotEmpty && trackingList[0] is Map<String, dynamic>) {
+    if (responseJson['tracking'] is Map<String, dynamic>) {
+      trackingFirst = responseJson['tracking'] as Map<String, dynamic>;
+    } else if (trackingList.isNotEmpty && trackingList[0] is Map<String, dynamic>) {
       trackingFirst = trackingList[0] as Map<String, dynamic>;
     }
 
@@ -80,6 +82,7 @@ class TripsRepositoryImpl implements TripsRepository {
 
     final orderId = data['order_id']?.toString() ?? requestedOrderId;
     final statusLabel = statusObj?['label']?.toString() ??
+        trackingFirst?['status_label']?.toString() ??
         bidStatus?['label']?.toString() ??
         'Unknown';
 
@@ -109,12 +112,31 @@ class TripsRepositoryImpl implements TripsRepository {
 
     final trackingStatusId = statusObj?['id'] is int
         ? statusObj!['id'] as int
-        : int.tryParse('${statusObj?['id']}');
+        : trackingFirst?['tracking_status_id'] is int
+            ? trackingFirst!['tracking_status_id'] as int
+            : int.tryParse('${statusObj?['id'] ?? trackingFirst?['tracking_status_id']}');
+
+    final rawCurrentLoc = trackingFirst?['current_location'];
+    String currentLocationStr = pickupLoc;
+    if (rawCurrentLoc is Map<String, dynamic>) {
+      final addr = rawCurrentLoc['address']?.toString();
+      if (addr != null && addr.isNotEmpty && addr != 'null') {
+        currentLocationStr = addr;
+      } else if (rawCurrentLoc['latitude'] != null && rawCurrentLoc['longitude'] != null) {
+        currentLocationStr = '${rawCurrentLoc['latitude']}, ${rawCurrentLoc['longitude']}';
+      }
+    } else if (rawCurrentLoc != null && rawCurrentLoc.toString().isNotEmpty) {
+      currentLocationStr = rawCurrentLoc.toString();
+    }
 
     final documentUrl = _resolveDocumentUrl(
       pdfUrl: responseJson['pdf_url']?.toString(),
       pdfPath: data['pdf_path']?.toString(),
     );
+
+    final notesVal = trackingFirst?['notes']?.toString() ??
+        data['reasons']?.toString() ??
+        '';
 
     return Trip(
       id: orderId,
@@ -135,14 +157,14 @@ class TripsRepositoryImpl implements TripsRepository {
       dropEta: dropEtaVal,
       distanceRemainingKm: distKm,
       etaHours: 0.0,
-      currentLocation:
-          trackingFirst?['current_location']?.toString() ?? pickupLoc,
+      currentLocation: currentLocationStr,
       arrivalRequirementText: data['title']?.toString() ?? '',
       trackingStatusId: trackingStatusId,
-      trackingStatusCode: statusObj?['code']?.toString(),
-      trackingStatusLabel: statusObj?['label']?.toString(),
+      trackingStatusCode: statusObj?['code']?.toString() ?? trackingFirst?['status_code']?.toString(),
+      trackingStatusLabel: statusObj?['label']?.toString() ?? trackingFirst?['status_label']?.toString(),
       direction: data['direction']?.toString(),
       documentUrl: documentUrl,
+      notes: notesVal,
       routePoints: [pickupLoc, dropLoc],
     );
   }
@@ -255,20 +277,23 @@ class TripsRepositoryImpl implements TripsRepository {
     String? notes,
   }) async {
     try {
+      final payload = <String, dynamic>{
+        'order_id': orderId,
+        'tracking_status_id': statusId,
+        if (status != null && status.isNotEmpty) 'status': status,
+      };
+      if (latitude != null) payload['latitude'] = latitude;
+      if (longitude != null) payload['longitude'] = longitude;
+      if (address != null && address.trim().isNotEmpty) {
+        payload['address'] = address.trim();
+      }
+      if (notes != null && notes.trim().isNotEmpty) {
+        payload['notes'] = notes.trim();
+      }
+
       final response = await _apiClient.post(
         ApiConstants.updateTrackingStatus,
-        data: {
-          'order_id': orderId,
-          'tracking_status_id': statusId,
-          'status': status ?? 'ONGOING',
-          // ignore: use_null_aware_elements
-          if (latitude != null) 'latitude': latitude,
-          // ignore: use_null_aware_elements
-          if (longitude != null) 'longitude': longitude,
-          if (address != null && address.trim().isNotEmpty)
-            'address': address.trim(),
-          if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
-        },
+        data: payload,
       );
       final responseData = response.data;
       if (responseData is Map<String, dynamic> &&

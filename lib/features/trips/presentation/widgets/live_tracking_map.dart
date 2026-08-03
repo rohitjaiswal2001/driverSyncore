@@ -399,10 +399,6 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
               ),
             ),
 
-          // Top right: Waiting/GPS status pill if driver location unavailable
-          if (widget.isLive && widget.driverPosition != null)
-            const Positioned(left: 16, top: 54, child: _LiveGpsBadge()),
-
           // Re-centre on the route (or the driver, once located).
           Positioned(
             right: 14,

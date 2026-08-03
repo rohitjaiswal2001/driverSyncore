@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart' show Geolocator;
 import 'package:google_maps_flutter/google_maps_flutter.dart' show LatLng;
-
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
+import '../../../../core/widgets/top_snack_bar.dart';
 import '../../domain/entities/trip.dart';
 import '../../domain/entities/tracking_status.dart';
 import '../../domain/repositories/trips_repository.dart';
@@ -28,30 +28,24 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   LocationTrackingController? _locationController;
 
   bool _isLoading = true;
-  bool _isTrackingEnabled = true;
   String? _loadError;
+  bool _isTrackingEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    _loadTrackingStatuses();
     _loadActiveTrip();
   }
 
-  /// The dashboard persists which booking order is "active"; live tracking
-  /// follows that same order so both screens agree on the current shipment.
-  /// Hits `GET /shipment-details?order_id=...` via [TripsRepository.getTripDetails].
   Future<void> _loadActiveTrip() async {
-    final orderId = di.sl<ActiveOrderStore>().read();
-    if (orderId == null) {
+    final activeOrderId = await di.sl<ActiveOrderStore>().read();
+    if (activeOrderId == null || activeOrderId.isEmpty) {
       if (!mounted) return;
       setState(() {
         _activeTrip = null;
         _isLoading = false;
         _loadError = null;
       });
-      _locationController?.dispose();
-      _locationController = null;
       return;
     }
 
@@ -61,13 +55,19 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     });
 
     try {
-      final trip = await di.sl<TripsRepository>().getTripDetails(orderId);
+      final trip = await di.sl<TripsRepository>().getTripDetails(activeOrderId);
       if (!mounted) return;
+      final isLive =
+          trip.trackingStatusCode == 'ONGOING' ||
+          trip.trackingStatusCode == 'SHIPMENT_START';
       setState(() {
+        _activeTrip = trip;
+        _isTrackingEnabled = isLive;
         _isLoading = false;
         _loadError = null;
       });
       _handleActiveTrip(trip);
+      _fetchTrackingStatusesOnce();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -101,13 +101,8 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     }
   }
 
-  @override
-  void dispose() {
-    _locationController?.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadTrackingStatuses() async {
+  Future<void> _fetchTrackingStatusesOnce() async {
+    if (_trackingStatuses.isNotEmpty) return;
     try {
       final statuses = await di.sl<TripsRepository>().getTrackingStatuses();
       if (mounted) setState(() => _trackingStatuses = statuses);
@@ -121,16 +116,26 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   /// `/tracking-statuses` list.
   TrackingStatus? _resolveTrackingStatus(Trip trip) {
     final code = trip.trackingStatusCode;
-    if (code == null || code.isEmpty) return null;
+    final label = trip.trackingStatusLabel;
 
     for (final status in _trackingStatuses) {
-      if (status.code == code) return status;
+      if (code != null && status.code == code) return status;
+      if (trip.trackingStatusId != null && status.id == trip.trackingStatusId) {
+        return status;
+      }
     }
-    if (trip.trackingStatusId != null) {
+    if (code != null && code.isNotEmpty) {
       return TrackingStatus(
-        id: trip.trackingStatusId!,
+        id: trip.trackingStatusId ?? 0,
         code: code,
-        label: trip.trackingStatusLabel ?? code,
+        label: label ?? code,
+      );
+    }
+    if (label != null && label.isNotEmpty) {
+      return TrackingStatus(
+        id: trip.trackingStatusId ?? 0,
+        code: code ?? 'UNKNOWN',
+        label: label,
       );
     }
     return null;
@@ -156,6 +161,87 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     final controller = _locationController;
     if (trip == null || controller == null) return;
     controller.updateTrackingStatus(_resolveTrackingStatus(trip));
+  }
+
+  Future<void> _handleTrackingToggle(bool value, Trip trip) async {
+    double? lat;
+    double? lng;
+    try {
+      final pos =
+          await Geolocator.getLastKnownPosition() ??
+          await Geolocator.getCurrentPosition(
+            timeLimit: const Duration(seconds: 3),
+          );
+      lat = pos.latitude;
+      lng = pos.longitude;
+    } catch (_) {}
+
+    if (!value) {
+      // Pause tracking: Hit API with status ID 6, code "PAUSE"
+      try {
+        await di.sl<TripsRepository>().updateTrackingStatus(
+          orderId: trip.bookingId,
+          statusId: 6,
+          status: 'PAUSE',
+          latitude: lat,
+          longitude: lng,
+        );
+        if (mounted) {
+          TopSnackBar.show(
+            context,
+            message: 'Tracking Paused',
+            backgroundColor: Colors.blueGrey,
+            icon: Icons.pause_circle_outline,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          TopSnackBar.show(
+            context,
+            message: e.toString().replaceAll('Exception: ', ''),
+            backgroundColor: AppColors.danger,
+            icon: Icons.error_outline,
+          );
+        }
+      }
+    } else {
+      // Resume tracking: Hit API with status ONGOING
+      try {
+        final ongoingStatus = _trackingStatuses.firstWhere(
+          (s) => s.code == TrackingStatus.codeOngoing,
+          orElse: () =>
+              const TrackingStatus(id: 3, code: 'ONGOING', label: 'Ongoing'),
+        );
+        await di.sl<TripsRepository>().updateTrackingStatus(
+          orderId: trip.bookingId,
+          statusId: ongoingStatus.id,
+          status: 'ONGOING',
+          latitude: lat,
+          longitude: lng,
+        );
+        if (mounted) {
+          TopSnackBar.show(
+            context,
+            message: 'Tracking Resumed',
+            backgroundColor: AppColors.accentGreen,
+            icon: Icons.play_circle_outline,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          TopSnackBar.show(
+            context,
+            message: e.toString().replaceAll('Exception: ', ''),
+            backgroundColor: AppColors.danger,
+            icon: Icons.error_outline,
+          );
+        }
+      }
+    }
+
+    if (mounted) {
+      await _loadActiveTrip();
+    }
   }
 
   /// Opens the update status screen inside a Modal Bottom Sheet.
@@ -195,6 +281,12 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     if (updated == true && mounted) {
       await _loadActiveTrip();
     }
+  }
+
+  @override
+  void dispose() {
+    _locationController?.dispose();
+    super.dispose();
   }
 
   @override
@@ -250,25 +342,28 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     final trip = _activeTrip;
     if (trip == null) return _buildNoActiveTripsPlaceholder();
 
-    final isStarted =
-        trip.status == 'Trip Started' ||
-        trip.status == 'In Transit' ||
-        trip.status == 'ONGOING' ||
-        trip.status == 'SHIPMENT_START';
     final resolvedTrackingStatus = _resolveTrackingStatus(trip);
+    final isStarted = trip.isTrackingStarted;
+    final isPaused = trip.trackingStatusCode == 'PAUSE';
     final isTrackingEligible =
-        resolvedTrackingStatus?.isLiveTrackingEligible ?? isStarted;
+        resolvedTrackingStatus?.isLiveTrackingEligible ?? isStarted || isPaused;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final mapHeight = constraints.maxHeight * 0.66;
+    final hasFailedNote =
+        trip.notes.isNotEmpty || (resolvedTrackingStatus?.isFailed ?? false);
 
-        return Column(
+    return RefreshIndicator(
+      onRefresh: _loadActiveTrip,
+      color: AppColors.primary,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Live Map View (with red pointer & top status overlay)
             SizedBox(
               width: double.infinity,
-              height: mapHeight,
+              height: 380,
               child: AnimatedBuilder(
                 animation: _locationController ?? const _NoopListenable(),
                 builder: (context, _) {
@@ -296,95 +391,132 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
               ),
             ),
 
-            // 2. Details scrollview: Only live tracking indicator, customer, basic cargo, & change status button
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadActiveTrip,
-                color: AppColors.primary,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Location Access Warning Banner if needed
-                      AnimatedBuilder(
-                        animation:
-                            _locationController ?? const _NoopListenable(),
-                        builder: (context, _) => _LocationAccessBanner(
-                          state:
-                              _locationController?.accessState ??
-                              LocationAccessState.unknown,
-                        ),
-                      ),
-
-                      // Beautiful Live Tracking In Progress Card (if status is ongoing / shipment started)
-                      if (isTrackingEligible) ...[
-                        _LiveTrackingToggleCard(
-                          isEnabled: _isTrackingEnabled,
-                          statusLabel:
-                              resolvedTrackingStatus?.label ?? trip.status,
-                          onToggleChanged: (value) {
-                            setState(() => _isTrackingEnabled = value);
-                            if (!value) {
-                              _locationController?.dispose();
-                              _locationController = null;
-                            } else {
-                              _handleActiveTrip(trip);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        _StatusHistoryStrip(
-                          statusLabel:
-                              resolvedTrackingStatus?.label ?? trip.status,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Basic Cargo Detail
-                      CargoMetricsRow(
-                        cargoType: trip.cargoType,
-                        weight: trip.weight,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Customer Detail
-                      CustomerContactCard(
-                        customerName: trip.customerName,
-                        customerPhone: trip.customerPhone,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Button to change / update shipment status (opens Modal Bottom Sheet)
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(54),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 2,
-                        ),
-                        onPressed: () => _openUpdateStatusSheet(trip),
-                        icon: const Icon(Icons.edit_note_rounded, size: 24),
-                        label: const Text(
-                          'Change Shipment Status',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                24 + MediaQuery.of(context).padding.bottom,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedBuilder(
+                    animation: _locationController ?? const _NoopListenable(),
+                    builder: (context, _) => _LocationAccessBanner(
+                      state:
+                          _locationController?.accessState ??
+                          LocationAccessState.unknown,
+                    ),
                   ),
-                ),
+
+                  // Failed / Notice Reason Banner (if note exists or failed status)
+                  if (hasFailedNote) ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.dangerBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.danger.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.report_problem_outlined,
+                            size: 20,
+                            color: AppColors.danger,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'REASON / NOTE',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.danger,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  trip.notes.isNotEmpty
+                                      ? trip.notes
+                                      : 'Shipment reported as failed.',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.danger,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // Live Tracking In Progress Card
+                  if (isTrackingEligible) ...[
+                    _LiveTrackingToggleCard(
+                      isEnabled: _isTrackingEnabled,
+                      statusLabel: resolvedTrackingStatus?.label ?? trip.status,
+                      onToggleChanged: (value) =>
+                          _handleTrackingToggle(value, trip),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Basic Cargo Detail
+                  CargoMetricsRow(
+                    cargoType: trip.cargoType,
+                    weight: trip.weight,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Customer Detail
+                  CustomerContactCard(
+                    customerName: trip.customerName,
+                    customerPhone: trip.customerPhone,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Button to change / update shipment status (opens Modal Bottom Sheet)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(54),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 2,
+                    ),
+                    onPressed: () => _openUpdateStatusSheet(trip),
+                    icon: const Icon(Icons.edit_note_rounded, size: 24),
+                    label: const Text(
+                      'Change Shipment Status',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -537,18 +669,31 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
 
   @override
   Widget build(BuildContext context) {
+    final activeColor = widget.isEnabled
+        ? AppColors.accentGreen
+        : const Color(0xFF94A3B8);
+    final cardGradient = widget.isEnabled
+        ? const LinearGradient(
+            colors: [AppColors.navy, Color(0xFF1E293B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : const LinearGradient(
+            colors: [Color(0xFF475569), Color(0xFF334155)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.navy, Color(0xFF1E293B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: cardGradient,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.25),
+            color: widget.isEnabled
+                ? AppColors.navy.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.15),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -557,20 +702,24 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
       child: Row(
         children: [
           FadeTransition(
-            opacity: Tween(begin: 0.4, end: 1.0).animate(_animController),
+            opacity: widget.isEnabled
+                ? Tween(begin: 0.4, end: 1.0).animate(_animController)
+                : const AlwaysStoppedAnimation(0.7),
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.accentGreen.withValues(alpha: 0.2),
+                color: activeColor.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.accentGreen.withValues(alpha: 0.5),
+                  color: activeColor.withValues(alpha: 0.5),
                   width: 2,
                 ),
               ),
-              child: const Icon(
-                Icons.radar_rounded,
-                color: AppColors.accentGreen,
+              child: Icon(
+                widget.isEnabled
+                    ? Icons.radar_rounded
+                    : Icons.pause_circle_filled_rounded,
+                color: activeColor,
                 size: 24,
               ),
             ),
@@ -584,8 +733,8 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                   children: [
                     Text(
                       widget.statusLabel.toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.accentGreen,
+                      style: TextStyle(
+                        color: activeColor,
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         letterSpacing: 1.0,
@@ -598,13 +747,13 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.accentGreen.withValues(alpha: 0.2),
+                        color: activeColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        widget.isEnabled ? 'LIVE' : 'PAUSED',
-                        style: const TextStyle(
-                          color: AppColors.accentGreen,
+                        widget.isEnabled ? 'LIVE' : 'STOPPED',
+                        style: TextStyle(
+                          color: activeColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 10,
                         ),
@@ -614,7 +763,9 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.isEnabled ? 'Tracking In Progress' : 'Tracking Paused',
+                  widget.isEnabled
+                      ? 'Tracking In Progress'
+                      : 'Tracking Stopped',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -625,7 +776,7 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                 Text(
                   widget.isEnabled
                       ? 'Location updates are sent automatically every 30 minutes'
-                      : 'Tap the switch to resume live tracking',
+                      : 'Tap switch to resume live tracking',
                   style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
               ],
@@ -635,6 +786,9 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
           Switch.adaptive(
             value: widget.isEnabled,
             activeColor: AppColors.accentGreen,
+            activeTrackColor: AppColors.accentGreen.withValues(alpha: 0.4),
+            inactiveThumbColor: const Color(0xFFCBD5E1),
+            inactiveTrackColor: const Color(0xFF64748B),
             onChanged: widget.onToggleChanged,
           ),
         ],

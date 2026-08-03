@@ -83,7 +83,7 @@ void main() {
       expect(find.text('Mumbai'), findsOneWidget);
       expect(find.text('Pune'), findsOneWidget);
       expect(find.text('72531348'), findsOneWidget);
-      expect(find.text('Track Map'), findsOneWidget);
+      expect(find.text('Track Status'), findsOneWidget);
     });
 
     testWidgets('handles long text and missing optional data', (tester) async {
@@ -123,7 +123,7 @@ void main() {
       );
 
       expect(find.text('New Trip'), findsOneWidget);
-      expect(find.text('Track Map'), findsNothing);
+      expect(find.text('Track Status'), findsNothing);
       // A finished shipment has no distance left to cover.
       expect(find.text('Remaining'), findsNothing);
       expect(find.text('ETA'), findsNothing);
@@ -203,7 +203,10 @@ void main() {
         ),
       );
 
-      expect(find.text('SOON'), findsOneWidget);
+      expect(find.text('Upload Docs'), findsOneWidget);
+      expect(find.text('Contact'), findsOneWidget);
+      expect(find.text('My Trips'), findsOneWidget);
+
       await tester.tap(find.text('Contact'));
       expect(tapped, 1);
     });
@@ -296,12 +299,12 @@ void main() {
   group('DirectionBadge', () {
     testWidgets('labels an import as inbound to Koper', (tester) async {
       await pumpNarrow(tester, const DirectionBadge(direction: 'import'));
-      expect(find.text('IMPORT · TO KOPER'), findsOneWidget);
+      expect(find.text('IMPORT'), findsOneWidget);
     });
 
     testWidgets('labels an export as outbound from Koper', (tester) async {
       await pumpNarrow(tester, const DirectionBadge(direction: 'export'));
-      expect(find.text('EXPORT · FROM KOPER'), findsOneWidget);
+      expect(find.text('EXPORT'), findsOneWidget);
     });
 
     testWidgets('renders nothing when the API sent no direction', (

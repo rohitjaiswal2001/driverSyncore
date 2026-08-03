@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
+import '../../../../core/widgets/app_confirm_dialog.dart';
 import 'driver_main_shell.dart';
 
 class TripCompletedPage extends StatelessWidget {
@@ -24,66 +25,56 @@ class TripCompletedPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Syntracore',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_none_outlined,
-              color: AppColors.textDark,
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Top-left back button in body
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                onPressed: () => Navigator.maybePop(context),
+              ),
+
               const Spacer(flex: 1),
 
               // Large Checked Circular Badge with shadow
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD1FAE5), // Light green tint
-                  shape: BoxShape.circle,
-                ),
+              Center(
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF10B981), // Solid Emerald Green
+                    color: Color(0xFFD1FAE5), // Light green tint
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 40,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF10B981), // Solid Emerald Green
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 40,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
 
               // Trip Status Title
-              const Text(
-                'Trip Finished',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textDark,
+              const Center(
+                child: Text(
+                  'Trip Finished',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textDark,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -133,36 +124,14 @@ class TripCompletedPage extends StatelessWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        Row(
-                          children: [
-                            Text(
-                              bookingId,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD1FAE5),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'Verified',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF059669),
-                                ),
-                              ),
-                            ),
-                          ],
+
+                        Text(
+                          bookingId,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
                         ),
                       ],
                     ),
@@ -181,76 +150,53 @@ class TripCompletedPage extends StatelessWidget {
 
               const Spacer(flex: 2),
 
-              // Action Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        await di.sl<ActiveOrderStore>().clear();
-                        if (context.mounted) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DriverMainShell(
-                                username: 'Driver',
-                                initialIndex: 0,
-                              ),
-                            ),
-                            (route) => false,
-                          );
-                        }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.navy,
-                        side: const BorderSide(color: AppColors.border, width: 1.5),
-                        minimumSize: const Size.fromHeight(54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        'New Order ID',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
+              // Single Action Button: New Order ID
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final confirmed = await showAppConfirmDialog(
+                      context,
+                      icon: Icons.swap_horiz_rounded,
+                      title: 'Clear order ID?',
+                      message:
+                          'Your completed shipment will be cleared from the dashboard so you can enter a new Booking Order ID.',
+                      confirmLabel: 'Clear Order',
+                      accentColor: AppColors.navy,
+                      accentBackground: AppColors.primaryLight,
+                    );
+
+                    if (confirmed && context.mounted) {
+                      await di.sl<ActiveOrderStore>().clear();
+                      if (context.mounted) {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const DriverMainShell(
                               username: 'Driver',
-                              initialIndex: 1,
+                              initialIndex: 0,
                             ),
                           ),
                           (route) => false,
                         );
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.navy,
-                        minimumSize: const Size.fromHeight(54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        'Back to Trips',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.navy,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                ],
+                  icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                  label: const Text(
+                    'New Order ID',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
             ],
           ),

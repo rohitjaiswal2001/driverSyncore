@@ -115,8 +115,8 @@ class LocationTrackingController extends ChangeNotifier {
       orderId: orderId,
       latitude: position.latitude,
       longitude: position.longitude,
-      status: status?.code ?? 'ONGOING',
-      statusId: status?.id,
+      status: 'ONGOING',
+      statusId: status?.id ?? 3,
     );
   }
 

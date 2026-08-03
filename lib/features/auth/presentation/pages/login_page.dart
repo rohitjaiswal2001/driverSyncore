@@ -62,12 +62,13 @@ class _LoginPageState extends State<LoginPage> {
                 icon: Icons.check_circle_outline,
               );
             }
-            Navigator.pushReplacement(
+            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
                 builder: (context) =>
                     DriverMainShell(username: state.user.phoneNumber),
               ),
+              (route) => false,
             );
           } else if (state is AuthFailure) {
             setState(() {

@@ -14,7 +14,9 @@ class DriverGreetingHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayName = name.trim().isEmpty ? 'Driver' : name.trim();
-    final formattedName = displayName.endsWith('!') ? displayName : '$displayName!';
+    final formattedName = displayName.endsWith('!')
+        ? displayName
+        : '$displayName!';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

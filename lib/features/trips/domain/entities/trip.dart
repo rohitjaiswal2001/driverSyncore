@@ -39,6 +39,29 @@ class Trip extends Equatable {
   /// -details response. Null when no document has been generated yet.
   final String? documentUrl;
 
+  /// Optional failure reason or status notes returned from the backend.
+  final String notes;
+
+  /// True if live tracking has started for this shipment (tracking status code is not NOT_STARTED).
+  bool get isTrackingStarted {
+    if (trackingStatusCode != null && trackingStatusCode!.isNotEmpty) {
+      return trackingStatusCode != 'NOT_STARTED';
+    }
+    if (trackingStatusLabel != null && trackingStatusLabel!.isNotEmpty) {
+      return trackingStatusLabel!.toLowerCase() != 'not started';
+    }
+    final norm = status.trim().toLowerCase();
+    return norm == 'trip started' ||
+        norm == 'in transit' ||
+        norm == 'ongoing' ||
+        norm == 'shipment_start' ||
+        norm == 'reached pickup' ||
+        norm == 'loaded' ||
+        norm == 'reached destination' ||
+        norm == 'completed' ||
+        norm == 'delivered';
+  }
+
   const Trip({
     required this.id,
     required this.bookingId,
@@ -66,6 +89,7 @@ class Trip extends Equatable {
     this.trackingStatusId,
     this.direction,
     this.documentUrl,
+    this.notes = '',
   });
 
   Trip copyWith({

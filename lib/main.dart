@@ -40,14 +40,16 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Syntracore',
+        title: 'GlobeLink Driver',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthInitial) {
-              // Pop all pushed screens to return to the root LoginPage
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
             }
           },
           child: BlocBuilder<AuthBloc, AuthState>(
