@@ -166,7 +166,7 @@ void main() {
           phone: '+91 98765 43210',
           email: 'ramesh.chandra.kumar@syntracore-logistics.example.com',
           isOnDuty: true,
-          isVerified: false,
+   
           onEditProfile: _noop,
         ),
       );
