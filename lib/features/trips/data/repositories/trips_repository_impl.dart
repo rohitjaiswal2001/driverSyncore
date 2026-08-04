@@ -19,12 +19,16 @@ class TripsRepositoryImpl implements TripsRepository {
     try {
       final response = await _apiClient.get(ApiConstants.dashboard);
       final responseData = response.data;
-      if (responseData != null && responseData is Map<String, dynamic> && responseData['status'] == true) {
+      if (responseData != null &&
+          responseData is Map<String, dynamic> &&
+          responseData['status'] == true) {
         return DashboardModel.fromJson(responseData);
       }
-      final errorMessage = (responseData is Map<String, dynamic> 
-          ? responseData['message'] 
-          : null) ?? 'Failed to load dashboard data';
+      final errorMessage =
+          (responseData is Map<String, dynamic>
+              ? responseData['message']
+              : null) ??
+          'Failed to load dashboard data';
       throw Exception(errorMessage);
     } on AppException {
       rethrow;
@@ -32,6 +36,7 @@ class TripsRepositoryImpl implements TripsRepository {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
   }
+
   @override
   Future<Trip> getTripDetails(String tripId) async {
     final cleanId = tripId.trim();
@@ -45,7 +50,8 @@ class TripsRepositoryImpl implements TripsRepository {
         if (responseData['status'] == true) {
           return _mapShipmentDetailsToTrip(responseData, cleanId);
         }
-        final msg = responseData['message']?.toString() ??
+        final msg =
+            responseData['message']?.toString() ??
             'Shipment not found for this order ID.';
         throw Exception(msg);
       }
@@ -69,7 +75,8 @@ class TripsRepositoryImpl implements TripsRepository {
     Map<String, dynamic>? trackingFirst;
     if (responseJson['tracking'] is Map<String, dynamic>) {
       trackingFirst = responseJson['tracking'] as Map<String, dynamic>;
-    } else if (trackingList.isNotEmpty && trackingList[0] is Map<String, dynamic>) {
+    } else if (trackingList.isNotEmpty &&
+        trackingList[0] is Map<String, dynamic>) {
       trackingFirst = trackingList[0] as Map<String, dynamic>;
     }
 
@@ -81,7 +88,8 @@ class TripsRepositoryImpl implements TripsRepository {
     final bidStatus = data['bid_status'] as Map<String, dynamic>?;
 
     final orderId = data['order_id']?.toString() ?? requestedOrderId;
-    final statusLabel = statusObj?['label']?.toString() ??
+    final statusLabel =
+        statusObj?['label']?.toString() ??
         trackingFirst?['status_label']?.toString() ??
         bidStatus?['label']?.toString() ??
         'Unknown';
@@ -91,30 +99,40 @@ class TripsRepositoryImpl implements TripsRepository {
     final custName = ('$firstName $lastName').trim();
     final custPhone = user?['phone']?.toString() ?? '';
 
-    final cargo = packaging?['name']?.toString() ??
+    final cargo =
+        packaging?['name']?.toString() ??
         data['title']?.toString() ??
         'General Cargo';
-    final weightVal =
-        data['weight_of_goods'] != null ? '${data['weight_of_goods']} KG' : '';
+    final weightVal = data['weight_of_goods'] != null
+        ? '${data['weight_of_goods']} KG'
+        : '';
     final containerName = containerType?['name']?.toString();
-    final truckTypeVal = containerName != null ? '$containerName Container' : '';
+    final truckTypeVal = containerName != null
+        ? '$containerName Container'
+        : '';
 
     final pickupLoc = data['pickup_location']?.toString() ?? '';
     final addressVal = data['address']?.toString() ?? '';
     final cityVal = data['city']?.toString() ?? '';
     final countryVal = country?['name']?.toString() ?? '';
-    final fullPickupAddress =
-        [addressVal, cityVal, countryVal].where((s) => s.isNotEmpty).join(', ');
+    final fullPickupAddress = [
+      addressVal,
+      cityVal,
+      countryVal,
+    ].where((s) => s.isNotEmpty).join(', ');
 
     final dropLoc = data['drop_location']?.toString() ?? '';
     final dropEtaVal = data['transit_time']?.toString() ?? '';
-    final distKm = double.tryParse(data['distance_km']?.toString() ?? '') ?? 0.0;
+    final distKm =
+        double.tryParse(data['distance_km']?.toString() ?? '') ?? 0.0;
 
     final trackingStatusId = statusObj?['id'] is int
         ? statusObj!['id'] as int
         : trackingFirst?['tracking_status_id'] is int
-            ? trackingFirst!['tracking_status_id'] as int
-            : int.tryParse('${statusObj?['id'] ?? trackingFirst?['tracking_status_id']}');
+        ? trackingFirst!['tracking_status_id'] as int
+        : int.tryParse(
+            '${statusObj?['id'] ?? trackingFirst?['tracking_status_id']}',
+          );
 
     final rawCurrentLoc = trackingFirst?['current_location'];
     String currentLocationStr = pickupLoc;
@@ -122,8 +140,10 @@ class TripsRepositoryImpl implements TripsRepository {
       final addr = rawCurrentLoc['address']?.toString();
       if (addr != null && addr.isNotEmpty && addr != 'null') {
         currentLocationStr = addr;
-      } else if (rawCurrentLoc['latitude'] != null && rawCurrentLoc['longitude'] != null) {
-        currentLocationStr = '${rawCurrentLoc['latitude']}, ${rawCurrentLoc['longitude']}';
+      } else if (rawCurrentLoc['latitude'] != null &&
+          rawCurrentLoc['longitude'] != null) {
+        currentLocationStr =
+            '${rawCurrentLoc['latitude']}, ${rawCurrentLoc['longitude']}';
       }
     } else if (rawCurrentLoc != null && rawCurrentLoc.toString().isNotEmpty) {
       currentLocationStr = rawCurrentLoc.toString();
@@ -134,7 +154,8 @@ class TripsRepositoryImpl implements TripsRepository {
       pdfPath: data['pdf_path']?.toString(),
     );
 
-    final notesVal = trackingFirst?['notes']?.toString() ??
+    final notesVal =
+        trackingFirst?['notes']?.toString() ??
         data['reasons']?.toString() ??
         '';
 
@@ -160,8 +181,12 @@ class TripsRepositoryImpl implements TripsRepository {
       currentLocation: currentLocationStr,
       arrivalRequirementText: data['title']?.toString() ?? '',
       trackingStatusId: trackingStatusId,
-      trackingStatusCode: statusObj?['code']?.toString() ?? trackingFirst?['status_code']?.toString(),
-      trackingStatusLabel: statusObj?['label']?.toString() ?? trackingFirst?['status_label']?.toString(),
+      trackingStatusCode:
+          statusObj?['code']?.toString() ??
+          trackingFirst?['status_code']?.toString(),
+      trackingStatusLabel:
+          statusObj?['label']?.toString() ??
+          trackingFirst?['status_label']?.toString(),
       direction: data['direction']?.toString(),
       documentUrl: documentUrl,
       notes: notesVal,
@@ -196,8 +221,9 @@ class TripsRepositoryImpl implements TripsRepository {
     final trip = await getTripDetails(tripId);
     return trip.copyWith(
       status: status,
-      distanceRemainingKm:
-          status == 'Completed' || status == 'Delivered' ? 0.0 : null,
+      distanceRemainingKm: status == 'Completed' || status == 'Delivered'
+          ? 0.0
+          : null,
       etaHours: status == 'Completed' || status == 'Delivered' ? 0.0 : null,
       isNew: false,
     );
@@ -213,7 +239,8 @@ class TripsRepositoryImpl implements TripsRepository {
     try {
       final response = await _apiClient.get(ApiConstants.trackingStatuses);
       final responseData = response.data;
-      if (responseData is Map<String, dynamic> && responseData['status'] == true) {
+      if (responseData is Map<String, dynamic> &&
+          responseData['status'] == true) {
         final list = responseData['data'] as List? ?? [];
         final statuses = list
             .whereType<Map<String, dynamic>>()
@@ -222,9 +249,11 @@ class TripsRepositoryImpl implements TripsRepository {
         _cachedTrackingStatuses = statuses;
         return statuses;
       }
-      final errorMessage = (responseData is Map<String, dynamic>
-          ? responseData['message']
-          : null) ?? 'Failed to load tracking statuses';
+      final errorMessage =
+          (responseData is Map<String, dynamic>
+              ? responseData['message']
+              : null) ??
+          'Failed to load tracking statuses';
       throw Exception(errorMessage);
     } on AppException catch (e) {
       throw Exception(e.message);
@@ -327,13 +356,19 @@ class TripsRepositoryImpl implements TripsRepository {
         queryParameters: queryParams,
       );
       final responseData = response.data;
-      if (responseData != null && responseData is Map<String, dynamic> && responseData['status'] == true) {
+      if (responseData != null &&
+          responseData is Map<String, dynamic> &&
+          responseData['status'] == true) {
         final list = responseData['data'] as List? ?? [];
-        return list.map((item) => mapBookingItemToQuote(item as Map<String, dynamic>)).toList();
+        return list
+            .map((item) => mapBookingItemToQuote(item as Map<String, dynamic>))
+            .toList();
       }
-      final errorMessage = (responseData is Map<String, dynamic> 
-          ? responseData['message'] 
-          : null) ?? 'Failed to load quotes';
+      final errorMessage =
+          (responseData is Map<String, dynamic>
+              ? responseData['message']
+              : null) ??
+          'Failed to load quotes';
       throw Exception(errorMessage);
     } on AppException {
       rethrow;
@@ -345,18 +380,18 @@ class TripsRepositoryImpl implements TripsRepository {
   @override
   Future<Quote> requestQuote(Quote quote) async {
     await Future.delayed(const Duration(milliseconds: 800));
-    
+
     // Generate a fresh unique quote ID
     final nextIdNum = 12 + _mockQuotes.length;
     final generatedQuoteId = 'QT-2026-00$nextIdNum';
-    
+
     final newQuote = quote.copyWith(
       id: generatedQuoteId,
       quoteId: generatedQuoteId,
       status: 'Pending',
       date: '24 Jun 2026', // Mock date
     );
-    
+
     _mockQuotes.insert(0, newQuote); // Insert at beginning of list
     return newQuote;
   }
@@ -366,9 +401,7 @@ class TripsRepositoryImpl implements TripsRepository {
     // 1. Hit the real API
     final response = await _apiClient.post(
       ApiConstants.confirmBooking,
-      data: {
-        'booking_id': int.tryParse(quoteId) ?? 0,
-      },
+      data: {'booking_id': int.tryParse(quoteId) ?? 0},
     );
 
     final responseData = response.data;
@@ -436,7 +469,9 @@ class TripsRepositoryImpl implements TripsRepository {
         data: requestData,
       );
       final responseData = response.data;
-      if (responseData != null && responseData is Map<String, dynamic> && responseData['status'] == true) {
+      if (responseData != null &&
+          responseData is Map<String, dynamic> &&
+          responseData['status'] == true) {
         final quote = mapBookingQuoteResponseToQuote(
           responseData,
           address,
@@ -446,9 +481,11 @@ class TripsRepositoryImpl implements TripsRepository {
         _mockQuotes.insert(0, quote);
         return quote;
       }
-      final errorMessage = (responseData is Map<String, dynamic> 
-          ? responseData['message'] 
-          : null) ?? 'Failed to generate quote';
+      final errorMessage =
+          (responseData is Map<String, dynamic>
+              ? responseData['message']
+              : null) ??
+          'Failed to generate quote';
       throw Exception(errorMessage);
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
