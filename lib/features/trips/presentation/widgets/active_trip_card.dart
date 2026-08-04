@@ -237,8 +237,8 @@ class ActiveTripCard extends StatelessWidget {
   }
 
   Widget _buildCustomerRow() {
-    final canCall =
-        onCallCustomer != null && trip.customerPhone.trim().isNotEmpty;
+    final hasPhone = trip.customerPhone.trim().isNotEmpty;
+    final canCall = onCallCustomer != null && hasPhone;
     final cargo = [
       trip.cargoType.trim(),
       trip.weight.trim(),
@@ -266,7 +266,7 @@ class ActiveTripCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                trip.customerName,
+                trip.customerName.isNotEmpty ? trip.customerName : 'Customer',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -275,7 +275,19 @@ class ActiveTripCard extends StatelessWidget {
                   color: AppColors.textDark,
                 ),
               ),
-              if (cargo.isNotEmpty) ...[
+              if (hasPhone) ...[
+                const SizedBox(height: 2),
+                Text(
+                  trip.customerPhone.trim(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+              ] else if (cargo.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(
                   cargo,
@@ -295,7 +307,7 @@ class ActiveTripCard extends StatelessWidget {
             button: true,
             label: 'Call ${trip.customerName}',
             child: Material(
-              color: AppColors.driverBg,
+              color: const Color(0xFFDCFCE7),
               shape: const CircleBorder(),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -304,8 +316,8 @@ class ActiveTripCard extends StatelessWidget {
                   onCallCustomer!();
                 },
                 child: const SizedBox(
-                  width: 42,
-                  height: 42,
+                  width: 40,
+                  height: 40,
                   child: Icon(
                     Icons.phone_rounded,
                     size: 19,
@@ -331,6 +343,8 @@ class ActiveTripCard extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.navy,
                 side: const BorderSide(color: AppColors.border),
+                // / Reduce internal padding
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -353,14 +367,17 @@ class ActiveTripCard extends StatelessWidget {
                 backgroundColor: status.isTerminal
                     ? AppColors.accentGreen
                     : showTrackMap
-                    ? AppColors.navy
+                    ? AppColors.primary
                     : AppColors.primary,
                 foregroundColor: Colors.white,
+                // / Reduce internal padding
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
                 elevation: 0,
               ),
+
               icon: Icon(
                 status.isTerminal
                     ? Icons.add_circle_outline_rounded

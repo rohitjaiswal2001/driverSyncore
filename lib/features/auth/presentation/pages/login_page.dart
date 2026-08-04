@@ -8,7 +8,6 @@ import '../bloc/auth_state.dart';
 import '../widgets/login_features_bar.dart';
 import '../widgets/login_header.dart';
 import '../widgets/password_input_field.dart';
-import '../../../trips/presentation/pages/driver_main_shell.dart';
 import 'register_page.dart';
 import 'otp_verification_page.dart';
 import 'forgot_password_page.dart';
@@ -62,14 +61,6 @@ class _LoginPageState extends State<LoginPage> {
                 icon: Icons.check_circle_outline,
               );
             }
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    DriverMainShell(username: state.user.phoneNumber),
-              ),
-              (route) => false,
-            );
           } else if (state is AuthFailure) {
             setState(() {
               _userInitiatedLogin = false;

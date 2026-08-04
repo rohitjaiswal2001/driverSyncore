@@ -16,7 +16,9 @@ import '../widgets/live_tracking_map.dart';
 import 'update_status_page.dart';
 
 class DriverTrackingPage extends StatefulWidget {
-  const DriverTrackingPage({super.key});
+  final LocationTrackingController? controller;
+
+  const DriverTrackingPage({super.key, this.controller});
 
   @override
   State<DriverTrackingPage> createState() => _DriverTrackingPageState();
@@ -146,7 +148,10 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     final isNewTrip = _activeTrip?.bookingId != trip.bookingId;
     _activeTrip = trip;
 
-    if (isNewTrip) {
+    if (widget.controller != null &&
+        widget.controller!.orderId == trip.bookingId) {
+      _locationController = widget.controller;
+    } else if (isNewTrip) {
       _locationController?.dispose();
       _locationController = LocationTrackingController(
         repository: di.sl<TripsRepository>(),
@@ -177,9 +182,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
       try {
         final pos =
             await Geolocator.getLastKnownPosition() ??
-            await Geolocator.getCurrentPosition(
-              timeLimit: const Duration(seconds: 3),
-            );
+            await Geolocator.getCurrentPosition();
         lat = pos.latitude;
         lng = pos.longitude;
       } catch (_) {}
@@ -300,7 +303,9 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 
   @override
   void dispose() {
-    _locationController?.dispose();
+    if (widget.controller != _locationController) {
+      _locationController?.dispose();
+    }
     super.dispose();
   }
 
@@ -848,7 +853,7 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                 const SizedBox(height: 2),
                 Text(
                   widget.isEnabled
-                      ? 'Location updates are sent automatically every 30 minutes'
+                      ? 'Location updates are sent automatically every 5 minutes'
                       : 'Tap switch to resume live tracking',
                   style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
@@ -858,7 +863,6 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
           const SizedBox(width: 12),
           Switch.adaptive(
             value: widget.isEnabled,
-            activeColor: AppColors.accentGreen,
             activeTrackColor: AppColors.accentGreen.withValues(alpha: 0.4),
             inactiveThumbColor: const Color(0xFFCBD5E1),
             inactiveTrackColor: const Color(0xFF64748B),
@@ -869,8 +873,6 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
     );
   }
 }
-
-
 
 /// Lets [AnimatedBuilder] safely take a null [LocationTrackingController]
 /// (before an active trip is known) without a special-cased builder.

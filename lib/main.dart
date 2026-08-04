@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection_container.dart' as di;
 import 'core/theme/app_theme.dart';
+import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
@@ -24,8 +25,15 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  User? _currentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -40,26 +48,24 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'GlobeLink Driver',
+        title: 'Syntracore Driver',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: BlocListener<AuthBloc, AuthState>(
+        home: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
-            if (state is AuthInitial) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
+            if (state is AuthSuccess) {
+              setState(() => _currentUser = state.user);
+            } else if (state is AuthInitial) {
+              setState(() => _currentUser = null);
             }
           },
-          child: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is AuthSuccess) {
-                return DriverMainShell(username: state.user.phoneNumber);
-              }
-              return const LoginPage();
-            },
-          ),
+          builder: (context, state) {
+            final user = (state is AuthSuccess) ? state.user : _currentUser;
+            if (user != null) {
+              return DriverMainShell(username: user.phoneNumber);
+            }
+            return const LoginPage();
+          },
         ),
       ),
     );

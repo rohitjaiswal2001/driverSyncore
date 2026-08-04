@@ -315,8 +315,8 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     final points = _routePoints.isNotEmpty
         ? _routePoints
         : <LatLng>[
-            if (_pickupLatLng != null) _pickupLatLng!,
-            if (_dropLatLng != null) _dropLatLng!,
+            ?_pickupLatLng,
+            ?_dropLatLng,
           ];
 
     if (points.length >= 2) {
@@ -335,14 +335,27 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     return polylines;
   }
 
+  void _centerOnDriverPosition() {
+    final controller = _mapController;
+    if (controller == null) return;
+
+    _isUserInteracting = false;
+    _hasCenteredOnDriver = true;
+
+    final position = widget.driverPosition;
+    if (position != null) {
+      controller.animateCamera(CameraUpdate.newLatLngZoom(position, 15.5));
+    } else {
+      _fitToVisibleMarkers();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final initialTarget =
         widget.driverPosition ??
         _pickupLatLng ??
         const LatLng(20.5937, 78.9629);
-
-
 
     return ClipRRect(
       borderRadius: widget.borderRadius,
@@ -408,15 +421,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
               tooltip: widget.driverPosition != null
                   ? 'Centre on me'
                   : 'Fit route',
-              onTap: () {
-                _isUserInteracting = false;
-                if (widget.driverPosition != null) {
-                  _hasCenteredOnDriver = false;
-                  _followDriver();
-                } else {
-                  _fitToVisibleMarkers();
-                }
-              },
+              onTap: _centerOnDriverPosition,
             ),
           ),
         ],
@@ -540,5 +545,3 @@ class _MapActionButton extends StatelessWidget {
     );
   }
 }
-
-

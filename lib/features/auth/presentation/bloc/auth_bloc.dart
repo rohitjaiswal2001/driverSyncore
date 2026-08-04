@@ -256,17 +256,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     GetProfileDetails event,
     Emitter<AuthState> emit,
   ) async {
-    final currentRole = state.role;
-    emit(AuthLoading(role: currentRole));
     try {
       final user = await getProfileUseCase();
       emit(AuthSuccess(user: user));
-    } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
-    }
+    } catch (_) {}
   }
 
   Future<void> _onUpdateProfileSubmitted(

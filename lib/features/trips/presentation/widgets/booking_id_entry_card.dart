@@ -273,7 +273,7 @@ class _BookingIdEntryCardState extends State<BookingIdEntryCard> {
                 height: 54,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.navy,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: AppColors.navy.withValues(
                       alpha: 0.35,

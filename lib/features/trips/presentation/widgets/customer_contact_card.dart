@@ -88,10 +88,7 @@ class CustomerContactCard extends StatelessWidget {
           if (customerPhone.trim().isNotEmpty)
             InkWell(
               onTap: () async {
-                final Uri launchUri = Uri(
-                  scheme: 'tel',
-                  path: customerPhone,
-                );
+                final Uri launchUri = Uri(scheme: 'tel', path: customerPhone);
                 if (await canLaunchUrl(launchUri)) {
                   await launchUrl(launchUri);
                 } else if (context.mounted) {

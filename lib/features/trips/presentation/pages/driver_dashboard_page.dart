@@ -18,9 +18,12 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc_extensions.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
-import '../../../auth/presentation/pages/login_page.dart';
+import '../../domain/entities/tracking_status.dart';
 import '../../domain/entities/trip.dart';
 import '../../domain/repositories/trips_repository.dart';
+import '../bloc/trips_bloc.dart';
+import '../bloc/trips_event.dart';
+import '../controllers/location_tracking_controller.dart';
 import '../widgets/active_trip_card.dart';
 import '../widgets/booking_id_entry_card.dart';
 import 'trip_details_page.dart';
@@ -45,12 +48,42 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   String? _activeBookingId;
   Trip? _activeTrip;
   User? _cachedUser;
+  LocationTrackingController? _dashboardLocationController;
 
   bool _isLoadingOrder = false;
   String? _orderErrorMessage;
   bool _isRestoringTrip = true;
 
   DateTime? _lastBackPressedAt;
+
+  @override
+  void dispose() {
+    _dashboardLocationController?.dispose();
+    super.dispose();
+  }
+
+  void _syncDashboardLocationTracking(Trip trip) {
+    if (_dashboardLocationController?.orderId != trip.bookingId) {
+      _dashboardLocationController?.dispose();
+      _dashboardLocationController = LocationTrackingController(
+        repository: di.sl<TripsRepository>(),
+        orderId: trip.bookingId,
+      );
+    }
+    final code = trip.trackingStatusCode ?? '';
+    final label = trip.trackingStatusLabel;
+    final isLive =
+        code == 'SHIPMENT_START' || code == 'ONGOING' || trip.isTrackingStarted;
+    if (isLive) {
+      _dashboardLocationController?.updateTrackingStatus(
+        TrackingStatus(
+          id: trip.trackingStatusId ?? 3,
+          code: code.isNotEmpty ? code : 'ONGOING',
+          label: label ?? 'Ongoing',
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -108,6 +141,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         _activeTrip = trip;
         _isLoadingOrder = false;
       });
+      _syncDashboardLocationTracking(trip);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -172,10 +206,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
     if (shouldLogout && mounted) {
       context.read<AuthBloc>().add(const LogoutRequested());
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
     }
   }
 
@@ -208,6 +238,8 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   Future<void> _openTripDetails() async {
     final trip = _activeTrip;
     if (trip == null) return;
+
+    context.read<TripsBloc>().add(LoadTripDetails(tripId: trip.id));
 
     await Navigator.push(
       context,

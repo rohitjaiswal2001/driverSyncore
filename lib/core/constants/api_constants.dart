@@ -27,4 +27,8 @@ class ApiConstants {
 
   /// Live location & status update endpoint: POST /tracking/update
   static const String updateTrackingStatus = '/tracking/update';
+
+  /// Single centralized location ping interval for backend location updates.
+  /// Modify this single value to change the tracking frequency for the whole app.
+  static const Duration locationPingInterval = Duration(minutes: 5);
 }
