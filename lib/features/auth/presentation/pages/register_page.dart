@@ -6,7 +6,9 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 
+import 'package:flutter/gestures.dart';
 import 'otp_verification_page.dart';
+import 'legal_document_page.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -87,7 +89,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        const themeColor = AppColors.driverAccent;
+        const themeColor = AppColors.primary;
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -520,12 +522,47 @@ class _RegisterPageState extends State<RegisterPage> {
                                           ),
                                         ),
                                         const SizedBox(width: 8),
-                                        const Expanded(
-                                          child: Text(
-                                            'I agree to the Terms of Service and Privacy Policy',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: AppColors.textMedium,
+                                        Expanded(
+                                          child: Text.rich(
+                                            TextSpan(
+                                              text: 'I agree to the ',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: AppColors.textMedium,
+                                              ),
+                                              children: [
+                                                TextSpan(
+                                                  text: 'Terms of Service',
+                                                  style: const TextStyle(
+                                                    color: AppColors.accentBlue,
+                                                    fontWeight: FontWeight.bold,
+                                                    decoration: TextDecoration
+                                                        .underline,
+                                                  ),
+                                                  recognizer: TapGestureRecognizer()
+                                                    ..onTap = () {
+                                                      LegalDocumentPage.openTerms(
+                                                        context,
+                                                      );
+                                                    },
+                                                ),
+                                                const TextSpan(text: ' and '),
+                                                TextSpan(
+                                                  text: 'Privacy Policy',
+                                                  style: const TextStyle(
+                                                    color: AppColors.accentBlue,
+                                                    fontWeight: FontWeight.bold,
+                                                    decoration: TextDecoration
+                                                        .underline,
+                                                  ),
+                                                  recognizer: TapGestureRecognizer()
+                                                    ..onTap = () {
+                                                      LegalDocumentPage.openPrivacy(
+                                                        context,
+                                                      );
+                                                    },
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
