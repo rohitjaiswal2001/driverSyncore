@@ -294,7 +294,6 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
           email: user.email,
           profileImage: user.profileImage,
           isOnDuty: _isOnDuty,
-          isVerified: user.isVerified,
           avatarHeroTag: _avatarHeroTag,
           onAvatarTap: hasPhoto
               ? () => _openPhoto(user.profileImage!.trim())

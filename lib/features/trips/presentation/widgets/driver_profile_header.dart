@@ -4,9 +4,7 @@ import '../../../../core/widgets/user_avatar.dart';
 
 /// Hero card at the top of the driver profile.
 ///
-/// Shows identity (avatar, name, company) plus the two facts a driver checks
-/// most often — duty state and account verification — above their contact
-/// details.
+/// Shows identity (avatar, name, company) plus contact details.
 class DriverProfileHeader extends StatelessWidget {
   final String name;
   final String company;
@@ -14,7 +12,6 @@ class DriverProfileHeader extends StatelessWidget {
   final String? email;
   final String? profileImage;
   final bool isOnDuty;
-  final bool isVerified;
   final String avatarHeroTag;
 
   /// Opens the full-screen photo viewer. Null when there is no photo to open.
@@ -30,7 +27,6 @@ class DriverProfileHeader extends StatelessWidget {
     required this.phone,
     required this.onEditProfile,
     required this.isOnDuty,
-    required this.isVerified,
     this.onAvatarTap,
     this.email,
     this.profileImage,
