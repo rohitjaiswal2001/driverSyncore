@@ -69,8 +69,15 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
       ]);
 
       if (!mounted) return;
-      final statuses = results[0] as List<TrackingStatus>;
+      final allStatuses = results[0] as List<TrackingStatus>;
       final trip = results[1] as Trip;
+
+      // Filter out PAUSE option from Update Status page as it is managed via the map toggle switch
+      final statuses = allStatuses
+          .where((s) =>
+              s.code.toUpperCase() != 'PAUSE' &&
+              s.id != 6)
+          .toList();
 
       setState(() {
         _statuses = statuses;
@@ -87,13 +94,43 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     }
   }
 
+  bool _isSameStatus(TrackingStatus status, Trip trip) {
+    if (trip.trackingStatusId != null &&
+        trip.trackingStatusId! > 0 &&
+        status.id == trip.trackingStatusId) {
+      return true;
+    }
+    final tripCode = trip.trackingStatusCode?.trim().toUpperCase();
+    final statusCode = status.code.trim().toUpperCase();
+    if (tripCode != null && tripCode.isNotEmpty) {
+      if (statusCode == tripCode) return true;
+      if (statusCode.replaceAll('_', ' ') == tripCode.replaceAll('_', ' ')) {
+        return true;
+      }
+    }
+    final tripStatusText = trip.status.trim().toLowerCase();
+    final statusLabelText = status.label.trim().toLowerCase();
+    if (statusLabelText == tripStatusText) return true;
+    final trackingLabel = trip.trackingStatusLabel?.trim().toLowerCase();
+    if (trackingLabel != null && statusLabelText == trackingLabel) return true;
+
+    return false;
+  }
+
   TrackingStatus? _matchCurrent(List<TrackingStatus> statuses, Trip trip) {
-    final code = trip.trackingStatusCode;
-    if (code == null) return null;
     for (final status in statuses) {
-      if (status.code == code) return status;
+      if (_isSameStatus(status, trip)) return status;
     }
     return null;
+  }
+
+  int _getCurrentStatusIndex() {
+    final trip = _trip;
+    if (trip == null) return -1;
+    for (int i = 0; i < _statuses.length; i++) {
+      if (_isSameStatus(_statuses[i], trip)) return i;
+    }
+    return -1;
   }
 
   Future<void> _submit() async {
@@ -124,6 +161,11 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         longitude: lng,
         notes: _notesController.text,
       );
+
+      // Immediately fetch latest shipment details from API after updating status
+      try {
+        await di.sl<TripsRepository>().getTripDetails(trip.bookingId);
+      } catch (_) {}
 
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -161,14 +203,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     }
   }
 
-  int _getCurrentStatusIndex() {
-    final code = _trip?.trackingStatusCode;
-    if (code == null || code.isEmpty) return 0;
-    for (int i = 0; i < _statuses.length; i++) {
-      if (_statuses[i].code == code) return i;
-    }
-    return 0;
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -567,7 +602,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         _selected != null &&
         !_isSubmitting &&
         hasReasonIfNeeded &&
-        _selected?.code != _trip?.trackingStatusCode;
+        _trip != null &&
+        !_isSameStatus(_selected!, _trip!);
 
     return Container(
       color: Colors.white,

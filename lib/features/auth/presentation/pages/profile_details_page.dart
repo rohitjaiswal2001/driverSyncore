@@ -22,7 +22,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   Future<void> _handleRefresh() async {
     final authBloc = context.read<AuthBloc>();
     final completer = Completer<void>();
-    
+
     late StreamSubscription subscription;
     subscription = authBloc.stream.listen((state) {
       if (state is AuthSuccess || state is AuthFailure) {
@@ -68,7 +68,8 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
           if (state is AuthSuccess) {
             _cachedUser = state.user;
           }
-          final user = _cachedUser ?? (state is AuthSuccess ? state.user : null);
+          final user =
+              _cachedUser ?? (state is AuthSuccess ? state.user : null);
 
           if (user == null) {
             return const Center(child: CircularProgressIndicator());
@@ -97,13 +98,13 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                 parent: BouncingScrollPhysics(),
               ),
               padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Avatar Hero
-                GestureDetector(
-                  onTap: hasImage
-                      ? () => Navigator.push(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Avatar Hero
+                  GestureDetector(
+                    onTap: hasImage
+                        ? () => Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => FullscreenImageViewer(
@@ -112,127 +113,120 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                               ),
                             ),
                           )
-                      : null,
-                  child: Hero(
-                    tag: 'profile_avatar_hero',
-                    child: CircleAvatar(
-                      radius: 56,
-                      backgroundColor: AppColors.primary.withAlpha(26),
-                      backgroundImage: hasImage
-                          ? NetworkImage(user.profileImage!)
-                          : null,
-                      child: !hasImage
-                          ? Text(
-                              initials,
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            )
-                          : null,
+                        : null,
+                    child: Hero(
+                      tag: 'profile_avatar_hero',
+                      child: CircleAvatar(
+                        radius: 56,
+                        backgroundColor: AppColors.primary.withAlpha(26),
+                        backgroundImage: hasImage
+                            ? NetworkImage(user.profileImage!)
+                            : null,
+                        child: !hasImage
+                            ? Text(
+                                initials,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            : null,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                if (hasImage)
-                  const Text(
-                    'Tap to view photo',
-                    style: TextStyle(fontSize: 12, color: AppColors.textLight),
-                  ),
-                const SizedBox(height: 32),
+                  const SizedBox(height: 12),
+                  if (hasImage)
+                    const Text(
+                      'Tap to view photo',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                  const SizedBox(height: 32),
 
-                // Details Card
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildDetailRow(
-                        icon: Icons.person_outline,
-                        label: 'First Name',
-                        value: user.firstName,
-                      ),
-                      const Divider(height: 1, color: AppColors.divider),
-                      _buildDetailRow(
-                        icon: Icons.person_outline,
-                        label: 'Last Name',
-                        value: user.lastName ?? '-',
-                      ),
-                      const Divider(height: 1, color: AppColors.divider),
-                      _buildDetailRow(
-                        icon: Icons.email_outlined,
-                        label: 'Email Address',
-                        value: user.email,
-                      ),
-                      const Divider(height: 1, color: AppColors.divider),
-                      _buildDetailRow(
-                        icon: Icons.phone_outlined,
-                        label: 'Phone Number',
-                        value: user.phone,
-                      ),
-                      const Divider(height: 1, color: AppColors.divider),
-                      _buildDetailRow(
-                        icon: Icons.business_outlined,
-                        label: 'Company Name',
-                        value: user.companyName.isNotEmpty
-                            ? user.companyName
-                            : '-',
-                      ),
-                      const Divider(height: 1, color: AppColors.divider),
-                      _buildDetailRow(
-                        icon: Icons.badge_outlined,
-                        label: 'Role',
-                        value: user.role.toUpperCase(),
-                      ),
-                      const Divider(height: 1, color: AppColors.divider),
-                      _buildDetailRow(
-                        icon: Icons.verified_user_outlined,
-                        label: 'Status',
-                        value: user.isVerified ? 'VERIFIED' : 'UNVERIFIED',
-                        valueColor: user.isVerified ? Colors.green : Colors.red,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Edit Profile Button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 54),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  // Details Card
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildDetailRow(
+                          icon: Icons.person_outline,
+                          label: 'First Name',
+                          value: user.firstName,
+                        ),
+                        const Divider(height: 1, color: AppColors.divider),
+                        _buildDetailRow(
+                          icon: Icons.person_outline,
+                          label: 'Last Name',
+                          value: user.lastName ?? '-',
+                        ),
+                        const Divider(height: 1, color: AppColors.divider),
+                        _buildDetailRow(
+                          icon: Icons.email_outlined,
+                          label: 'Email Address',
+                          value: user.email,
+                        ),
+                        const Divider(height: 1, color: AppColors.divider),
+                        _buildDetailRow(
+                          icon: Icons.phone_outlined,
+                          label: 'Phone Number',
+                          value: user.phone,
+                        ),
+                        const Divider(height: 1, color: AppColors.divider),
+                        _buildDetailRow(
+                          icon: Icons.business_outlined,
+                          label: 'Company Name',
+                          value: user.companyName.isNotEmpty
+                              ? user.companyName
+                              : '-',
+                        ),
+                      ],
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const EditProfilePage(),
+                  const SizedBox(height: 32),
+
+                  // Edit Profile Button
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 54),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    );
-                  },
-                  child: const Text(
-                    'Edit Profile',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfilePage(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Edit Profile',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    ),
-  );
-}
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildDetailRow({
     required IconData icon,

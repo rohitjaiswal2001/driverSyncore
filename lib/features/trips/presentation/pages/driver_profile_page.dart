@@ -3,13 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_info.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
-import '../../../../core/widgets/app_info_sheet.dart';
 import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../../auth/domain/entities/user.dart';
@@ -146,76 +144,6 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
   void _openPage(Widget page) {
     HapticFeedback.selectionClick();
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-  }
-
-  void _showComingSoon({
-    required IconData icon,
-    required String title,
-    required String message,
-  }) {
-    HapticFeedback.selectionClick();
-    showAppInfoSheet(
-      context,
-      icon: icon,
-      title: title,
-      message: message,
-      accentColor: AppColors.accentOrange,
-    );
-  }
-
-  Future<void> _launch(Uri uri, String failureMessage) async {
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && mounted) {
-      TopSnackBar.show(
-        context,
-        message: failureMessage,
-        backgroundColor: AppColors.danger,
-        icon: Icons.error_outline,
-      );
-    }
-  }
-
-  void _showSupport() {
-    HapticFeedback.selectionClick();
-
-    final actions = <AppSheetAction>[
-      if (AppInfo.hasSupportPhone)
-        AppSheetAction(
-          icon: Icons.phone_rounded,
-          label: 'Call support',
-          value: AppInfo.supportPhone,
-          color: AppColors.accentGreen,
-          onTap: () => _launch(
-            Uri(scheme: 'tel', path: AppInfo.supportPhone),
-            'No phone app available on this device.',
-          ),
-        ),
-      if (AppInfo.hasSupportEmail)
-        AppSheetAction(
-          icon: Icons.mail_outline_rounded,
-          label: 'Email support',
-          value: AppInfo.supportEmail,
-          color: AppColors.accentBlue,
-          onTap: () => _launch(
-            Uri(scheme: 'mailto', path: AppInfo.supportEmail),
-            'No mail app available on this device.',
-          ),
-        ),
-    ];
-
-    showAppInfoSheet(
-      context,
-      icon: Icons.support_agent_rounded,
-      title: 'Help & Support',
-      message: AppInfo.hasSupportContact
-          ? 'Reach the fleet desk for trip, document or account issues.'
-          : 'In-app support is on the way. For now, contact your fleet '
-                'manager directly for trip or account issues.',
-      accentColor: AppInfo.hasSupportContact
-          ? AppColors.primary
-          : AppColors.accentOrange,
-      actions: actions,
-    );
   }
 
   @override

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'driver_dashboard_page.dart';
 import 'driver_profile_page.dart';
 import 'driver_tracking_page.dart';
-import 'my_trips_page.dart';
 
 class DriverMainShell extends StatelessWidget {
   final String username;
@@ -31,17 +30,6 @@ class DriverMainShell extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (_) => const DriverTrackingPage(),
-          ),
-        );
-      },
-      onNavigateToOrders: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MyTripsPage(
-              userRole: 'driver',
-              username: username,
-            ),
           ),
         );
       },

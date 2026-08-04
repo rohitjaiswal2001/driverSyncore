@@ -42,10 +42,13 @@ class DriverProfileHeader extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.navy, AppColors.navyDeep],
+          colors: [
+            AppColors.primary.withValues(alpha: 0.90),
+            AppColors.navyDeep.withValues(alpha: 0.60),
+          ],
         ),
         boxShadow: [
           BoxShadow(

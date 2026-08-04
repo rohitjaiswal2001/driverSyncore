@@ -9,7 +9,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/utils/recent_orders_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
-import '../../../../core/widgets/app_info_sheet.dart';
 import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../../../core/widgets/user_avatar.dart';
@@ -24,22 +23,18 @@ import '../../domain/entities/trip.dart';
 import '../../domain/repositories/trips_repository.dart';
 import '../widgets/active_trip_card.dart';
 import '../widgets/booking_id_entry_card.dart';
-import '../widgets/dashboard_quick_action_grid.dart';
-import '../widgets/driver_greeting_header.dart';
 import 'trip_details_page.dart';
 
 class DriverDashboardPage extends StatefulWidget {
   final String username;
   final VoidCallback onNavigateToProfile;
   final VoidCallback onNavigateToTracking;
-  final VoidCallback onNavigateToOrders;
 
   const DriverDashboardPage({
     super.key,
     required this.username,
     required this.onNavigateToProfile,
     required this.onNavigateToTracking,
-    required this.onNavigateToOrders,
   });
 
   @override
@@ -53,10 +48,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
   bool _isLoadingOrder = false;
   String? _orderErrorMessage;
-
-  /// True until the saved booking order (if any) has been restored, so the page
-  /// never flashes the "enter a booking ID" card at a driver who already has an
-  /// active trip.
   bool _isRestoringTrip = true;
 
   DateTime? _lastBackPressedAt;
@@ -65,7 +56,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   void initState() {
     super.initState();
 
-    // Render immediately from whatever the bloc already holds, then refresh.
     final currentState = context.read<AuthBloc>().state;
     if (currentState is AuthSuccess) {
       _cachedUser = currentState.user;
@@ -81,7 +71,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   }
 
   // ---------------------------------------------------------------------------
-  // Data
+  // Data Logic
   // ---------------------------------------------------------------------------
 
   Future<void> _restoreActiveBooking() async {
@@ -127,13 +117,10 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     }
   }
 
-  /// Pull-to-refresh: reloads the driver profile and the active shipment.
   Future<void> _handleRefresh() async {
     final bookingId = _activeTrip?.bookingId ?? _activeBookingId;
 
     await Future.wait<void>([
-      // A profile failure already surfaces through the bloc; it must not stop
-      // the trip from refreshing.
       context.read<AuthBloc>().refreshProfile().catchError((_) {}),
       if (bookingId != null && bookingId.trim().isNotEmpty)
         _fetchTripForBookingId(bookingId, saveToPrefs: false),
@@ -165,10 +152,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Actions
-  // ---------------------------------------------------------------------------
-
   Future<void> _confirmLogout() async {
     final shouldLogout = await showAppConfirmDialog(
       context,
@@ -196,18 +179,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     }
   }
 
-  Future<void> _launch(Uri uri, String failureMessage) async {
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && mounted) {
-      TopSnackBar.show(
-        context,
-        message: failureMessage,
-        backgroundColor: AppColors.danger,
-        icon: Icons.error_outline,
-      );
-    }
-  }
-
   void _callCustomer() {
     final phone = _activeTrip?.customerPhone.trim() ?? '';
     if (phone.isEmpty) return;
@@ -217,66 +188,21 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     );
   }
 
-  void _openContactSheet() {
-    final trip = _activeTrip;
-    final customerPhone = trip?.customerPhone.trim() ?? '';
-
-    final actions = <AppSheetAction>[
-      if (trip != null && customerPhone.isNotEmpty)
-        AppSheetAction(
-          icon: Icons.person_outline_rounded,
-          label: 'Customer · ${trip.customerName}',
-          value: customerPhone,
-          color: AppColors.customerAccent,
-          onTap: _callCustomer,
-        ),
-      if (AppInfo.hasSupportPhone)
-        AppSheetAction(
-          icon: Icons.headset_mic_rounded,
-          label: 'Fleet desk',
-          value: AppInfo.supportPhone,
-          color: AppColors.accentGreen,
-          onTap: () => _launch(
-            Uri(scheme: 'tel', path: AppInfo.supportPhone),
-            'No phone app available on this device.',
-          ),
-        ),
-      if (AppInfo.hasSupportEmail)
-        AppSheetAction(
-          icon: Icons.mail_outline_rounded,
-          label: 'Email support',
-          value: AppInfo.supportEmail,
-          color: AppColors.accentBlue,
-          onTap: () => _launch(
-            Uri(scheme: 'mailto', path: AppInfo.supportEmail),
-            'No mail app available on this device.',
-          ),
-        ),
-    ];
-
-    showAppInfoSheet(
-      context,
-      icon: Icons.headset_mic_rounded,
-      title: 'Contact',
-      message: actions.isEmpty
-          ? 'No contact is available right now. Load a Booking Order to reach '
-                'its customer, or contact your fleet manager directly.'
-          : 'Reach the people involved in your current shipment.',
-      accentColor: actions.isEmpty ? AppColors.accentOrange : AppColors.primary,
-      actions: actions,
-    );
-  }
-
-  void _openUploadDocs() {
-    showAppInfoSheet(
-      context,
-      icon: Icons.article_rounded,
-      title: 'Upload Documents',
-      message:
-          'Uploading PODs, e-way bills and trip sheets from the app is coming '
-          'in a future update. For now, hand documents to your fleet manager.',
-      accentColor: AppColors.accentOrange,
-    );
+  Future<void> _launch(Uri uri, String failureMessage) async {
+    if (!mounted) return;
+    try {
+      final can = await canLaunchUrl(uri);
+      if (can) {
+        await launchUrl(uri);
+      } else if (mounted) {
+        TopSnackBar.show(
+          context,
+          message: failureMessage,
+          backgroundColor: AppColors.danger,
+          icon: Icons.error_outline,
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _openTripDetails() async {
@@ -290,14 +216,11 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       ),
     );
 
-    // The status may have been advanced from the details page.
     if (mounted) {
       await _fetchTripForBookingId(trip.bookingId, saveToPrefs: false);
     }
   }
 
-  /// Requires a second back press within two seconds before leaving the app, so
-  /// a stray gesture mid-trip does not close the dashboard.
   void _handleBackPressed() {
     final now = DateTime.now();
     final isConfirming =
@@ -320,16 +243,16 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // UI
-  // ---------------------------------------------------------------------------
-
   String _getSalutation() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning,';
-    if (hour < 17) return 'Good Afternoon,';
-    return 'Good Evening,';
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
   }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -353,67 +276,48 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                     : 'Driver');
 
           return Scaffold(
-            backgroundColor: AppColors.surface,
-            appBar: _buildAppBar(user),
-            body: RefreshIndicator(
-              onRefresh: _handleRefresh,
-              color: AppColors.primary,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  12,
-                  20,
-                  24 + MediaQuery.of(context).padding.bottom,
-                ),
-                children: [
-                  DriverGreetingHeader(
-                    salutation: _getSalutation(),
-                    name: driverName,
-                  ),
-                  const SizedBox(height: 20),
+            backgroundColor: AppColors.background,
+            body: Column(
+              children: [
+                // Integrated Dark Navy Header AppBar
+                _buildHeader(user, driverName),
 
-                  _buildTripSection(),
-                  const SizedBox(height: 26),
-
-                  // DashboardQuickActionGrid(
-                  //   actions: [
-                  //     QuickAction(
-                  //       icon: Icons.article_rounded,
-                  //       label: 'Upload Docs',
-                  //       color: AppColors.accentPurple,
-                  //       badge: 'SOON',
-                  //       onTap: _openUploadDocs,
-                  //     ),
-                  //     QuickAction(
-                  //       icon: Icons.headset_mic_rounded,
-                  //       label: 'Contact',
-                  //       color: AppColors.accentGreen,
-                  //       onTap: _openContactSheet,
-                  //     ),
-                  //     QuickAction(
-                  //       icon: Icons.route_rounded,
-                  //       label: 'My Trips',
-                  //       color: AppColors.accentBlue,
-                  //       onTap: widget.onNavigateToOrders,
-                  //     ),
-                  //   ],
-                  // ),
-                  // const SizedBox(height: 32),
-                  Center(
-                    child: Text(
-                      '${AppInfo.appName} v${AppInfo.version}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textLight.withValues(alpha: 0.8),
+                // Main Content List
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _handleRefresh,
+                    color: AppColors.primary,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
                       ),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        20,
+                        16,
+                        24 + MediaQuery.of(context).padding.bottom,
+                      ),
+                      children: [
+                        // Active Trip / Booking Section
+                        _buildTripSection(),
+                        const SizedBox(height: 28),
+
+                        // Footer Branding
+                        Center(
+                          child: Text(
+                            '${AppInfo.appName} v${AppInfo.version}',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textLight.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
@@ -421,91 +325,222 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(User? user) {
-    final fullName = user != null && user.firstName.trim().isNotEmpty
-        ? '${user.firstName} ${user.lastName ?? ''}'.trim()
-        : (widget.username.trim().isNotEmpty
-              ? widget.username.trim()
-              : 'Driver');
-    final company = user?.companyName.trim() ?? '';
-    final subtitle = company.isNotEmpty ? company : 'Driver';
-
-    return AppBar(
-      backgroundColor: AppColors.surface,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      surfaceTintColor: Colors.transparent,
-      automaticallyImplyLeading: false,
-      titleSpacing: 12,
-      title: Semantics(
-        button: true,
-        label: 'Open profile',
-        child: InkWell(
-          onTap: widget.onNavigateToProfile,
-          borderRadius: BorderRadius.circular(14),
+  Widget _buildHeader(User? user, String driverName) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.navy, AppColors.navyDeep],
+          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x331E1B4B),
+              blurRadius: 14,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          bottom: false,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Stack(
-                  children: [
-                    UserAvatar(
-                      name: fullName,
-                      imageUrl: user?.profileImage,
-                      radius: 21,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: AppColors.accentGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.surface,
-                            width: 2,
+                InkWell(
+                  onTap: widget.onNavigateToProfile,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Row(
+                    children: [
+                      Stack(
+                        children: [
+                          UserAvatar(
+                            name: driverName,
+                            imageUrl: user?.profileImage,
+                            radius: 24,
                           ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGreen,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.navy,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${_getSalutation()},',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withValues(alpha: 0.75),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$driverName!',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Semantics(
+                  button: true,
+                  label: 'Log out',
+                  child: Material(
+                    color: Colors.white,
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _confirmLogout,
+                      child: const SizedBox(
+                        width: 42,
+                        height: 42,
+                        child: Icon(
+                          Icons.logout_rounded,
+                          color: AppColors.danger,
+                          size: 20,
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(width: 12),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /*
+  // ---------------------------------------------------------------------------
+  // Quick Shortcuts (Commented Out per design spec)
+  // ---------------------------------------------------------------------------
+  Widget _buildQuickShortcuts() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildShortcutCard(
+            title: 'Live Tracking',
+            subtitle: 'GPS Navigation',
+            icon: Icons.navigation_rounded,
+            iconColor: AppColors.accentGreen,
+            bgColor: AppColors.accentGreen.withValues(alpha: 0.12),
+            onTap: widget.onNavigateToTracking,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildShortcutCard(
+            title: 'My Profile',
+            subtitle: 'Account Settings',
+            icon: Icons.person_rounded,
+            iconColor: AppColors.primary,
+            bgColor: AppColors.primaryLight,
+            onTap: widget.onNavigateToProfile,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShortcutCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 20, color: iconColor),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (user == null)
-                        const SkeletonBox(width: 130, height: 15)
-                      else
-                        Text(
-                          fullName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.navy,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 17,
-                            letterSpacing: -0.3,
-                          ),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
                         ),
-                      const SizedBox(height: 3),
-                      if (user == null)
-                        const SkeletonBox(width: 90, height: 11)
-                      else
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textMedium,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                          ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textLight,
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -514,34 +549,9 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
           ),
         ),
       ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: Semantics(
-            button: true,
-            label: 'Log out',
-            child: Material(
-              color: Colors.white,
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: _confirmLogout,
-                child: const SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: Icon(
-                    Icons.logout_rounded,
-                    color: AppColors.danger,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
+  */
 
   Widget _buildTripSection() {
     if (_isRestoringTrip) return const _TripCardSkeleton();
@@ -560,26 +570,79 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'ACTIVE TRIP',
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textMedium,
-                letterSpacing: 1.1,
-              ),
+            Row(
+              children: [
+                const Icon(
+                  Icons.local_shipping_rounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'ACTIVE SHIPMENT',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (_isLoadingOrder)
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.8,
+                      color: AppColors.primary,
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 10),
-            if (_isLoadingOrder)
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1.8,
-                  color: AppColors.textMedium,
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
                 ),
               ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _changeBookingOrder();
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.swap_horiz_rounded,
+                          size: 15,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Change Booking ID',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -675,8 +738,7 @@ class _TripCardSkeleton extends StatelessWidget {
   }
 }
 
-/// Inline banner for a failed background refresh, shown under the trip card so
-/// the still-valid cached trip stays visible.
+/// Inline banner for a failed background refresh, shown under the trip card.
 class _RefreshErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;

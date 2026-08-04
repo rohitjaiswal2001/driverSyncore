@@ -537,7 +537,10 @@ class _MyTripsPageState extends State<MyTripsPage> {
                       ),
                       if (trip.direction != null) ...[
                         const SizedBox(height: 8),
-                        DirectionBadge(direction: trip.direction, compact: true),
+                        DirectionBadge(
+                          direction: trip.direction,
+                          compact: true,
+                        ),
                       ],
                     ],
                   ),
@@ -556,7 +559,9 @@ class _MyTripsPageState extends State<MyTripsPage> {
               pickupTime: trip.pickupDate,
               dropLocation: trip.dropLocation,
               dropAddress: trip.dropAddress,
-              dropTime: trip.dropEta.isEmpty ? '' : 'Estimated: ${trip.dropEta}',
+              dropTime: trip.dropEta.isEmpty
+                  ? ''
+                  : 'Estimated: ${trip.dropEta}',
             ),
           ),
           Padding(

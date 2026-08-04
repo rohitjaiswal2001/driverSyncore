@@ -57,9 +57,10 @@ class TripsBloc extends Bloc<TripsEvent, TripsState> {
   ) async {
     emit(TripsLoading());
     try {
-      final updatedTrip = await updateTripStatusUseCase(
+      await updateTripStatusUseCase(
         UpdateTripStatusParams(tripId: event.tripId, status: event.status),
       );
+      final updatedTrip = await getTripDetailsUseCase(event.tripId);
       emit(TripDetailsLoaded(trip: updatedTrip));
     } catch (e) {
       emit(

@@ -47,7 +47,11 @@ class LocationTrackingController extends ChangeNotifier {
   /// refresh, or after a status update) to start/stop the loop accordingly.
   Future<void> updateTrackingStatus(TrackingStatus? status) async {
     _trackingStatus = status;
-    await _startLiveTracking();
+    if (status?.isLiveTrackingEligible ?? false) {
+      await _startLiveTracking();
+    } else {
+      _stopLiveTracking();
+    }
     _safeNotify();
   }
 

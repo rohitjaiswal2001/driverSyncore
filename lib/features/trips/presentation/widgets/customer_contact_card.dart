@@ -16,14 +16,14 @@ class CustomerContactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.01),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -31,82 +31,93 @@ class CustomerContactCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: AppColors.customerBg,
-            radius: 22,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.customerBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: const Icon(
-              Icons.person_outline,
+              Icons.person_outline_rounded,
               color: AppColors.customerAccent,
-              size: 24,
+              size: 20,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'CUSTOMER',
+                  'CUSTOMER DETAILS',
                   style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textLight,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMedium,
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  customerName,
+                  customerName.isNotEmpty ? customerName : 'Unknown Customer',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textDark,
                   ),
                 ),
-                const SizedBox(height: 1),
-                Text(
-                  customerPhone,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textMedium,
+                if (customerPhone.trim().isNotEmpty) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    customerPhone,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textMedium,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
-          // Dialer Button
-          InkWell(
-            onTap: () async {
-              final Uri launchUri = Uri(
-                scheme: 'tel',
-                path: customerPhone,
-              );
-              if (await canLaunchUrl(launchUri)) {
-                await launchUrl(launchUri);
-              } else if (context.mounted) {
-                TopSnackBar.show(
-                  context,
-                  message: 'Could not launch dialer for this number',
-                  backgroundColor: AppColors.danger,
-                  icon: Icons.error_outline,
+          if (customerPhone.trim().isNotEmpty)
+            InkWell(
+              onTap: () async {
+                final Uri launchUri = Uri(
+                  scheme: 'tel',
+                  path: customerPhone,
                 );
-              }
-            },
-            borderRadius: BorderRadius.circular(24),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: Color(0xFFDCFCE7),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.phone,
-                color: AppColors.accentGreen,
-                size: 20,
+                if (await canLaunchUrl(launchUri)) {
+                  await launchUrl(launchUri);
+                } else if (context.mounted) {
+                  TopSnackBar.show(
+                    context,
+                    message: 'Could not launch dialer for this number',
+                    backgroundColor: AppColors.danger,
+                    icon: Icons.error_outline,
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDCFCE7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.phone_rounded,
+                  color: AppColors.accentGreen,
+                  size: 18,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

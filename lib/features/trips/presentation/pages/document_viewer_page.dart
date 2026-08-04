@@ -67,11 +67,15 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1B4B),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.navy,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        iconTheme: const IconThemeData(color: AppColors.textDark),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -81,7 +85,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.textDark,
                 fontWeight: FontWeight.bold,
                 fontSize: 17,
               ),
@@ -89,8 +93,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
             if (_totalPages > 0)
               Text(
                 'Page ${_currentPage + 1} of $_totalPages',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                style: const TextStyle(
+                  color: AppColors.textMedium,
                   fontWeight: FontWeight.w500,
                   fontSize: 11.5,
                 ),
@@ -100,7 +104,10 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         actions: [
           IconButton(
             tooltip: 'Open outside the app',
-            icon: const Icon(Icons.open_in_new_rounded),
+            icon: const Icon(
+              Icons.open_in_new_rounded,
+              color: AppColors.textDark,
+            ),
             onPressed: _openExternally,
           ),
           const SizedBox(width: 4),
@@ -116,11 +123,11 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Colors.white),
+            CircularProgressIndicator(color: AppColors.primary),
             SizedBox(height: 16),
             Text(
               'Loading document…',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
+              style: TextStyle(color: AppColors.textMedium, fontSize: 13),
             ),
           ],
         ),
@@ -159,12 +166,12 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
               width: 76,
               height: 76,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: AppColors.danger.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.description_outlined,
-                color: Colors.white70,
+                color: AppColors.danger,
                 size: 34,
               ),
             ),
@@ -175,7 +182,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppColors.textDark,
               ),
             ),
             const SizedBox(height: 8),
@@ -185,7 +192,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
               style: const TextStyle(
                 fontSize: 14,
                 height: 1.5,
-                color: Colors.white70,
+                color: AppColors.textMedium,
               ),
             ),
             const SizedBox(height: 24),
@@ -199,6 +206,7 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -212,10 +220,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
                   height: 46,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.4),
-                      ),
+                      foregroundColor: AppColors.textDark,
+                      side: const BorderSide(color: AppColors.border),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),

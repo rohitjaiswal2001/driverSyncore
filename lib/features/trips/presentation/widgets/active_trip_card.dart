@@ -104,57 +104,38 @@ class ActiveTripCard extends StatelessWidget {
 
   Widget _buildHeader() {
     return Row(
-      // spaceBetween rather than a Spacer: a Spacer competes with the booking
-      // chip's flex and truncates it even when there is room to spare.
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         TripStatusChip(status: trip.status),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Semantics(
-            button: true,
-            label: 'Change booking order, currently ${trip.bookingId}',
-            child: Material(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(10),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onChangeBooking();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          trip.bookingId,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.navy,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.swap_horiz_rounded,
-                        size: 14,
-                        color: AppColors.navy,
-                      ),
-                    ],
-                  ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'BOOKING ID: ',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textMedium,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ),
+              Text(
+                trip.bookingId,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.navy,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
         ),
       ],

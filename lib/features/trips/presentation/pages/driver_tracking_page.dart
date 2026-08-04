@@ -30,6 +30,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   bool _isLoading = true;
   String? _loadError;
   bool _isTrackingEnabled = true;
+  bool _isUpdatingTrackingStatus = false;
 
   @override
   void initState() {
@@ -38,7 +39,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   }
 
   Future<void> _loadActiveTrip() async {
-    final activeOrderId = await di.sl<ActiveOrderStore>().read();
+    final activeOrderId = di.sl<ActiveOrderStore>().read();
     if (activeOrderId == null || activeOrderId.isEmpty) {
       if (!mounted) return;
       setState(() {
@@ -164,89 +165,103 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   }
 
   Future<void> _handleTrackingToggle(bool value, Trip trip) async {
-    double? lat;
-    double? lng;
+    if (_isUpdatingTrackingStatus) return;
+
+    setState(() {
+      _isUpdatingTrackingStatus = true;
+    });
+
     try {
-      final pos =
-          await Geolocator.getLastKnownPosition() ??
-          await Geolocator.getCurrentPosition(
-            timeLimit: const Duration(seconds: 3),
-          );
-      lat = pos.latitude;
-      lng = pos.longitude;
-    } catch (_) {}
-
-    if (!value) {
-      // Pause tracking: Hit API with status ID 6, code "PAUSE"
+      double? lat;
+      double? lng;
       try {
-        await di.sl<TripsRepository>().updateTrackingStatus(
-          orderId: trip.bookingId,
-          statusId: 6,
-          status: 'PAUSE',
-          latitude: lat,
-          longitude: lng,
-        );
-        if (mounted) {
-          TopSnackBar.show(
-            context,
-            message: 'Tracking Paused',
-            backgroundColor: Colors.blueGrey,
-            icon: Icons.pause_circle_outline,
+        final pos =
+            await Geolocator.getLastKnownPosition() ??
+            await Geolocator.getCurrentPosition(
+              timeLimit: const Duration(seconds: 3),
+            );
+        lat = pos.latitude;
+        lng = pos.longitude;
+      } catch (_) {}
+
+      if (!value) {
+        // Pause tracking: Hit API with status ID 6, code "PAUSE"
+        try {
+          await di.sl<TripsRepository>().updateTrackingStatus(
+            orderId: trip.bookingId,
+            statusId: 6,
+            status: 'PAUSE',
+            latitude: lat,
+            longitude: lng,
           );
+          if (mounted) {
+            TopSnackBar.show(
+              context,
+              message: 'Tracking Paused',
+              backgroundColor: Colors.blueGrey,
+              icon: Icons.pause_circle_outline,
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            TopSnackBar.show(
+              context,
+              message: e.toString().replaceAll('Exception: ', ''),
+              backgroundColor: AppColors.danger,
+              icon: Icons.error_outline,
+            );
+          }
         }
-      } catch (e) {
-        if (mounted) {
-          TopSnackBar.show(
-            context,
-            message: e.toString().replaceAll('Exception: ', ''),
-            backgroundColor: AppColors.danger,
-            icon: Icons.error_outline,
+      } else {
+        // Resume tracking: Hit API with status ONGOING
+        try {
+          final ongoingStatus = _trackingStatuses.firstWhere(
+            (s) => s.code == TrackingStatus.codeOngoing,
+            orElse: () =>
+                const TrackingStatus(id: 3, code: 'ONGOING', label: 'Ongoing'),
           );
+          await di.sl<TripsRepository>().updateTrackingStatus(
+            orderId: trip.bookingId,
+            statusId: ongoingStatus.id,
+            status: 'ONGOING',
+            latitude: lat,
+            longitude: lng,
+          );
+          if (mounted) {
+            TopSnackBar.show(
+              context,
+              message: 'Tracking Resumed',
+              backgroundColor: AppColors.accentGreen,
+              icon: Icons.play_circle_outline,
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            TopSnackBar.show(
+              context,
+              message: e.toString().replaceAll('Exception: ', ''),
+              backgroundColor: AppColors.danger,
+              icon: Icons.error_outline,
+            );
+          }
         }
       }
-    } else {
-      // Resume tracking: Hit API with status ONGOING
-      try {
-        final ongoingStatus = _trackingStatuses.firstWhere(
-          (s) => s.code == TrackingStatus.codeOngoing,
-          orElse: () =>
-              const TrackingStatus(id: 3, code: 'ONGOING', label: 'Ongoing'),
-        );
-        await di.sl<TripsRepository>().updateTrackingStatus(
-          orderId: trip.bookingId,
-          statusId: ongoingStatus.id,
-          status: 'ONGOING',
-          latitude: lat,
-          longitude: lng,
-        );
-        if (mounted) {
-          TopSnackBar.show(
-            context,
-            message: 'Tracking Resumed',
-            backgroundColor: AppColors.accentGreen,
-            icon: Icons.play_circle_outline,
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          TopSnackBar.show(
-            context,
-            message: e.toString().replaceAll('Exception: ', ''),
-            backgroundColor: AppColors.danger,
-            icon: Icons.error_outline,
-          );
-        }
-      }
-    }
 
-    if (mounted) {
-      await _loadActiveTrip();
+      if (mounted) {
+        await _loadActiveTrip();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingTrackingStatus = false;
+        });
+      }
     }
   }
 
   /// Opens the update status screen inside a Modal Bottom Sheet.
   Future<void> _openUpdateStatusSheet(Trip trip) async {
-    final updated = await showModalBottomSheet<bool>(
+    await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -278,7 +293,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
       },
     );
 
-    if (updated == true && mounted) {
+    if (mounted) {
       await _loadActiveTrip();
     }
   }
@@ -294,7 +309,61 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          _buildBody(),
+          if (_isUpdatingTrackingStatus)
+            ModalBarrier(
+              dismissible: false,
+              color: Colors.black.withValues(alpha: 0.45),
+            ),
+          if (_isUpdatingTrackingStatus)
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2.5,
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                    Flexible(
+                      child: Text(
+                        'Updating tracking status...',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -344,9 +413,12 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 
     final resolvedTrackingStatus = _resolveTrackingStatus(trip);
     final isStarted = trip.isTrackingStarted;
-    final isPaused = trip.trackingStatusCode == 'PAUSE';
-    final isTrackingEligible =
-        resolvedTrackingStatus?.isLiveTrackingEligible ?? isStarted || isPaused;
+    final isPaused =
+        trip.trackingStatusCode == 'PAUSE' ||
+        resolvedTrackingStatus?.code == 'PAUSE';
+    final isLiveEligible =
+        resolvedTrackingStatus?.isLiveTrackingEligible ?? false;
+    final isTrackingEligible = isLiveEligible || isStarted || isPaused;
 
     final hasFailedNote =
         trip.notes.isNotEmpty || (resolvedTrackingStatus?.isFailed ?? false);
@@ -470,8 +542,9 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                     _LiveTrackingToggleCard(
                       isEnabled: _isTrackingEnabled,
                       statusLabel: resolvedTrackingStatus?.label ?? trip.status,
-                      onToggleChanged: (value) =>
-                          _handleTrackingToggle(value, trip),
+                      onToggleChanged: _isUpdatingTrackingStatus
+                          ? (_) {}
+                          : (value) => _handleTrackingToggle(value, trip),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -751,7 +824,7 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        widget.isEnabled ? 'LIVE' : 'STOPPED',
+                        widget.isEnabled ? 'LIVE' : 'PAUSED',
                         style: TextStyle(
                           color: activeColor,
                           fontWeight: FontWeight.bold,
@@ -797,57 +870,7 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
   }
 }
 
-class _StatusHistoryStrip extends StatelessWidget {
-  final String statusLabel;
 
-  const _StatusHistoryStrip({required this.statusLabel});
-
-  @override
-  Widget build(BuildContext context) {
-    final steps = <String>['Started', 'In Transit', statusLabel];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: List.generate(steps.length, (index) {
-          final isLast = index == steps.length - 1;
-          return Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: isLast ? AppColors.primary : AppColors.accentGreen,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    steps[index],
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isLast ? FontWeight.w700 : FontWeight.w600,
-                      color: isLast ? AppColors.textDark : AppColors.textMedium,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (!isLast) const SizedBox(width: 6),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
 
 /// Lets [AnimatedBuilder] safely take a null [LocationTrackingController]
 /// (before an active trip is known) without a special-cased builder.
