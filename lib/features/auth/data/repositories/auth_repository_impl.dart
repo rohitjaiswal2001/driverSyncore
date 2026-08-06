@@ -165,12 +165,12 @@ class AuthRepositoryImpl implements AuthRepository {
       id: 'usr_mock_otp_54321',
       firstName: 'OTP User',
       lastName: '',
-      email: 'otpuser@syntracore.com',
+      email: 'otpuser@globelink.com',
       phone: phoneNumber,
       role: role,
       companyName: 'Mock Company',
       isVerified: true,
-      token: 'jwt_mock_token_otp_abc_syntracore_112233',
+      token: 'jwt_mock_token_otp_abc_globelink_112233',
     );
     _apiClient.setAuthToken(userModel.token);
     await _cacheUser(userModel);
@@ -252,7 +252,10 @@ class AuthRepositoryImpl implements AuthRepository {
       await _sharedPreferences.setString(_authTokenKey, user.token);
       _apiClient.setAuthToken(user.token);
     }
-    await _sharedPreferences.setString(_userKey, jsonEncode(userModel.toJson()));
+    await _sharedPreferences.setString(
+      _userKey,
+      jsonEncode(userModel.toJson()),
+    );
   }
 
   @override
@@ -261,17 +264,17 @@ class AuthRepositoryImpl implements AuthRepository {
     final cachedUserStr = _sharedPreferences.getString(_userKey);
     if (cachedUserStr != null && cachedUserStr.isNotEmpty) {
       try {
-        final Map<String, dynamic> userMap = jsonDecode(cachedUserStr) as Map<String, dynamic>;
+        final Map<String, dynamic> userMap =
+            jsonDecode(cachedUserStr) as Map<String, dynamic>;
         final userModel = UserModel.fromJson(
           userMap,
           token: storedToken != null && storedToken.isNotEmpty
               ? storedToken
               : null,
         );
-        final tokenToUse =
-            userModel.token.isNotEmpty
-                ? userModel.token
-                : (storedToken ?? '');
+        final tokenToUse = userModel.token.isNotEmpty
+            ? userModel.token
+            : (storedToken ?? '');
         if (tokenToUse.isNotEmpty) {
           _apiClient.setAuthToken(tokenToUse);
         }
@@ -306,7 +309,9 @@ class AuthRepositoryImpl implements AuthRepository {
     if (data is Map<String, dynamic>) {
       final success = data['success'] ?? data['status'];
       if (success == false) {
-        throw AuthException(_extractErrorMessage(data, 'Failed to fetch profile'));
+        throw AuthException(
+          _extractErrorMessage(data, 'Failed to fetch profile'),
+        );
       }
 
       final cachedUser = await getCachedUser();
@@ -355,7 +360,9 @@ class AuthRepositoryImpl implements AuthRepository {
     if (data is Map<String, dynamic>) {
       final success = data['success'] ?? data['status'];
       if (success == false) {
-        throw AuthException(_extractErrorMessage(data, 'Profile update failed'));
+        throw AuthException(
+          _extractErrorMessage(data, 'Profile update failed'),
+        );
       }
 
       final cachedUser = await getCachedUser();
@@ -377,7 +384,9 @@ class AuthRepositoryImpl implements AuthRepository {
     if (data is Map<String, dynamic>) {
       final success = data['success'] ?? data['status'];
       if (success == false) {
-        throw AuthException(_extractErrorMessage(data, 'Failed to remove image'));
+        throw AuthException(
+          _extractErrorMessage(data, 'Failed to remove image'),
+        );
       }
 
       final cachedUser = await getCachedUser();

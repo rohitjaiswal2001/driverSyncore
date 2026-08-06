@@ -1,4 +1,4 @@
-package com.syntracore.syntracore_driver
+package com.globelink.globelink_driver
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:syntracore_driver/core/utils/validators.dart';
+import 'package:globelink_driver/core/utils/validators.dart';
 
 void main() {
   group('Validators - Password Validation', () {
@@ -56,8 +56,14 @@ void main() {
     });
 
     test('should return error if email is invalid', () {
-      expect(Validators.validateEmail('shinchan'), 'Enter a valid email address');
-      expect(Validators.validateEmail('shinchan@yopmail'), 'Enter a valid email address');
+      expect(
+        Validators.validateEmail('shinchan'),
+        'Enter a valid email address',
+      );
+      expect(
+        Validators.validateEmail('shinchan@yopmail'),
+        'Enter a valid email address',
+      );
     });
 
     test('should return null for a valid email', () {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Brand Colors - matched to the Syntracore admin web panel's indigo-blue
+  // Brand Colors - matched to the globelink admin web panel's indigo-blue
   static const Color primary = Color(0xFF4F46E5); // Admin panel active pill
   static const Color primaryLight = Color(0xFFEEF2FF);
   static const Color navy = Color(0xFF312E81); // Deep indigo for headings
@@ -32,10 +32,10 @@ class AppColors {
   // Status and Tints
   static const Color customerBg = Color(0xFFEEF2FF);
   static const Color customerAccent = Color(0xFF3B82F6);
-  
+
   static const Color transportBg = Color(0xFFFFF7ED);
   static const Color transportAccent = Color(0xFFF97316);
-  
+
   static const Color driverBg = Color(0xFFECFDF5);
   static const Color driverAccent = Color(0xFF10B981);
 
@@ -44,7 +44,7 @@ class AppColors {
   static const Color textMedium = Color(0xFF64748B);
   static const Color textLight = Color(0xFF94A3B8);
   static const Color border = Color(0xFFE2E8F0);
-  
+
   // Divider
   static const Color divider = Color(0xFFE2E8F0);
 }

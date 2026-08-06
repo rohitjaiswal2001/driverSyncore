@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:syntracore_driver/features/trips/presentation/widgets/trip_status_chip.dart';
+import 'package:globelink_driver/features/trips/presentation/widgets/trip_status_chip.dart';
 
 void main() {
   group('TripStatusStyle', () {

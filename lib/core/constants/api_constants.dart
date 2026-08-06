@@ -1,5 +1,6 @@
 class ApiConstants {
-  static const String baseUrl = 'https://perfectwebservices.com/staging/syntracore-tool/public/api';
+  static const String baseUrl =
+      'https://perfectwebservices.com/staging/globelink-tool/public/api';
 
   // Auth Endpoints
   static const String login = '/login';

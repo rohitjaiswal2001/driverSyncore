@@ -30,7 +30,7 @@ class LoginHeader extends StatelessWidget {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'SYNTRACORE',
+                        'globelink',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,

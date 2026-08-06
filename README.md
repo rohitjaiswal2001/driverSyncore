@@ -1,4 +1,4 @@
-# syntracore
+# globelink
 
 A new Flutter project.
 

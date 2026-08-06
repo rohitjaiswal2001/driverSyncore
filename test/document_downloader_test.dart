@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:syntracore_driver/core/utils/document_downloader.dart';
+import 'package:globelink_driver/core/utils/document_downloader.dart';
 
 /// Returns whatever bytes/status the test sets up, without touching the network.
 class _StubAdapter implements HttpClientAdapter {

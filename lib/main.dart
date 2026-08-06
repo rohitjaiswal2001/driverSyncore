@@ -63,7 +63,7 @@ class _MyAppState extends State<MyApp> {
       ],
       child: MaterialApp(
         navigatorKey: _navigatorKey,
-        title: 'Syntracore Driver',
+        title: 'Globe Link Driver',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: BlocConsumer<AuthBloc, AuthState>(

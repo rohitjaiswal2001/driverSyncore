@@ -65,7 +65,7 @@ class LocationTrackingController extends ChangeNotifier {
                 accuracy: LocationAccuracy.high,
                 intervalDuration: const Duration(seconds: 15),
                 foregroundNotificationConfig: ForegroundNotificationConfig(
-                  notificationTitle: "Syntracore Live Tracking",
+                  notificationTitle: "globelink Live Tracking",
                   notificationText:
                       "Tracking active shipment #$orderId in background...",
                   enableWakeLock: true,
@@ -88,7 +88,7 @@ class LocationTrackingController extends ChangeNotifier {
                   distanceFilter: 10,
                   intervalDuration: const Duration(seconds: 15),
                   foregroundNotificationConfig: ForegroundNotificationConfig(
-                    notificationTitle: "Syntracore Live Tracking",
+                    notificationTitle: "globelink Live Tracking",
                     notificationText:
                         "Tracking active shipment #$orderId in background...",
                     enableWakeLock: true,

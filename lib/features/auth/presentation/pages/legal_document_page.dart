@@ -113,19 +113,19 @@ class LegalDocumentPage extends StatelessWidget {
 
   static const _termsContent = '''
 1. Acceptance of Terms
-By creating a Syntracore Driver account and using our logistics tracking services, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use the application.
+By creating a globelink Driver account and using our logistics tracking services, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use the application.
 
 2. Driver Account & Authentication
-You are responsible for maintaining the confidentiality of your login credentials and for all activities conducted under your account. You must notify Syntracore immediately of any unauthorized use.
+You are responsible for maintaining the confidentiality of your login credentials and for all activities conducted under your account. You must notify globelink immediately of any unauthorized use.
 
 3. Location Tracking & Telematics Services
-Syntracore requires live GPS location access to facilitate shipment routing, customer delivery status, and background location telematics during active shipments. Live location streaming only operates while a shipment is in started or ongoing status.
+globelink requires live GPS location access to facilitate shipment routing, customer delivery status, and background location telematics during active shipments. Live location streaming only operates while a shipment is in started or ongoing status.
 
 4. User Obligations & Conduct
 Drivers must operate motor vehicles safely and in full compliance with local traffic laws. You agree not to manipulate GPS location data, falsify shipment delivery statuses, or misuse customer contact information.
 
 5. Modifications & Terminations
-Syntracore reserves the right to suspend or terminate driver account access at any time for violation of safety policies or system abuse.
+globelink reserves the right to suspend or terminate driver account access at any time for violation of safety policies or system abuse.
 ''';
 
   static const _privacyContent = '''
@@ -142,6 +142,6 @@ Your data is securely stored using industry-standard encryption protocols. We do
 The application requests camera permissions (for proof of delivery photo capture), storage permissions (for document downloads), and precise location permissions (for navigation & telematics).
 
 5. Contact & Support
-If you have questions regarding your data privacy, please contact the Syntracore Support Team.
+If you have questions regarding your data privacy, please contact the globelink Support Team.
 ''';
 }

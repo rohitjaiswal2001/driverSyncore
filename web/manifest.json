@@ -1,6 +1,6 @@
 {
-    "name": "syntracore",
-    "short_name": "syntracore",
+    "name": "globelink Driver",
+    "short_name": "globelink",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
