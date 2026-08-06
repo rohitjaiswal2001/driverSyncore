@@ -177,6 +177,11 @@ class LocationTrackingController extends ChangeNotifier {
     });
   }
 
+  /// Tears down the position stream and timers without disposing the
+  /// controller, so a caller that does not own it - the logout listener, say -
+  /// can stop the pings while the widget keeps its own `dispose()` duty.
+  void stopTracking() => _stopLiveTracking();
+
   void _stopLiveTracking() {
     _hasSentInitialPing = false;
     _positionSubscription?.cancel();

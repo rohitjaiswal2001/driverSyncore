@@ -182,6 +182,10 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
     await di.sl<ActiveOrderStore>().clear();
     if (!mounted) return;
+    _clearActiveOrderState();
+  }
+
+  void _clearActiveOrderState() {
     setState(() {
       _activeBookingId = null;
       _activeTrip = null;
@@ -252,8 +256,16 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       ),
     );
 
-    if (mounted) {
-      await _fetchTripForBookingId(trip.bookingId, saveToPrefs: false);
+    if (!mounted) return;
+
+    // The trip stack can clear the active order on the way back (completing a
+    // shipment, then "Clear Order"), so re-read the store rather than assuming
+    // the order that was open when we left is still the active one.
+    final storedBookingId = di.sl<ActiveOrderStore>().read();
+    if (storedBookingId == null) {
+      _clearActiveOrderState();
+    } else {
+      await _fetchTripForBookingId(storedBookingId, saveToPrefs: false);
     }
   }
 
@@ -301,6 +313,11 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         listener: (context, state) {
           if (state is AuthSuccess) {
             setState(() => _cachedUser = state.user);
+          } else if (state is AuthLoggingOut) {
+            // Emitted before the token is cleared, so the ping timer stops
+            // while it can still authenticate - waiting for this page to be
+            // unmounted would let a tick fire against a stripped header.
+            _dashboardLocationController?.stopTracking();
           }
         },
         builder: (context, state) {

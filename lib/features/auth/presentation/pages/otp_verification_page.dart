@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
-import '../../../trips/presentation/pages/driver_main_shell.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -122,10 +121,11 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
               icon: Icons.check_circle_outline,
             );
 
-            final route = MaterialPageRoute(
-              builder: (context) => DriverMainShell(username: state.user.phoneNumber),
-            );
-            Navigator.pushAndRemoveUntil(context, route, (route) => false);
+            // No navigation here on purpose. The root route in main.dart is the
+            // only widget that switches between the login page and the driver
+            // shell; AuthSuccess already rebuilds it into the shell and pops
+            // this page off the stack. Pushing the shell over the root route
+            // would destroy that switch and leave a later logout stranded.
           } else if (state is OtpResentSuccess) {
             TopSnackBar.show(
               context,

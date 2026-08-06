@@ -54,12 +54,24 @@ class _MyAppState extends State<MyApp> {
   ///
   /// The root route is the only widget that switches between the login page and
   /// the driver shell, so it must stay on the stack for the lifetime of the app.
-  /// Replacing it (`pushAndRemoveUntil` with a `false` predicate) is what used
-  /// to leave a re-login with nothing listening to the auth state, forcing an
-  /// app restart. Popping back to it instead keeps the switch alive.
-  void _resetToRootRoute() {
+  /// Replacing it with some *other* page (`pushAndRemoveUntil` with a `false`
+  /// predicate) is what used to leave a re-login with nothing listening to the
+  /// auth state, forcing an app restart. Popping back to it keeps it alive.
+  ///
+  /// Pass [rebuildRoot] on the way *out* of a session: instead of trusting that
+  /// the first route still is the switch, it pushes the switch itself ('/'
+  /// resolves to `home:`) and drops everything else. That way a stray
+  /// `pushAndRemoveUntil` anywhere in the app can never strand a logout on the
+  /// page the driver was already looking at.
+  void _resetToRootRoute({bool rebuildRoot = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      final navigator = _navigatorKey.currentState;
+      if (navigator == null) return;
+      if (rebuildRoot) {
+        navigator.pushNamedAndRemoveUntil('/', (route) => false);
+      } else {
+        navigator.popUntil((route) => route.isFirst);
+      }
     });
   }
 
@@ -74,11 +86,11 @@ class _MyAppState extends State<MyApp> {
       // Drop any toast left over from the session that just ended.
       TopSnackBar.dismiss();
       setState(() => _currentUser = null);
-      _resetToRootRoute();
+      _resetToRootRoute(rebuildRoot: true);
     } else if (state is AuthInitial && _currentUser != null) {
       // Session dropped without an explicit logout (e.g. cache check failed).
       setState(() => _currentUser = null);
-      _resetToRootRoute();
+      _resetToRootRoute(rebuildRoot: true);
     }
   }
 

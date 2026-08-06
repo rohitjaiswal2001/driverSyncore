@@ -3,7 +3,6 @@ import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
-import 'driver_main_shell.dart';
 
 class TripCompletedPage extends StatelessWidget {
   final String bookingId;
@@ -195,16 +194,12 @@ class TripCompletedPage extends StatelessWidget {
                       if (confirmed && context.mounted) {
                         await di.sl<ActiveOrderStore>().clear();
                         if (context.mounted) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DriverMainShell(
-                                username: 'Driver',
-                                initialIndex: 0,
-                              ),
-                            ),
-                            (route) => false,
-                          );
+                          // Pop back to the root route rather than replacing
+                          // it. The root route owns the login/shell switch and
+                          // renders the dashboard for the real signed-in user;
+                          // rebuilding the shell here would discard that switch
+                          // (stranding a later logout) and hardcode the name.
+                          Navigator.popUntil(context, (route) => route.isFirst);
                         }
                       }
                     },
