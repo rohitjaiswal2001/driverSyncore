@@ -5,20 +5,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_info.dart';
-import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../../auth/domain/entities/user.dart';
-import '../../../auth/domain/usecases/logout_usecase.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc_extensions.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/pages/edit_profile_page.dart';
 import '../../../auth/presentation/pages/fullscreen_image_viewer.dart';
-import '../../../auth/presentation/pages/login_page.dart';
 import '../../../auth/presentation/pages/profile_details_page.dart';
 import '../widgets/driver_profile_header.dart';
 import '../widgets/profile_setting_tile.dart';
@@ -115,19 +112,10 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
       confirmLabel: 'Log out',
       accentColor: AppColors.danger,
       accentBackground: AppColors.dangerBg,
-      onConfirmAsync: () async {
-        try {
-          await di.sl<LogoutUseCase>()();
-        } catch (_) {}
-      },
     );
 
     if (shouldLogout && mounted) {
       context.read<AuthBloc>().add(const LogoutRequested());
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
     }
   }
 

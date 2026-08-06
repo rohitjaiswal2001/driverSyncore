@@ -542,8 +542,8 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                     ),
                   ],
 
-                  // Live Tracking In Progress Card
-                  if (isTrackingEligible) ...[
+                  // Live Tracking In Progress Card (Hidden when shipment is completed)
+                  if (isTrackingEligible && !trip.isShippingDone) ...[
                     _LiveTrackingToggleCard(
                       isEnabled: _isTrackingEnabled,
                       statusLabel: resolvedTrackingStatus?.label ?? trip.status,
@@ -568,27 +568,62 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Button to change / update shipment status (opens Modal Bottom Sheet)
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(54),
-                      shape: RoundedRectangleBorder(
+                  // Button to change / update shipment status (or Shipping Completed Banner)
+                  if (trip.isShippingDone)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGreen.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.accentGreen.withValues(alpha: 0.3),
+                        ),
                       ),
-                      elevation: 2,
-                    ),
-                    onPressed: () => _openUpdateStatusSheet(trip),
-                    icon: const Icon(Icons.edit_note_rounded, size: 24),
-                    label: const Text(
-                      'Change Shipment Status',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.check_circle,
+                            color: AppColors.accentGreen,
+                            size: 22,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Shipping is Completed',
+                            style: TextStyle(
+                              color: AppColors.accentGreen,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 2,
+                      ),
+                      onPressed: () => _openUpdateStatusSheet(trip),
+                      icon: const Icon(Icons.edit_note_rounded, size: 24),
+                      label: const Text(
+                        'Change Shipment Status',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

@@ -24,6 +24,7 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
   }
 
   void _submit() {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
       widget.onSubmit(_emailController.text.trim());
     }

@@ -136,7 +136,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
   Future<void> _submit() async {
     final selected = _selected;
     final trip = _trip;
-    if (selected == null || trip == null || _isSubmitting) return;
+    if (selected == null || trip == null) return;
+    if (trip.isShippingDone) return;
 
     setState(() => _isSubmitting = true);
     HapticFeedback.mediumImpact();
@@ -285,6 +286,39 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                 if (trip != null) ...[
                   _buildTripSummary(trip),
                   const SizedBox(height: 20),
+                ],
+                if (trip != null && trip.isShippingDone) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.accentGreen.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(
+                          Icons.check_circle,
+                          color: AppColors.accentGreen,
+                          size: 22,
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Shipping Completed: This shipment is delivered and status updates are locked.',
+                            style: TextStyle(
+                              color: AppColors.accentGreen,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
                 const Text(
                   'SELECT NEW STATUS',
@@ -465,8 +499,11 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     final isCurrent = index == currentIndex;
     final isPast = index < currentIndex;
 
+    final isDone = _trip?.isShippingDone ?? false;
+    final isLocked = isPast || isDone;
+
     return GestureDetector(
-      onTap: isPast
+      onTap: isLocked
           ? null
           : () => setState(() {
                 HapticFeedback.selectionClick();
@@ -598,7 +635,9 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     // A failed shipment cannot be submitted without a reason.
     final hasReasonIfNeeded =
         !_requiresNotes || _notesController.text.trim().isNotEmpty;
+    final isDone = _trip?.isShippingDone ?? false;
     final canSubmit =
+        !isDone &&
         _selected != null &&
         !_isSubmitting &&
         hasReasonIfNeeded &&
@@ -615,10 +654,12 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
       ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: isDone ? AppColors.accentGreen : AppColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.35),
-          disabledForegroundColor: Colors.white.withValues(alpha: 0.85),
+          disabledBackgroundColor: isDone
+              ? AppColors.accentGreen.withValues(alpha: 0.8)
+              : AppColors.primary.withValues(alpha: 0.35),
+          disabledForegroundColor: Colors.white,
           minimumSize: const Size.fromHeight(54),
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -635,15 +676,21 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                   strokeWidth: 2.5,
                 ),
               )
-            : const Row(
+            : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Update',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    isDone ? 'Shipping Completed' : 'Update',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.check_circle_outline, size: 20),
+                  const SizedBox(width: 8),
+                  Icon(
+                    isDone ? Icons.check_circle : Icons.check_circle_outline,
+                    size: 20,
+                  ),
                 ],
               ),
       ),

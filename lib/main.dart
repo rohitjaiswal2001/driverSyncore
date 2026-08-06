@@ -4,6 +4,7 @@ import 'core/di/injection_container.dart' as di;
 import 'core/network/api_client.dart';
 import 'core/network/session_expired_handler.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/top_snack_bar.dart';
 import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
@@ -49,6 +50,38 @@ class _MyAppState extends State<MyApp> {
     };
   }
 
+  /// Discards every route pushed on top of the root route.
+  ///
+  /// The root route is the only widget that switches between the login page and
+  /// the driver shell, so it must stay on the stack for the lifetime of the app.
+  /// Replacing it (`pushAndRemoveUntil` with a `false` predicate) is what used
+  /// to leave a re-login with nothing listening to the auth state, forcing an
+  /// app restart. Popping back to it instead keeps the switch alive.
+  void _resetToRootRoute() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    });
+  }
+
+  void _onAuthStateChanged(BuildContext context, AuthState state) {
+    if (state is AuthSuccess) {
+      final wasSignedOut = _currentUser == null;
+      setState(() => _currentUser = state.user);
+      // Profile fetches/updates also emit AuthSuccess, so only a transition out
+      // of the signed-out state may clear routes the user is sitting on.
+      if (wasSignedOut) _resetToRootRoute();
+    } else if (state is AuthLoggedOut) {
+      // Drop any toast left over from the session that just ended.
+      TopSnackBar.dismiss();
+      setState(() => _currentUser = null);
+      _resetToRootRoute();
+    } else if (state is AuthInitial && _currentUser != null) {
+      // Session dropped without an explicit logout (e.g. cache check failed).
+      setState(() => _currentUser = null);
+      _resetToRootRoute();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
@@ -66,21 +99,62 @@ class _MyAppState extends State<MyApp> {
         title: 'GlobeLink Driver',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        // Sits above the Navigator, so the logout spinner covers pushed pages
+        // (profile, tracking) as well as the root route.
+        builder: (context, child) {
+          return BlocBuilder<AuthBloc, AuthState>(
+            buildWhen: (previous, current) =>
+                previous is AuthLoggingOut || current is AuthLoggingOut,
+            builder: (context, state) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  ?child,
+                  if (state is AuthLoggingOut) const _LogoutOverlay(),
+                ],
+              );
+            },
+          );
+        },
         home: BlocConsumer<AuthBloc, AuthState>(
-          listener: (context, state) {
-            if (state is AuthSuccess) {
-              setState(() => _currentUser = state.user);
-            } else if (state is AuthInitial) {
-              setState(() => _currentUser = null);
-            }
-          },
+          listener: _onAuthStateChanged,
           builder: (context, state) {
             final user = (state is AuthSuccess) ? state.user : _currentUser;
-            if (user != null) {
-              return DriverMainShell(username: user.phoneNumber);
-            }
-            return const LoginPage();
+
+            return (user != null)
+                ? DriverMainShell(username: user.phoneNumber)
+                : const LoginPage();
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Blocking spinner shown while the logout request is in flight. The tinted
+/// [Material] also swallows taps aimed at the page underneath.
+class _LogoutOverlay extends StatelessWidget {
+  const _LogoutOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.45),
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 16),
+            Text(
+              'Logging out...',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

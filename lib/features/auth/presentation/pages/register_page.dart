@@ -60,6 +60,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _submitRegister() {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
       if (!_agreeToTerms.value) {
         TopSnackBar.show(

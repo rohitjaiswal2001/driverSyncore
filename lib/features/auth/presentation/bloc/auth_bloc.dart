@@ -219,13 +219,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     final currentRole = state.role;
-    emit(AuthLoading(role: currentRole));
+    // 1. Spinner up, 2. hit the API, 3. clear the local session (the use case
+    // does this in its own `finally`), 4. spinner down and hand the app back to
+    // the logged-out state — which is what drives the return to the login page.
+    emit(AuthLoggingOut(role: currentRole));
     try {
       await logoutUseCase();
     } catch (e) {
       debugPrint('Logout API failed but proceeding with local logout: $e');
     } finally {
-      emit(AuthInitial(role: currentRole));
+      emit(AuthLoggedOut(role: currentRole));
     }
   }
 

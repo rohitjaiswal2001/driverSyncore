@@ -60,6 +60,7 @@ class ResetPasswordFormState extends State<ResetPasswordForm> {
   }
 
   void _handleVerify() {
+    FocusScope.of(context).unfocus();
     if (_otpCode.length < 6) {
       TopSnackBar.show(
         context,

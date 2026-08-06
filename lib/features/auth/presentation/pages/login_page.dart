@@ -34,6 +34,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _submitLogin() {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
         _userInitiatedLogin = true;

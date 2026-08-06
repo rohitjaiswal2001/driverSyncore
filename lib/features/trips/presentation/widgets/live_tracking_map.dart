@@ -1,7 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart'
+    show EagerGestureRecognizer, OneSequenceGestureRecognizer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -83,6 +87,18 @@ class LiveTrackingMap extends StatefulWidget {
 }
 
 class _LiveTrackingMapState extends State<LiveTrackingMap> {
+  static const double _minZoom = 3;
+  static const double _maxZoom = 20;
+  static const double _driverZoom = 15.5;
+  static const double _zoomStep = 1;
+
+  /// Lets the map claim pan/pinch gestures immediately instead of losing them
+  /// to the scroll view both host screens embed it in. Without this the map is
+  /// effectively frozen: every vertical drag is handed to the page scroll.
+  static final Set<Factory<OneSequenceGestureRecognizer>> _mapGestures = {
+    Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
+  };
+
   final Geocoding _geocoding = Geocoding();
   final Dio _dio = Dio();
   GoogleMapController? _mapController;
@@ -90,7 +106,19 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   LatLng? _dropLatLng;
   List<LatLng> _routePoints = const [];
   bool _hasCenteredOnDriver = false;
-  bool _isUserInteracting = false;
+
+  /// While true the camera keeps chasing the driver's pin. Any camera move the
+  /// user makes themselves turns it off, so the map stops yanking itself back
+  /// mid-inspection; the locate button turns it on again.
+  bool _isFollowingDriver = true;
+
+  /// Our own `animateCamera` calls also fire [_onCameraMoveStarted], which
+  /// would otherwise read as "the user grabbed the map". Camera moves that
+  /// begin before this deadline are treated as ours.
+  DateTime? _ignoreCameraMovesUntil;
+
+  double _currentZoom = 12;
+  MapType _mapType = MapType.normal;
 
   @override
   void initState() {
@@ -128,7 +156,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
       setState(() => _routePoints = routePoints);
     }
 
-    if (!_isUserInteracting) {
+    if (_isFollowingDriver) {
       _fitToVisibleMarkers();
     }
   }
@@ -145,17 +173,72 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     }
   }
 
-  void _followDriver() {
+  /// Every programmatic camera change goes through here so [_isFollowingDriver]
+  /// only ever reacts to moves the user actually made.
+  Future<void> _animateCamera(CameraUpdate update) async {
     final controller = _mapController;
+    if (controller == null) return;
+
+    _ignoreCameraMovesUntil = DateTime.now().add(
+      const Duration(milliseconds: 500),
+    );
+    await controller.animateCamera(update);
+  }
+
+  void _followDriver() {
     final position = widget.driverPosition;
-    if (controller == null || position == null || _isUserInteracting) return;
+    if (position == null || !_isFollowingDriver) return;
 
     if (!_hasCenteredOnDriver) {
       _hasCenteredOnDriver = true;
-      controller.animateCamera(CameraUpdate.newLatLngZoom(position, 15));
+      _currentZoom = 15;
+      _animateCamera(CameraUpdate.newLatLngZoom(position, 15));
     } else {
-      controller.animateCamera(CameraUpdate.newLatLng(position));
+      _animateCamera(CameraUpdate.newLatLng(position));
     }
+  }
+
+  void _onCameraMoveStarted() {
+    final deadline = _ignoreCameraMovesUntil;
+    if (deadline != null && DateTime.now().isBefore(deadline)) return;
+
+    // A pan/pinch/double-tap from the driver: stop chasing the live pin until
+    // they ask for it back.
+    if (_isFollowingDriver) {
+      setState(() => _isFollowingDriver = false);
+    }
+  }
+
+  void _onCameraMove(CameraPosition position) {
+    final previousZoom = _currentZoom;
+    _currentZoom = position.zoom;
+
+    // Fires on every animation frame, so only rebuild when a zoom button
+    // actually needs to change its enabled state.
+    final crossedLimit =
+        (previousZoom >= _maxZoom) != (_currentZoom >= _maxZoom) ||
+        (previousZoom <= _minZoom) != (_currentZoom <= _minZoom);
+    if (crossedLimit && mounted) setState(() {});
+  }
+
+  void _zoomBy(double delta) {
+    if (_mapController == null) return;
+
+    final target = (_currentZoom + delta).clamp(_minZoom, _maxZoom);
+    if (target == _currentZoom) return;
+
+    HapticFeedback.selectionClick();
+    // Zooming with the buttons keeps follow mode on - it re-frames the driver
+    // rather than walking away from them.
+    _animateCamera(CameraUpdate.zoomTo(target));
+    setState(() => _currentZoom = target);
+  }
+
+  void _toggleMapType() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _mapType = _mapType == MapType.normal ? MapType.hybrid : MapType.normal;
+    });
   }
 
   Future<List<LatLng>> _fetchRoutePolyline(
@@ -197,19 +280,21 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     }
   }
 
-  void _fitToVisibleMarkers() {
-    final controller = _mapController;
-    if (controller == null || _isUserInteracting) return;
+  /// Points worth keeping in frame: the driver, both endpoints and the route.
+  List<LatLng> _framablePoints() {
+    return <LatLng>[
+      ?widget.driverPosition,
+      ?_pickupLatLng,
+      ?_dropLatLng,
+      ..._routePoints,
+    ];
+  }
 
-    final points = <LatLng>[];
-    if (widget.driverPosition != null) points.add(widget.driverPosition!);
-    if (_pickupLatLng != null) points.add(_pickupLatLng!);
-    if (_dropLatLng != null) points.add(_dropLatLng!);
-    if (_routePoints.isNotEmpty) points.addAll(_routePoints);
+  void _fitToVisibleMarkers() {
+    final points = _framablePoints();
     if (points.length < 2) return;
 
-    final bounds = _boundsFor(points);
-    controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 56));
+    _animateCamera(CameraUpdate.newLatLngBounds(_boundsFor(points), 56));
   }
 
   LatLngBounds _boundsFor(List<LatLng> points) {
@@ -314,10 +399,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     final polylines = <Polyline>{};
     final points = _routePoints.isNotEmpty
         ? _routePoints
-        : <LatLng>[
-            ?_pickupLatLng,
-            ?_dropLatLng,
-          ];
+        : <LatLng>[?_pickupLatLng, ?_dropLatLng];
 
     if (points.length >= 2) {
       polylines.add(
@@ -335,19 +417,33 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     return polylines;
   }
 
+  /// Locate button: resumes following and snaps back to the driver. Falls back
+  /// to framing the whole route while GPS has not produced a fix yet.
   void _centerOnDriverPosition() {
-    final controller = _mapController;
-    if (controller == null) return;
+    if (_mapController == null) return;
+    HapticFeedback.selectionClick();
 
-    _isUserInteracting = false;
+    setState(() => _isFollowingDriver = true);
     _hasCenteredOnDriver = true;
 
     final position = widget.driverPosition;
     if (position != null) {
-      controller.animateCamera(CameraUpdate.newLatLngZoom(position, 15.5));
+      _currentZoom = _driverZoom;
+      _animateCamera(CameraUpdate.newLatLngZoom(position, _driverZoom));
     } else {
       _fitToVisibleMarkers();
     }
+  }
+
+  /// Zooms out to show pickup, destination and the driver in one frame.
+  void _fitRoute() {
+    if (_mapController == null) return;
+    HapticFeedback.selectionClick();
+
+    // Framing the route is a deliberate overview, not a follow: leaving follow
+    // on would immediately zoom back to the driver on the next GPS tick.
+    setState(() => _isFollowingDriver = false);
+    _fitToVisibleMarkers();
   }
 
   @override
@@ -364,29 +460,46 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
           GoogleMap(
             initialCameraPosition: CameraPosition(
               target: initialTarget,
-              zoom: 12,
+              zoom: _currentZoom,
             ),
             markers: _buildMarkers(),
             polylines: _buildPolylines(),
+            mapType: _mapType,
+            // Every gesture the platform offers: pan, pinch, double-tap and
+            // two-finger tap to zoom, two-finger rotate and tilt.
+            gestureRecognizers: _mapGestures,
+            zoomGesturesEnabled: true,
+            scrollGesturesEnabled: true,
+            rotateGesturesEnabled: true,
+            tiltGesturesEnabled: true,
+            minMaxZoomPreference: const MinMaxZoomPreference(
+              _minZoom,
+              _maxZoom,
+            ),
+            trafficEnabled: widget.isLive,
+            // Keeps the native compass and Google logo clear of the pills and
+            // the control column drawn over the map.
+            padding: const EdgeInsets.only(
+              top: 56,
+              right: 8,
+              bottom: 12,
+              left: 8,
+            ),
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,
             compassEnabled: true,
             onMapCreated: (controller) {
               _mapController = controller;
-              if (!_isUserInteracting) {
+              if (!_isFollowingDriver) return;
+              if (widget.driverPosition != null) {
+                _followDriver();
+              } else {
                 _fitToVisibleMarkers();
               }
-              if (widget.driverPosition != null && !_isUserInteracting) {
-                _followDriver();
-              }
             },
-            onCameraMoveStarted: () {
-              _isUserInteracting = true;
-            },
-            onCameraIdle: () {
-              _isUserInteracting = false;
-            },
+            onCameraMoveStarted: _onCameraMoveStarted,
+            onCameraMove: _onCameraMove,
           ),
 
           // Top left: Status overlay pill
@@ -410,21 +523,144 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
               ),
             ),
 
-          // Re-centre on the route (or the driver, once located).
+          // Control column, bottom-aligned on the right. Which controls fit
+          // depends on how tall the host made the map, so short cards drop the
+          // optional ones instead of overflowing.
           Positioned(
-            right: 14,
-            bottom: 14,
-            child: _MapActionButton(
-              icon: widget.driverPosition != null
-                  ? Icons.my_location_rounded
-                  : Icons.center_focus_strong_rounded,
-              tooltip: widget.driverPosition != null
-                  ? 'Centre on me'
-                  : 'Fit route',
-              onTap: _centerOnDriverPosition,
+            right: 12,
+            top: 56,
+            bottom: 12,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Locate 44 + zoom pill 81 + layers 40, plus 10px gaps.
+                final availableHeight = constraints.maxHeight;
+                if (availableHeight < 60) return const SizedBox.shrink();
+                final hasRouteToFrame = _framablePoints().length >= 2;
+
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (availableHeight >= 210)
+                      _MapActionButton(
+                        icon: _mapType == MapType.normal
+                            ? Icons.layers_rounded
+                            : Icons.map_rounded,
+                        tooltip: _mapType == MapType.normal
+                            ? 'Satellite view'
+                            : 'Map view',
+                        size: 40,
+                        onTap: _toggleMapType,
+                      ),
+                    if (availableHeight >= 150) ...[
+                      const SizedBox(height: 10),
+                      _MapZoomControls(
+                        canZoomIn: _currentZoom < _maxZoom,
+                        canZoomOut: _currentZoom > _minZoom,
+                        onZoomIn: () => _zoomBy(_zoomStep),
+                        onZoomOut: () => _zoomBy(-_zoomStep),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    _MapActionButton(
+                      icon: widget.driverPosition != null
+                          ? Icons.my_location_rounded
+                          : Icons.center_focus_strong_rounded,
+                      tooltip: widget.driverPosition != null
+                          ? (hasRouteToFrame
+                                ? 'Centre on me (hold to fit route)'
+                                : 'Centre on me')
+                          : 'Fit route',
+                      // Filled while the camera is locked to the driver, so the
+                      // button doubles as an indicator of which mode you are in.
+                      isActive:
+                          _isFollowingDriver && widget.driverPosition != null,
+                      onTap: _centerOnDriverPosition,
+                      onLongPress: hasRouteToFrame ? _fitRoute : null,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Stacked zoom in / zoom out buttons in one rounded pill, Google Maps style.
+class _MapZoomControls extends StatelessWidget {
+  final bool canZoomIn;
+  final bool canZoomOut;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+
+  const _MapZoomControls({
+    required this.canZoomIn,
+    required this.canZoomOut,
+    required this.onZoomIn,
+    required this.onZoomOut,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      elevation: 3,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ZoomCell(
+            icon: Icons.add_rounded,
+            tooltip: 'Zoom in',
+            enabled: canZoomIn,
+            onTap: onZoomIn,
+          ),
+          Container(width: 26, height: 1, color: const Color(0x1A0F172A)),
+          _ZoomCell(
+            icon: Icons.remove_rounded,
+            tooltip: 'Zoom out',
+            enabled: canZoomOut,
+            onTap: onZoomOut,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ZoomCell extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _ZoomCell({
+    required this.icon,
+    required this.tooltip,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: SizedBox(
+          width: 42,
+          height: 40,
+          child: Icon(
+            icon,
+            size: 20,
+            color: enabled
+                ? AppColors.navy
+                : AppColors.navy.withValues(alpha: 0.28),
+          ),
+        ),
       ),
     );
   }
@@ -517,11 +753,17 @@ class _MapActionButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool isActive;
+  final double size;
 
   const _MapActionButton({
     required this.icon,
     required this.tooltip,
     required this.onTap,
+    this.onLongPress,
+    this.isActive = false,
+    this.size = 44,
   });
 
   @override
@@ -529,16 +771,21 @@ class _MapActionButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: Colors.white,
+        color: isActive ? AppColors.primary : Colors.white,
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         elevation: 3,
         child: InkWell(
           onTap: onTap,
+          onLongPress: onLongPress,
           child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Icon(icon, size: 21, color: AppColors.navy),
+            width: size,
+            height: size,
+            child: Icon(
+              icon,
+              size: size * 0.48,
+              color: isActive ? Colors.white : AppColors.navy,
+            ),
           ),
         ),
       ),

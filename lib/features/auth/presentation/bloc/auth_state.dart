@@ -14,6 +14,18 @@ class AuthInitial extends AuthState {
   const AuthInitial({required super.role});
 }
 
+/// Emitted while the logout request is in flight, i.e. between the tap and the
+/// token actually being cleared. Kept separate from [AuthLoading] so the app
+/// shell can show a blocking spinner above every route without also reacting to
+/// the login / profile requests that share [AuthLoading].
+class AuthLoggingOut extends AuthState {
+  const AuthLoggingOut({required super.role});
+}
+
+class AuthLoggedOut extends AuthState {
+  const AuthLoggedOut({required super.role});
+}
+
 class AuthLoading extends AuthState {
   const AuthLoading({required super.role});
 }

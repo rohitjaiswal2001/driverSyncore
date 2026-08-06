@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
-import '../di/injection_container.dart' as di;
 import '../theme/app_colors.dart';
-import '../utils/active_order_store.dart';
-import '../utils/recent_orders_store.dart';
-import 'api_client.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
 
@@ -81,28 +76,15 @@ class SessionExpiredHandler {
           ),
           actions: [
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 Navigator.of(dialogContext).pop();
                 _isDialogShowing = false;
 
-                // Clear SharedPreferences & network headers
-                try {
-                  final prefs = di.sl<SharedPreferences>();
-                  await prefs.clear();
-                } catch (_) {}
-
-                try {
-                  di.sl<ApiClient>().clearAuthToken();
-                } catch (_) {}
-
-                try {
-                  await di.sl<ActiveOrderStore>().clear();
-                } catch (_) {}
-
-                try {
-                  await di.sl<RecentOrdersStore>().clear();
-                } catch (_) {}
-
+                // Route through the same logout flow as the profile/dashboard
+                // buttons: spinner, logout call, then the session (prefs, auth
+                // header, stored order IDs) is cleared and the app returns to
+                // the login page. Clearing the token here first would strip the
+                // Authorization header the logout call still needs.
                 if (context.mounted) {
                   context.read<AuthBloc>().add(const LogoutRequested());
                 }

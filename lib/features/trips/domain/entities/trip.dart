@@ -3,7 +3,8 @@ import 'package:equatable/equatable.dart';
 class Trip extends Equatable {
   final String id;
   final String bookingId;
-  final String status; // Assigned, Completed, Reached Pickup, Loaded, Trip Started, In Transit, Reached Destination, Delivered
+  final String
+  status; // Assigned, Completed, Reached Pickup, Loaded, Trip Started, In Transit, Reached Destination, Delivered
   final bool isNew;
   final String customerName;
   final String customerPhone;
@@ -58,6 +59,27 @@ class Trip extends Equatable {
         norm == 'reached pickup' ||
         norm == 'loaded' ||
         norm == 'reached destination' ||
+        norm == 'completed' ||
+        norm == 'delivered';
+  }
+
+  /// True if the shipment is completed/delivered and status updates are locked.
+  bool get isShippingDone {
+    if (trackingStatusCode != null &&
+        trackingStatusCode!.toUpperCase() == 'SHIPPING_DONE') {
+      return true;
+    }
+    if (trackingStatusId == 4) {
+      return true;
+    }
+    final trackingNorm = (trackingStatusLabel ?? '').trim().toLowerCase();
+    if (trackingNorm == 'shipping done' ||
+        trackingNorm == 'completed' ||
+        trackingNorm == 'delivered') {
+      return true;
+    }
+    final norm = status.trim().toLowerCase();
+    return norm == 'shipping done' ||
         norm == 'completed' ||
         norm == 'delivered';
   }
@@ -140,7 +162,8 @@ class Trip extends Equatable {
       distanceRemainingKm: distanceRemainingKm ?? this.distanceRemainingKm,
       etaHours: etaHours ?? this.etaHours,
       currentLocation: currentLocation ?? this.currentLocation,
-      arrivalRequirementText: arrivalRequirementText ?? this.arrivalRequirementText,
+      arrivalRequirementText:
+          arrivalRequirementText ?? this.arrivalRequirementText,
       routePoints: routePoints ?? this.routePoints,
       trackingStatusCode: trackingStatusCode ?? this.trackingStatusCode,
       trackingStatusLabel: trackingStatusLabel ?? this.trackingStatusLabel,
@@ -152,31 +175,31 @@ class Trip extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        bookingId,
-        status,
-        isNew,
-        customerName,
-        customerPhone,
-        cargoType,
-        weight,
-        truckInfo,
-        truckType,
-        pickupLocation,
-        pickupAddress,
-        pickupDate,
-        dropLocation,
-        dropAddress,
-        dropEta,
-        distanceRemainingKm,
-        etaHours,
-        currentLocation,
-        arrivalRequirementText,
-        routePoints,
-        trackingStatusCode,
-        trackingStatusLabel,
-        trackingStatusId,
-        direction,
-        documentUrl,
-      ];
+    id,
+    bookingId,
+    status,
+    isNew,
+    customerName,
+    customerPhone,
+    cargoType,
+    weight,
+    truckInfo,
+    truckType,
+    pickupLocation,
+    pickupAddress,
+    pickupDate,
+    dropLocation,
+    dropAddress,
+    dropEta,
+    distanceRemainingKm,
+    etaHours,
+    currentLocation,
+    arrivalRequirementText,
+    routePoints,
+    trackingStatusCode,
+    trackingStatusLabel,
+    trackingStatusId,
+    direction,
+    documentUrl,
+  ];
 }

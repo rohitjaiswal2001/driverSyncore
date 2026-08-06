@@ -13,7 +13,6 @@ import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/domain/entities/user.dart';
-import '../../../auth/domain/usecases/logout_usecase.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc_extensions.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -197,11 +196,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       confirmLabel: 'Log out',
       accentColor: AppColors.danger,
       accentBackground: AppColors.dangerBg,
-      onConfirmAsync: () async {
-        try {
-          await di.sl<LogoutUseCase>()();
-        } catch (_) {}
-      },
     );
 
     if (shouldLogout && mounted) {

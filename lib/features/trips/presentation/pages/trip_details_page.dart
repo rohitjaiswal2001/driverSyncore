@@ -59,14 +59,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
   }
 
   bool _checkIsCompleted(Trip trip) {
-    if (trip.trackingStatusCode == 'SHIPPING_DONE') return true;
-    final norm = trip.status.trim().toLowerCase();
-    final trackingNorm = (trip.trackingStatusLabel ?? '').trim().toLowerCase();
-    return norm == 'shipping done' ||
-        norm == 'completed' ||
-        norm == 'delivered' ||
-        trackingNorm == 'shipping done' ||
-        trackingNorm == 'completed';
+    return trip.isShippingDone;
   }
 
   @override
@@ -323,7 +316,47 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
             final isCompleted = _checkIsCompleted(trip);
 
             if (isCompleted) {
-              return const SizedBox.shrink();
+              return Container(
+                color: Colors.white,
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  12 + MediaQuery.of(context).padding.bottom,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGreen.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.accentGreen.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(
+                        Icons.check_circle,
+                        color: AppColors.accentGreen,
+                        size: 22,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Shipping is Completed',
+                        style: TextStyle(
+                          color: AppColors.accentGreen,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
 
             final isStarted = trip.isTrackingStarted;
