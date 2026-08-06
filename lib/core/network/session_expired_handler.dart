@@ -25,7 +25,8 @@ class SessionExpiredHandler {
 
   static bool isWhitelisted(String? path) {
     if (path == null || path.isEmpty) return false;
-    final lowerPath = path.toLowerCase();
+    final parsedPath = Uri.tryParse(path)?.path ?? path;
+    final lowerPath = parsedPath.toLowerCase();
     return whitelistedEndpoints.any(
       (endpoint) =>
           lowerPath.endsWith(endpoint.toLowerCase()) ||

@@ -17,7 +17,8 @@ class ApiClient {
   ];
 
   bool _isWhitelisted(String path) {
-    final lowerPath = path.toLowerCase();
+    final parsedPath = Uri.tryParse(path)?.path ?? path;
+    final lowerPath = parsedPath.toLowerCase();
     return _whitelistedAuthPaths.any(
       (endpoint) =>
           lowerPath.endsWith(endpoint.toLowerCase()) ||
