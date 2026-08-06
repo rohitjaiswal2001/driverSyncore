@@ -41,10 +41,10 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    di.sl<ApiClient>().onUnauthorized = () {
+    di.sl<ApiClient>().onUnauthorized = (path) {
       final context = _navigatorKey.currentContext;
       if (context != null) {
-        SessionExpiredHandler.showUnauthorizedDialog(context);
+        SessionExpiredHandler.showUnauthorizedDialog(context, path: path);
       }
     };
   }

@@ -4,7 +4,26 @@ import 'api_exceptions.dart';
 
 class ApiClient {
   final Dio _dio;
-  void Function()? onUnauthorized;
+  void Function(String path)? onUnauthorized;
+
+  static const List<String> _whitelistedAuthPaths = [
+    ApiConstants.login,
+    ApiConstants.register,
+    ApiConstants.forgotPassword,
+    ApiConstants.resetPassword,
+    ApiConstants.resendOtp,
+    ApiConstants.verifyOtp,
+    ApiConstants.logout,
+  ];
+
+  bool _isWhitelisted(String path) {
+    final lowerPath = path.toLowerCase();
+    return _whitelistedAuthPaths.any(
+      (endpoint) =>
+          lowerPath.endsWith(endpoint.toLowerCase()) ||
+          lowerPath.contains(endpoint.toLowerCase()),
+    );
+  }
 
   ApiClient(this._dio) {
     _dio.options.baseUrl = ApiConstants.baseUrl;
@@ -115,7 +134,10 @@ class ApiClient {
                 'An error occurred: $statusCode';
 
             if (statusCode == 401) {
-              onUnauthorized?.call();
+              final requestPath = error.requestOptions.path;
+              if (!_isWhitelisted(requestPath)) {
+                onUnauthorized?.call(requestPath);
+              }
               return UnauthorizedException(message);
             }
 
