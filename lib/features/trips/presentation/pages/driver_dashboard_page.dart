@@ -409,64 +409,71 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                InkWell(
-                  onTap: widget.onNavigateToProfile,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Row(
-                    children: [
-                      Stack(
-                        children: [
-                          UserAvatar(
-                            name: driverName,
-                            imageUrl: user?.profileImage,
-                            radius: 24,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: AppColors.accentGreen,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.navy,
-                                  width: 2,
+                Expanded(
+                  child: InkWell(
+                    onTap: widget.onNavigateToProfile,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Row(
+                      children: [
+                        Stack(
+                          children: [
+                            UserAvatar(
+                              name: driverName,
+                              imageUrl: user?.profileImage,
+                              radius: 24,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentGreen,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.navy,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${_getSalutation()},',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                driverName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${_getSalutation()},',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withValues(alpha: 0.75),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '$driverName!',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+                const SizedBox(width: 16),
                 Semantics(
                   button: true,
                   label: 'Log out',

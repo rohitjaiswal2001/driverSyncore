@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 /// Circular user avatar that degrades gracefully.
 ///
@@ -24,17 +23,11 @@ class UserAvatar extends StatelessWidget {
     this.border,
   });
 
-  /// Up to two uppercase initials for [name], falling back to `D` for driver.
+  /// First uppercase letter for [name], falling back to `D` for driver.
   static String initialsOf(String name) {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((p) => p.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return 'D';
-    var initials = parts.first[0].toUpperCase();
-    if (parts.length > 1) initials += parts.last[0].toUpperCase();
-    return initials;
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return 'D';
+    return trimmed[0].toUpperCase();
   }
 
   bool get _hasImage => imageUrl != null && imageUrl!.trim().isNotEmpty;
