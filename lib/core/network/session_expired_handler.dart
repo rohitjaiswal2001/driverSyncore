@@ -4,6 +4,7 @@ import '../constants/api_constants.dart';
 import '../theme/app_colors.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 
 class SessionExpiredHandler {
   static bool _isDialogShowing = false;
@@ -29,15 +30,52 @@ class SessionExpiredHandler {
     );
   }
 
+  /// Reads the bloc without throwing when it is somehow out of scope, so a
+  /// lookup failure can never take the whole handler down.
+  static AuthBloc? _readAuthBloc(BuildContext context) {
+    try {
+      return context.read<AuthBloc>();
+    } catch (error) {
+      debugPrint('SessionExpiredHandler could not reach AuthBloc: $error');
+      return null;
+    }
+  }
+
+  /// True when there is no session left to expire - already logged out, or a
+  /// logout is in flight. A late 401 from an in-flight request would otherwise
+  /// pop this dialog on top of the login screen.
+  static bool _hasNoSession(AuthState state) =>
+      state is AuthInitial || state is AuthLoggedOut || state is AuthLoggingOut;
+
   static Future<void> showUnauthorizedDialog(
     BuildContext context, {
     String? path,
   }) async {
     if (isWhitelisted(path)) return;
     if (_isDialogShowing) return;
-    _isDialogShowing = true;
 
-    await showDialog<void>(
+    final authBloc = _readAuthBloc(context);
+    if (authBloc == null || _hasNoSession(authBloc.state)) return;
+    if (!context.mounted) return;
+
+    _isDialogShowing = true;
+    try {
+      await _showDialog(context, authBloc);
+    } catch (error) {
+      // If the dialog cannot be shown, the session is still dead - sign out
+      // anyway rather than leaving the driver in an app that can no longer
+      // talk to the server.
+      debugPrint('Session-expired dialog failed to show: $error');
+      authBloc.add(const LogoutRequested());
+    } finally {
+      // Reset in a finally: leaving this stuck at true would silently suppress
+      // every future session-expired dialog for the rest of the app's life.
+      _isDialogShowing = false;
+    }
+  }
+
+  static Future<void> _showDialog(BuildContext context, AuthBloc authBloc) {
+    return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -78,16 +116,16 @@ class SessionExpiredHandler {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                _isDialogShowing = false;
 
                 // Route through the same logout flow as the profile/dashboard
                 // buttons: spinner, logout call, then the session (prefs, auth
                 // header, stored order IDs) is cleared and the app returns to
                 // the login page. Clearing the token here first would strip the
                 // Authorization header the logout call still needs.
-                if (context.mounted) {
-                  context.read<AuthBloc>().add(const LogoutRequested());
-                }
+                //
+                // The bloc was captured before the dialog opened, so this works
+                // even though `context` may be gone by the time it is tapped.
+                authBloc.add(const LogoutRequested());
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -109,7 +147,5 @@ class SessionExpiredHandler {
         );
       },
     );
-
-    _isDialogShowing = false;
   }
 }

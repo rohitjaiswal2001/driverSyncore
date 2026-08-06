@@ -71,17 +71,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentRole = state.role;
     emit(AuthLoading(role: currentRole));
     try {
-      final user = await loginUseCase(LoginParams(
-        email: event.email,
-        password: event.password,
-        role: currentRole,
-      ));
+      final user = await loginUseCase(
+        LoginParams(
+          email: event.email,
+          password: event.password,
+          role: currentRole,
+        ),
+      );
       emit(AuthSuccess(user: user));
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -92,22 +91,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentRole = state.role;
     emit(AuthLoading(role: currentRole));
     try {
-      await registerUseCase(RegisterParams(
-        firstName: event.firstName,
-        lastName: event.lastName,
-        email: event.email,
-        phone: event.phone,
-        role: event.role,
-        companyName: event.companyName,
-        password: event.password,
-        passwordConfirmation: event.passwordConfirmation,
-      ));
+      await registerUseCase(
+        RegisterParams(
+          firstName: event.firstName,
+          lastName: event.lastName,
+          email: event.email,
+          phone: event.phone,
+          role: event.role,
+          companyName: event.companyName,
+          password: event.password,
+          passwordConfirmation: event.passwordConfirmation,
+        ),
+      );
       emit(OtpVerificationRequired(email: event.email, role: currentRole));
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -118,16 +116,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentRole = state.role;
     emit(AuthLoading(role: currentRole));
     try {
-      final user = await verifyOtpUseCase(VerifyOtpParams(
-        email: event.email,
-        otp: event.otp,
-      ));
+      final user = await verifyOtpUseCase(
+        VerifyOtpParams(email: event.email, otp: event.otp),
+      );
       emit(AuthSuccess(user: user));
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -138,16 +132,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentRole = state.role;
     emit(AuthLoading(role: currentRole));
     try {
-      final user = await loginWithOtpUseCase(LoginWithOtpParams(
-        phoneNumber: event.phoneNumber,
-        role: currentRole,
-      ));
+      final user = await loginWithOtpUseCase(
+        LoginWithOtpParams(phoneNumber: event.phoneNumber, role: currentRole),
+      );
       emit(AuthSuccess(user: user));
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -161,16 +151,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final message = await forgotPasswordUseCase(
         ForgotPasswordParams(email: event.email),
       );
-      emit(ForgotPasswordEmailSent(
-        email: event.email,
-        message: message,
-        role: currentRole,
-      ));
+      emit(
+        ForgotPasswordEmailSent(
+          email: event.email,
+          message: message,
+          role: currentRole,
+        ),
+      );
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -191,10 +180,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(PasswordResetSuccess(message: message, role: currentRole));
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -224,9 +210,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     // the logged-out state — which is what drives the return to the login page.
     emit(AuthLoggingOut(role: currentRole));
     try {
-      await logoutUseCase();
+      // Outer ceiling behind the repository's own 8s network timeout. Whatever
+      // happens - hung socket, plugin failure, anything - the spinner comes
+      // down and the app returns to login.
+      await logoutUseCase().timeout(const Duration(seconds: 10));
     } catch (e) {
-      debugPrint('Logout API failed but proceeding with local logout: $e');
+      debugPrint('Logout failed but proceeding with local logout: $e');
     } finally {
       emit(AuthLoggedOut(role: currentRole));
     }
@@ -242,16 +231,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final message = await resendOtpUseCase(
         ResendOtpParams(email: event.email),
       );
-      emit(OtpResentSuccess(
-        email: event.email,
-        message: message,
-        role: currentRole,
-      ));
+      emit(
+        OtpResentSuccess(
+          email: event.email,
+          message: message,
+          role: currentRole,
+        ),
+      );
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -272,19 +260,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentRole = state.role;
     emit(AuthLoading(role: currentRole));
     try {
-      final user = await updateProfileUseCase(UpdateProfileParams(
-        firstName: event.firstName,
-        lastName: event.lastName,
-        phone: event.phone,
-        companyName: event.companyName,
-        profileImagePath: event.profileImagePath,
-      ));
+      final user = await updateProfileUseCase(
+        UpdateProfileParams(
+          firstName: event.firstName,
+          lastName: event.lastName,
+          phone: event.phone,
+          companyName: event.companyName,
+          profileImagePath: event.profileImagePath,
+        ),
+      );
       emit(AuthSuccess(user: user));
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 
@@ -298,10 +285,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final user = await removeProfileImageUseCase();
       emit(AuthSuccess(user: user));
     } catch (e) {
-      emit(AuthFailure(
-        role: currentRole,
-        errorMessage: _getErrorMessage(e),
-      ));
+      emit(AuthFailure(role: currentRole, errorMessage: _getErrorMessage(e)));
     }
   }
 

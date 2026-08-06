@@ -163,7 +163,11 @@ class ActiveTripCard extends StatelessWidget {
                 label: 'DESTINATION',
                 location: trip.dropLocation,
                 address: trip.dropAddress,
-                meta: trip.dropEta,
+                meta: trip.isShippingDone
+                    ? (trip.formattedCompletedDate.isNotEmpty
+                        ? trip.formattedCompletedDate
+                        : trip.pickupDate)
+                    : trip.dropEta,
               ),
             ],
           ),

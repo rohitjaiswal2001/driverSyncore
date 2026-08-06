@@ -159,6 +159,13 @@ class TripsRepositoryImpl implements TripsRepository {
         data['reasons']?.toString() ??
         '';
 
+    final completedDateVal =
+        trackingFirst?['created_at']?.toString() ??
+        trackingFirst?['updated_at']?.toString() ??
+        trackingFirst?['date']?.toString() ??
+        data['updated_at']?.toString() ??
+        data['created_at']?.toString();
+
     return Trip(
       id: orderId,
       bookingId: orderId,
@@ -189,6 +196,7 @@ class TripsRepositoryImpl implements TripsRepository {
           trackingFirst?['status_label']?.toString(),
       direction: data['direction']?.toString(),
       documentUrl: documentUrl,
+      completedDate: completedDateVal,
       notes: notesVal,
       routePoints: [pickupLoc, dropLoc],
     );

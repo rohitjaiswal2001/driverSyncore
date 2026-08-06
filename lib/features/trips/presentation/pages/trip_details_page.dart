@@ -86,7 +86,10 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
             Center(
               child: Container(
                 margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
@@ -176,7 +179,11 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                         pickupTime: trip.pickupDate,
                         dropLocation: trip.dropLocation,
                         dropAddress: trip.dropAddress,
-                        dropTime: 'Estimated: ${trip.dropEta}',
+                        dropTime: isCompleted
+                            ? (trip.formattedCompletedDate.isNotEmpty
+                                  ? 'Completed: ${trip.formattedCompletedDate}'
+                                  : 'Completed: ${trip.pickupDate}')
+                            : 'Estimated: ${trip.dropEta}',
                         timeRequirement: trip.arrivalRequirementText,
                       ),
                     ),
@@ -252,6 +259,19 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                         : AppColors.primary,
                                   ),
                                 ),
+                                if (isCompleted &&
+                                    (trip.formattedCompletedDate.isNotEmpty ||
+                                        trip.pickupDate.isNotEmpty)) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Date: ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.accentGreen,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -292,12 +312,12 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                     TruckInfoCard(truckInfo: trip.truckInfo),
                     const SizedBox(height: 16),
 
-                    // 6. Shipment Documents Card (Positioned at the bottom)
-                    TripDocumentsCard(
-                      documentUrl: trip.documentUrl,
-                      bookingId: trip.bookingId,
-                    ),
-                    const SizedBox(height: 32),
+                    // // 6. Shipment Documents Card (Positioned at the bottom)
+                    // TripDocumentsCard(
+                    //   documentUrl: trip.documentUrl,
+                    //   bookingId: trip.bookingId,
+                    // ),
+                    // const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -338,19 +358,22 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(
+                    children: [
+                      const Icon(
                         Icons.check_circle,
                         color: AppColors.accentGreen,
                         size: 22,
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text(
-                        'Shipping is Completed',
-                        style: TextStyle(
+                        (trip.formattedCompletedDate.isNotEmpty ||
+                                trip.pickupDate.isNotEmpty)
+                            ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
+                            : 'Shipping is Completed',
+                        style: const TextStyle(
                           color: AppColors.accentGreen,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 15,
                         ),
                       ),
                     ],

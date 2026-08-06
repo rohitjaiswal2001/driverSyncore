@@ -43,6 +43,20 @@ class Trip extends Equatable {
   /// Optional failure reason or status notes returned from the backend.
   final String notes;
 
+  /// Optional timestamp/date when the shipment was marked completed or delivered.
+  final String? completedDate;
+
+  /// Returns clean YYYY-MM-DD date string for completed shipment date or fallback pickup date.
+  String get formattedCompletedDate {
+    final raw = (completedDate != null && completedDate!.trim().isNotEmpty)
+        ? completedDate!.trim()
+        : pickupDate.trim();
+    if (raw.isEmpty) return '';
+    if (raw.contains('T')) return raw.split('T')[0];
+    if (raw.contains(' ')) return raw.split(' ')[0];
+    return raw;
+  }
+
   /// True if live tracking has started for this shipment (tracking status code is not NOT_STARTED).
   bool get isTrackingStarted {
     if (trackingStatusCode != null && trackingStatusCode!.isNotEmpty) {
@@ -111,6 +125,7 @@ class Trip extends Equatable {
     this.trackingStatusId,
     this.direction,
     this.documentUrl,
+    this.completedDate,
     this.notes = '',
   });
 
@@ -141,6 +156,7 @@ class Trip extends Equatable {
     int? trackingStatusId,
     String? direction,
     String? documentUrl,
+    String? completedDate,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -170,6 +186,7 @@ class Trip extends Equatable {
       trackingStatusId: trackingStatusId ?? this.trackingStatusId,
       direction: direction ?? this.direction,
       documentUrl: documentUrl ?? this.documentUrl,
+      completedDate: completedDate ?? this.completedDate,
     );
   }
 
@@ -201,5 +218,6 @@ class Trip extends Equatable {
     trackingStatusId,
     direction,
     documentUrl,
+    completedDate,
   ];
 }

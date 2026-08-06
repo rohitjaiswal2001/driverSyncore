@@ -292,13 +292,39 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      await _apiClient.post(ApiConstants.logout);
+      // Best-effort, and bounded: telling the server is worth a few seconds,
+      // never worth leaving the driver stuck on a spinner.
+      await _apiClient
+          .post(ApiConstants.logout)
+          .timeout(const Duration(seconds: 8));
     } catch (_) {
-      // Ignore logout API failures to allow local logout to complete
+      // A failed, timed-out or unauthorized logout call changes nothing about
+      // what has to happen locally.
     } finally {
-      await _sharedPreferences.clear();
-      _apiClient.clearAuthToken();
+      await _clearSession();
     }
+  }
+
+  /// Wipes every trace of the session from the device. Each step is isolated
+  /// so one failure cannot leave the rest of the session behind - this must
+  /// never throw, or the caller could end up signed out in the UI but still
+  /// holding a valid token on disk.
+  Future<void> _clearSession() async {
+    try {
+      await _sharedPreferences.clear();
+    } catch (_) {
+      // clear() wipes everything at once; if it fails, at least drop the keys
+      // that actually keep a driver signed in.
+      for (final key in const [_userKey, _authTokenKey]) {
+        try {
+          await _sharedPreferences.remove(key);
+        } catch (_) {}
+      }
+    }
+
+    try {
+      _apiClient.clearAuthToken();
+    } catch (_) {}
   }
 
   @override

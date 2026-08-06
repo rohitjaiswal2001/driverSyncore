@@ -7,7 +7,6 @@ import '../../../../core/constants/app_info.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
-import '../../../../core/utils/notification_permission.dart';
 import '../../../../core/utils/recent_orders_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/skeleton_box.dart';
@@ -104,12 +103,6 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       if (mounted) {
         context.read<AuthBloc>().add(const GetProfileDetails());
       }
-      // Settle the notification permission as soon as the driver lands in the
-      // app. Asking only when a trip goes live means a driver whose current
-      // order is finished never sees the prompt at all - and then the
-      // live-tracking notification is silently suppressed the next time a trip
-      // does start. Android shows this at most twice, then auto-denies.
-      NotificationPermission.ensureGranted();
     });
   }
 

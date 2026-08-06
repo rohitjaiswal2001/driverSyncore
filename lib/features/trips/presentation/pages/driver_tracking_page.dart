@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' show LatLng;
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
+import '../../../../core/utils/notification_permission.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../domain/entities/trip.dart';
 import '../../domain/entities/tracking_status.dart';
@@ -171,6 +172,14 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 
   Future<void> _handleTrackingToggle(bool value, Trip trip) async {
     if (_isUpdatingTrackingStatus) return;
+
+    // Turning tracking on is the moment the foreground-service notification
+    // starts mattering, so that is when the driver is asked for it - in
+    // response to their own tap, rather than out of nowhere on app start.
+    if (value) {
+      await NotificationPermission.ensureGranted();
+      if (!mounted) return;
+    }
 
     setState(() {
       _isUpdatingTrackingStatus = true;
@@ -590,19 +599,22 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(
+                        children: [
+                          const Icon(
                             Icons.check_circle,
                             color: AppColors.accentGreen,
                             size: 22,
                           ),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Text(
-                            'Shipping is Completed',
-                            style: TextStyle(
+                            (trip.formattedCompletedDate.isNotEmpty ||
+                                    trip.pickupDate.isNotEmpty)
+                                ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
+                                : 'Shipping is Completed',
+                            style: const TextStyle(
                               color: AppColors.accentGreen,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 15,
                             ),
                           ),
                         ],
