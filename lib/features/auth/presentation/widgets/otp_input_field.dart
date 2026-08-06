@@ -32,7 +32,24 @@ class OtpInputFieldState extends State<OtpInputField> {
       widget.length,
       (_) => TextEditingController(),
     );
-    _focusNodes = List.generate(widget.length, (_) => FocusNode());
+    _focusNodes = List.generate(
+      widget.length,
+      (index) => FocusNode(
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              (event.logicalKey == LogicalKeyboardKey.backspace ||
+                  event.logicalKey == LogicalKeyboardKey.delete)) {
+            if (_controllers[index].text.isEmpty && index > 0) {
+              _controllers[index - 1].clear();
+              _focusNodes[index - 1].requestFocus();
+              _notify();
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+      ),
+    );
     _backspaceCatcherNodes = List.generate(
       widget.length,
       (_) => FocusNode(canRequestFocus: false, skipTraversal: true),

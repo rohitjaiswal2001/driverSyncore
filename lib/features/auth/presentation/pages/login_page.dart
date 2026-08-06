@@ -126,7 +126,8 @@ class _LoginPageState extends State<LoginPage> {
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _emailController,
-                                        keyboardType: TextInputType.emailAddress,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
                                         textInputAction: TextInputAction.next,
                                         style: const TextStyle(
                                           fontSize: 16,
@@ -224,6 +225,9 @@ class _LoginPageState extends State<LoginPage> {
                                       Center(
                                         child: GestureDetector(
                                           onTap: () {
+                                            _emailController.clear();
+                                            _passwordController.clear();
+                                            _formKey.currentState?.reset();
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
@@ -232,7 +236,11 @@ class _LoginPageState extends State<LoginPage> {
                                                       initialRole: 'Driver',
                                                     ),
                                               ),
-                                            );
+                                            ).then((_) {
+                                              _emailController.clear();
+                                              _passwordController.clear();
+                                              _formKey.currentState?.reset();
+                                            });
                                           },
                                           child: RichText(
                                             text: const TextSpan(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/validators.dart';
@@ -213,12 +214,13 @@ class _RegisterPageState extends State<RegisterPage> {
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textDark,
                                       ),
-                                      validator: (val) {
-                                        if (val == null || val.trim().isEmpty) {
-                                          return 'Enter your first name';
-                                        }
-                                        return null;
-                                      },
+                                      validator: Validators.validateFirstName,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp(r'[a-zA-Z\s]'),
+                                        ),
+                                        LengthLimitingTextInputFormatter(50),
+                                      ],
                                       decoration: const InputDecoration(
                                         hintText: 'First Name',
                                         prefixIcon: Icon(
@@ -252,12 +254,13 @@ class _RegisterPageState extends State<RegisterPage> {
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textDark,
                                       ),
-                                      validator: (val) {
-                                        if (val == null || val.trim().isEmpty) {
-                                          return 'Enter your last name';
-                                        }
-                                        return null;
-                                      },
+                                      validator: Validators.validateLastName,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.allow(
+                                          RegExp(r'[a-zA-Z\s]'),
+                                        ),
+                                        LengthLimitingTextInputFormatter(50),
+                                      ],
                                       decoration: const InputDecoration(
                                         hintText: 'Last Name',
                                         prefixIcon: Icon(
@@ -362,16 +365,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textDark,
                                       ),
-                                      validator: (val) {
-                                        if (val == null || val.trim().isEmpty) {
-                                          return 'Enter email address';
-                                        }
-                                        if (!val.contains('@') ||
-                                            !val.contains('.')) {
-                                          return 'Enter a valid email address';
-                                        }
-                                        return null;
-                                      },
+                                      validator: Validators.validateEmail,
                                       decoration: const InputDecoration(
                                         hintText: 'Enter your email address',
                                         prefixIcon: Icon(

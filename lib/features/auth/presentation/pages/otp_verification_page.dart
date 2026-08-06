@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
@@ -8,6 +7,7 @@ import '../../../trips/presentation/pages/driver_main_shell.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../widgets/otp_input_field.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   final String email;
@@ -19,11 +19,7 @@ class OtpVerificationPage extends StatefulWidget {
 }
 
 class _OtpVerificationPageState extends State<OtpVerificationPage> {
-  final List<TextEditingController> _controllers = List.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  final GlobalKey<OtpInputFieldState> _otpKey = GlobalKey<OtpInputFieldState>();
 
   int _resendTimerSeconds = 120;
   Timer? _timer;
@@ -65,40 +61,16 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
     super.dispose();
   }
 
-  String get _otpCode {
-    return _controllers.map((c) => c.text).join();
-  }
-
-  void _onOtpDigitChanged(int index, String value) {
-    if (value.isNotEmpty) {
-      if (index < 5) {
-        FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
-      } else {
-        _focusNodes[index].unfocus();
-        _submitOtp();
-      }
-    } else {
-      if (index > 0) {
-        FocusScope.of(context).requestFocus(_focusNodes[index - 1]);
-      }
-    }
-  }
-
-  void _submitOtp() {
-    final otp = _otpCode;
+  void _submitOtp([String? code]) {
+    final otp = code ?? _otpKey.currentState?.code ?? '';
     if (otp.length == 6) {
       context.read<AuthBloc>().add(
         VerifyOtpSubmitted(email: widget.email, otp: otp),
       );
+    } else {
       TopSnackBar.show(
         context,
         message: 'Please enter all 6 digits of the OTP',
@@ -210,62 +182,10 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                     ),
                     const SizedBox(height: 40),
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(6, (index) {
-                        return Container(
-                          width: 48,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _focusNodes[index].hasFocus
-                                  ? AppColors.primary
-                                  : AppColors.border,
-                              width: _focusNodes[index].hasFocus ? 2 : 1,
-                            ),
-                            boxShadow: [
-                              if (_focusNodes[index].hasFocus)
-                                BoxShadow(
-                                  color: AppColors.primary.withAlpha(26),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                            ],
-                          ),
-                          child: TextFormField(
-                            controller: _controllers[index],
-                            focusNode: _focusNodes[index],
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              LengthLimitingTextInputFormatter(1),
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textDark,
-                            ),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              errorBorder: InputBorder.none,
-                              disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            onChanged: (value) =>
-                                _onOtpDigitChanged(index, value),
-                            onTap: () {
-                              if (_controllers[index].text.isNotEmpty) {
-                                _controllers[index].clear();
-                              }
-                            },
-                          ),
-                        );
-                      }),
+                    OtpInputField(
+                      key: _otpKey,
+                      length: 6,
+                      onCompleted: (code) => _submitOtp(code),
                     ),
                     const SizedBox(height: 32),
 

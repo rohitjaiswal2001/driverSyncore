@@ -8,8 +8,8 @@ class ApiClient {
 
   ApiClient(this._dio) {
     _dio.options.baseUrl = ApiConstants.baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 105);
-    _dio.options.receiveTimeout = const Duration(seconds: 105);
+    _dio.options.connectTimeout = const Duration(seconds: 15);
+    _dio.options.receiveTimeout = const Duration(seconds: 15);
     _dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
