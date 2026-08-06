@@ -38,4 +38,8 @@ class RecentOrdersStore {
     final current = read().where((id) => id != trimmed).toList();
     await _prefs.setStringList(_key, current);
   }
+
+  Future<void> clear() async {
+    await _prefs.remove(_key);
+  }
 }

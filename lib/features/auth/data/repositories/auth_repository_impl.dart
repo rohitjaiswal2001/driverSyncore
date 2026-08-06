@@ -233,6 +233,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   static const String _userKey = 'cached_user';
+  static const String _authTokenKey = 'auth_token';
 
   Future<void> _cacheUser(User user) async {
     final userModel = UserModel(
@@ -247,21 +248,40 @@ class AuthRepositoryImpl implements AuthRepository {
       token: user.token,
       profileImage: user.profileImage,
     );
+    if (user.token.isNotEmpty) {
+      await _sharedPreferences.setString(_authTokenKey, user.token);
+      _apiClient.setAuthToken(user.token);
+    }
     await _sharedPreferences.setString(_userKey, jsonEncode(userModel.toJson()));
   }
 
   @override
   Future<User?> getCachedUser() async {
+    final storedToken = _sharedPreferences.getString(_authTokenKey);
     final cachedUserStr = _sharedPreferences.getString(_userKey);
     if (cachedUserStr != null && cachedUserStr.isNotEmpty) {
       try {
         final Map<String, dynamic> userMap = jsonDecode(cachedUserStr) as Map<String, dynamic>;
-        final userModel = UserModel.fromJson(userMap);
-        _apiClient.setAuthToken(userModel.token);
+        final userModel = UserModel.fromJson(
+          userMap,
+          token: storedToken != null && storedToken.isNotEmpty
+              ? storedToken
+              : null,
+        );
+        final tokenToUse =
+            userModel.token.isNotEmpty
+                ? userModel.token
+                : (storedToken ?? '');
+        if (tokenToUse.isNotEmpty) {
+          _apiClient.setAuthToken(tokenToUse);
+        }
         return userModel;
       } catch (_) {
         return null;
       }
+    }
+    if (storedToken != null && storedToken.isNotEmpty) {
+      _apiClient.setAuthToken(storedToken);
     }
     return null;
   }

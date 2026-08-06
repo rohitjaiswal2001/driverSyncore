@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection_container.dart' as di;
+import 'core/network/api_client.dart';
+import 'core/network/session_expired_handler.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -34,6 +36,18 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   User? _currentUser;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    di.sl<ApiClient>().onUnauthorized = () {
+      final context = _navigatorKey.currentContext;
+      if (context != null) {
+        SessionExpiredHandler.showUnauthorizedDialog(context);
+      }
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +62,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         title: 'Syntracore Driver',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

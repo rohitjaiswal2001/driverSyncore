@@ -20,6 +20,10 @@ class AuthException extends AppException {
   AuthException(super.message);
 }
 
+class UnauthorizedException extends AuthException {
+  UnauthorizedException([super.message = 'Session expired. Please log in again.']);
+}
+
 class ValidationException extends AppException {
   final Map<String, List<String>> errors;
   ValidationException(super.message, this.errors);

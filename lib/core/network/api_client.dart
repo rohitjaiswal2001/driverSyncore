@@ -4,6 +4,7 @@ import 'api_exceptions.dart';
 
 class ApiClient {
   final Dio _dio;
+  void Function()? onUnauthorized;
 
   ApiClient(this._dio) {
     _dio.options.baseUrl = ApiConstants.baseUrl;
@@ -113,7 +114,12 @@ class ApiClient {
                 responseData['error'] as String? ??
                 'An error occurred: $statusCode';
 
-            if (statusCode == 401 || statusCode == 403) {
+            if (statusCode == 401) {
+              onUnauthorized?.call();
+              return UnauthorizedException(message);
+            }
+
+            if (statusCode == 403) {
               return AuthException(message);
             }
 
