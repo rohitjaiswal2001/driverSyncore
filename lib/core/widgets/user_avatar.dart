@@ -19,7 +19,7 @@ class UserAvatar extends StatelessWidget {
     required this.name,
     this.imageUrl,
     this.radius = 20,
-    this.backgroundColor = AppColors.navy,
+    this.backgroundColor = const Color.fromARGB(255, 103, 99, 205),
     this.foregroundColor = Colors.white,
     this.border,
   });
