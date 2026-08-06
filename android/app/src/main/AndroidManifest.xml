@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- geolocator acquires a PARTIAL_WAKE_LOCK when the live-tracking service
+         starts with enableWakeLock; without this permission that call throws. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
         android:label="GlobeLink Driver"
@@ -14,11 +17,9 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />
 
-        <service
-            android:name="com.baseflow.geolocator.stopbound.StopBoundLocationService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location" />
+        <!-- The location foreground service is declared by geolocator_android
+             itself (com.baseflow.geolocator.GeolocatorLocationService, already
+             with foregroundServiceType="location"), so nothing is needed here. -->
 
         <activity
             android:name=".MainActivity"

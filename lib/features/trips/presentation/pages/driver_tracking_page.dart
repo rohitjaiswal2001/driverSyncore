@@ -484,6 +484,11 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                       state:
                           _locationController?.accessState ??
                           LocationAccessState.unknown,
+                      isTrackingNotificationHidden:
+                          (_locationController?.isLiveTracking ?? false) &&
+                          !(_locationController
+                                  ?.isTrackingNotificationVisible ??
+                              true),
                     ),
                   ),
 
@@ -924,11 +929,21 @@ class _NoopListenable extends Listenable {
 class _LocationAccessBanner extends StatelessWidget {
   final LocationAccessState state;
 
-  const _LocationAccessBanner({required this.state});
+  /// True while tracking runs without its notification, i.e. Android 13+ denied
+  /// POST_NOTIFICATIONS. Worth surfacing: that notification is the driver's
+  /// only sign that location is still being shared once they leave the app.
+  final bool isTrackingNotificationHidden;
+
+  const _LocationAccessBanner({
+    required this.state,
+    this.isTrackingNotificationHidden = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final String? message;
+    var icon = Icons.location_off_rounded;
+
     switch (state) {
       case LocationAccessState.denied:
         message =
@@ -942,7 +957,13 @@ class _LocationAccessBanner extends StatelessWidget {
         message = 'Turn on device location services to enable live tracking.';
         break;
       default:
-        message = null;
+        // Location itself is fine here, so the only thing left to warn about is
+        // the missing tracking notification.
+        message = isTrackingNotificationHidden
+            ? 'Tracking is running, but notifications are turned off so the '
+                  'live-tracking notification is hidden. Tap to enable it.'
+            : null;
+        icon = Icons.notifications_off_rounded;
     }
 
     if (message == null) return const SizedBox.shrink();
@@ -965,11 +986,7 @@ class _LocationAccessBanner extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
-                const Icon(
-                  Icons.location_off_rounded,
-                  color: AppColors.warning,
-                  size: 18,
-                ),
+                Icon(icon, color: AppColors.warning, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

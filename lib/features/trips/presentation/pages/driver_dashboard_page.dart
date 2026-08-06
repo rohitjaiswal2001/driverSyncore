@@ -7,6 +7,7 @@ import '../../../../core/constants/app_info.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
+import '../../../../core/utils/notification_permission.dart';
 import '../../../../core/utils/recent_orders_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/skeleton_box.dart';
@@ -30,7 +31,11 @@ import 'trip_details_page.dart';
 class DriverDashboardPage extends StatefulWidget {
   final String username;
   final VoidCallback onNavigateToProfile;
-  final VoidCallback onNavigateToTracking;
+
+  /// Handed the dashboard's own tracking controller so the tracking page can
+  /// adopt it instead of spinning up a second one for the same order.
+  final void Function(LocationTrackingController? controller)
+  onNavigateToTracking;
 
   const DriverDashboardPage({
     super.key,
@@ -99,6 +104,12 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       if (mounted) {
         context.read<AuthBloc>().add(const GetProfileDetails());
       }
+      // Settle the notification permission as soon as the driver lands in the
+      // app. Asking only when a trip goes live means a driver whose current
+      // order is finished never sees the prompt at all - and then the
+      // live-tracking notification is silently suppressed the next time a trip
+      // does start. Android shows this at most twice, then auto-denies.
+      NotificationPermission.ensureGranted();
     });
   }
 
@@ -184,6 +195,12 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
       _orderErrorMessage = null;
     });
   }
+
+  /// Hands the live controller to the tracking page. Letting that page build
+  /// its own controller for the same order would run a second position stream
+  /// and a second ping timer, double-posting every location update.
+  void _openTracking() =>
+      widget.onNavigateToTracking(_dashboardLocationController);
 
   Future<void> _confirmLogout() async {
     final shouldLogout = await showAppConfirmDialog(
@@ -483,7 +500,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
             icon: Icons.navigation_rounded,
             iconColor: AppColors.accentGreen,
             bgColor: AppColors.accentGreen.withValues(alpha: 0.12),
-            onTap: widget.onNavigateToTracking,
+            onTap: _openTracking,
           ),
         ),
         const SizedBox(width: 12),
@@ -675,7 +692,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         ActiveTripCard(
           trip: trip,
           onViewDetails: _openTripDetails,
-          onTrackMap: widget.onNavigateToTracking,
+          onTrackMap: _openTracking,
           onChangeBooking: _changeBookingOrder,
           onCallCustomer: _callCustomer,
         ),

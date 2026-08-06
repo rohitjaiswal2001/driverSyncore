@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/utils/notification_permission.dart';
 import '../../domain/entities/tracking_status.dart';
 import '../../domain/repositories/trips_repository.dart';
 
@@ -35,12 +36,17 @@ class LocationTrackingController extends ChangeNotifier {
   int _secondsRemaining = ApiConstants.locationPingInterval.inSeconds;
   bool _disposed = false;
   bool _hasSentInitialPing = false;
+  bool _isTrackingNotificationVisible = true;
 
   TrackingStatus? get trackingStatus => _trackingStatus;
   Position? get currentPosition => _currentPosition;
   LocationAccessState get accessState => _accessState;
   bool get isLiveTracking => _pingTimer != null;
   int get secondsRemaining => _secondsRemaining;
+
+  /// False when Android denied POST_NOTIFICATIONS, i.e. tracking is running but
+  /// the driver has no notification telling them so.
+  bool get isTrackingNotificationVisible => _isTrackingNotificationVisible;
 
   /// Call whenever the trip's tracking status changes (initial load, manual
   /// refresh, or after a status update) to start/stop the loop accordingly.
@@ -54,24 +60,73 @@ class LocationTrackingController extends ChangeNotifier {
     _safeNotify();
   }
 
+  /// The persistent "tracking in progress" notification Android shows for the
+  /// location foreground service. Keeping the service in the foreground is what
+  /// lets the position stream and the ping timer survive the app being
+  /// backgrounded, so this notification is not decoration - it is the thing
+  /// holding the process alive.
+  ForegroundNotificationConfig get _trackingNotification =>
+      ForegroundNotificationConfig(
+        notificationTitle: 'GlobeLink Driver • Live tracking',
+        notificationText: 'Sharing your location for shipment #$orderId',
+        notificationChannelName: 'Live trip tracking',
+        enableWakeLock: true,
+        // Not dismissible: swiping it away would let the system reclaim the
+        // service and silently stop tracking mid-trip.
+        setOngoing: true,
+      );
+
+  /// Location settings for the live stream. Both platforms need their own
+  /// background opt-in: a foreground-service notification on Android, and
+  /// `allowBackgroundLocationUpdates` plus the blue status-bar indicator on iOS
+  /// (which also needs UIBackgroundModes=location in Info.plist).
+  LocationSettings _liveLocationSettings({int distanceFilter = 0}) {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return AndroidSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: distanceFilter,
+          intervalDuration: const Duration(seconds: 15),
+          foregroundNotificationConfig: _trackingNotification,
+        );
+      case TargetPlatform.iOS:
+        return AppleSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: distanceFilter,
+          activityType: ActivityType.automotiveNavigation,
+          allowBackgroundLocationUpdates: true,
+          showBackgroundLocationIndicator: true,
+          pauseLocationUpdatesAutomatically: false,
+        );
+      default:
+        return LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: distanceFilter,
+        );
+    }
+  }
+
   Future<void> _startLiveTracking() async {
     final granted = await _ensureLocationAccess();
     if (!granted) return;
 
+    // Ask before the service starts, otherwise Android 13+ starts the service
+    // with its notification suppressed and the driver gets no visible sign that
+    // tracking is running.
+    _isTrackingNotificationVisible =
+        await NotificationPermission.ensureGranted();
+    if (!_isTrackingNotificationVisible) {
+      dev.log(
+        '⚠️ [LocationTracking] POST_NOTIFICATIONS not granted - the tracking '
+        'notification will not appear in the shade',
+        name: 'LocationTracking',
+      );
+    }
+    _safeNotify();
+
     try {
       _currentPosition ??= await Geolocator.getCurrentPosition(
-        locationSettings: defaultTargetPlatform == TargetPlatform.android
-            ? AndroidSettings(
-                accuracy: LocationAccuracy.high,
-                intervalDuration: const Duration(seconds: 15),
-                foregroundNotificationConfig: ForegroundNotificationConfig(
-                  notificationTitle: "globelink Live Tracking",
-                  notificationText:
-                      "Tracking active shipment #$orderId in background...",
-                  enableWakeLock: true,
-                ),
-              )
-            : const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: _liveLocationSettings(),
       );
       _safeNotify();
       if (_currentPosition != null && !_hasSentInitialPing) {
@@ -82,22 +137,7 @@ class LocationTrackingController extends ChangeNotifier {
 
     _positionSubscription ??=
         Geolocator.getPositionStream(
-          locationSettings: defaultTargetPlatform == TargetPlatform.android
-              ? AndroidSettings(
-                  accuracy: LocationAccuracy.high,
-                  distanceFilter: 10,
-                  intervalDuration: const Duration(seconds: 15),
-                  foregroundNotificationConfig: ForegroundNotificationConfig(
-                    notificationTitle: "globelink Live Tracking",
-                    notificationText:
-                        "Tracking active shipment #$orderId in background...",
-                    enableWakeLock: true,
-                  ),
-                )
-              : const LocationSettings(
-                  accuracy: LocationAccuracy.high,
-                  distanceFilter: 10,
-                ),
+          locationSettings: _liveLocationSettings(distanceFilter: 10),
         ).listen((position) {
           _currentPosition = position;
           _safeNotify();

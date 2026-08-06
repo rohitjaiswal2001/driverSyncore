@@ -28,6 +28,16 @@
 		<string>$(MAPS_API_KEY)</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>GlobeLink Driver uses your location to show your live position on the map while a trip is in progress.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>GlobeLink Driver shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>GlobeLink Driver shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
+		<!-- Required for allowBackgroundLocationUpdates: without it iOS stops
+		     delivering positions the moment the app leaves the foreground. -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>location</string>
+		</array>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UIApplicationSceneManifest</key>

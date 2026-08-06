@@ -25,11 +25,11 @@ class DriverMainShell extends StatelessWidget {
           ),
         );
       },
-      onNavigateToTracking: () {
+      onNavigateToTracking: (controller) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const DriverTrackingPage(),
+            builder: (_) => DriverTrackingPage(controller: controller),
           ),
         );
       },
