@@ -2,6 +2,12 @@ class ApiConstants {
   static const String baseUrl =
       'https://perfectwebservices.com/staging/syntracore-tool/public/api';
 
+  /// Single centralized timeout for every network call in the app - connect,
+  /// send and receive, plus the outer ceilings the blocs and pull-to-refresh
+  /// handlers put around a request. Change this one value to retune how long
+  /// the app waits on the backend anywhere.
+  static const Duration apiTimeout = Duration(seconds: 20);
+
   // Auth Endpoints
   static const String login = '/login';
   static const String register = '/register';

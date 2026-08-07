@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show Factory;
 import 'package:flutter/gestures.dart'
     show EagerGestureRecognizer, OneSequenceGestureRecognizer;
@@ -9,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../../core/di/injection_container.dart' as di;
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 
 List<LatLng> decodeGooglePolyline(String encoded) {
@@ -100,7 +101,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   };
 
   final Geocoding _geocoding = Geocoding();
-  final Dio _dio = Dio();
+  final ApiClient _apiClient = di.sl<ApiClient>();
   GoogleMapController? _mapController;
   LatLng? _pickupLatLng;
   LatLng? _dropLatLng;
@@ -253,7 +254,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     if (apiKey.isEmpty) return const [];
 
     try {
-      final response = await _dio.get(
+      final response = await _apiClient.getExternal(
         'https://maps.googleapis.com/maps/api/directions/json',
         queryParameters: {
           'origin': '${origin.latitude},${origin.longitude}',

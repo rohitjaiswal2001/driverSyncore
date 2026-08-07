@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../network/api_client.dart';
+import '../network/api_exceptions.dart';
+
 /// Raised when a document URL resolves to something that isn't a PDF.
 class NotAPdfException implements Exception {
   final String message;
@@ -20,14 +23,16 @@ class NotAPdfException implements Exception {
 /// HTML at HTTP 200, which would otherwise render as a blank viewer instead of
 /// a clear error.
 class DocumentDownloader {
-  final Dio _dio;
+  final ApiClient _apiClient;
 
-  const DocumentDownloader(this._dio);
+  const DocumentDownloader(this._apiClient);
 
   Future<File> download(String url, {required String fileName}) async {
     final Response<List<int>> response;
     try {
-      response = await _dio.get<List<int>>(
+      // Document hosts sit outside our API, so this goes out on the client's
+      // external transport: shared timeouts, no auth header.
+      response = await _apiClient.getExternal<List<int>>(
         url,
         options: Options(
           responseType: ResponseType.bytes,
@@ -37,9 +42,9 @@ class DocumentDownloader {
           headers: const {'Accept': 'application/pdf'},
         ),
       );
-    } on DioException catch (e) {
+    } on AppException catch (e) {
       throw Exception(
-        'Could not reach the document server. ${e.message ?? ''}'.trim(),
+        'Could not reach the document server. ${e.message}'.trim(),
       );
     }
 

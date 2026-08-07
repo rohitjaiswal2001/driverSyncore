@@ -1,10 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/bloc_refresh.dart';
 import '../bloc/auth_bloc.dart';
+import '../bloc/auth_bloc_extensions.dart';
 import '../bloc/auth_state.dart';
-import '../bloc/auth_event.dart';
 import '../../domain/entities/user.dart';
 import 'edit_profile_page.dart';
 import 'fullscreen_image_viewer.dart';
@@ -19,27 +19,10 @@ class ProfileDetailsPage extends StatefulWidget {
 class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   User? _cachedUser;
 
-  Future<void> _handleRefresh() async {
-    final authBloc = context.read<AuthBloc>();
-    final completer = Completer<void>();
-
-    late StreamSubscription subscription;
-    subscription = authBloc.stream.listen((state) {
-      if (state is AuthSuccess || state is AuthFailure) {
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
-        subscription.cancel();
-      }
-    });
-
-    authBloc.add(const GetProfileDetails());
-
-    return completer.future.timeout(
-      const Duration(seconds: 5),
-      onTimeout: () {
-        subscription.cancel();
-      },
+  Future<void> _handleRefresh() {
+    return handleRefresh(
+      context,
+      () => context.read<AuthBloc>().refreshProfile(),
     );
   }
 

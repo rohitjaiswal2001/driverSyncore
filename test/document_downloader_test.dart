@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:globelink_driver/core/network/api_client.dart';
 import 'package:globelink_driver/core/utils/document_downloader.dart';
 
 /// Returns whatever bytes/status the test sets up, without touching the network.
@@ -24,10 +25,12 @@ class _StubAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-Dio _dioReturning({required int statusCode, required List<int> body}) {
+/// Documents go out on the client's external transport, so that is the one the
+/// stub adapter replaces.
+ApiClient _clientReturning({required int statusCode, required List<int> body}) {
   final dio = Dio();
   dio.httpClientAdapter = _StubAdapter(statusCode: statusCode, body: body);
-  return dio;
+  return ApiClient(externalDio: dio);
 }
 
 void main() {
@@ -38,7 +41,7 @@ void main() {
       // viewer instead of a readable error.
       final html = utf8.encode('<!doctype html>\n<html lang="en">...</html>');
       final downloader = DocumentDownloader(
-        _dioReturning(statusCode: 200, body: html),
+        _clientReturning(statusCode: 200, body: html),
       );
 
       await expectLater(
@@ -49,7 +52,7 @@ void main() {
 
     test('surfaces the status code for a 403', () async {
       final downloader = DocumentDownloader(
-        _dioReturning(statusCode: 403, body: utf8.encode('denied')),
+        _clientReturning(statusCode: 403, body: utf8.encode('denied')),
       );
 
       await expectLater(
@@ -66,7 +69,7 @@ void main() {
 
     test('rejects a body too short to carry the PDF magic bytes', () async {
       final downloader = DocumentDownloader(
-        _dioReturning(statusCode: 200, body: const [0x25, 0x50]),
+        _clientReturning(statusCode: 200, body: const [0x25, 0x50]),
       );
 
       await expectLater(

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_exceptions.dart';
 import '../../domain/usecases/forgot_password_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -210,10 +211,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     // the logged-out state — which is what drives the return to the login page.
     emit(AuthLoggingOut(role: currentRole));
     try {
-      // Outer ceiling behind the repository's own 8s network timeout. Whatever
-      // happens - hung socket, plugin failure, anything - the spinner comes
-      // down and the app returns to login.
-      await logoutUseCase().timeout(const Duration(seconds: 10));
+      // Outer ceiling behind the repository's own network timeout, with a
+      // small grace so the inner one always fires first. Whatever happens -
+      // hung socket, plugin failure, anything - the spinner comes down and the
+      // app returns to login.
+      await logoutUseCase().timeout(
+        ApiConstants.apiTimeout + const Duration(seconds: 2),
+      );
     } catch (e) {
       debugPrint('Logout failed but proceeding with local logout: $e');
     } finally {

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_info.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/bloc_refresh.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
@@ -61,16 +62,10 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
     setState(() => _isRefreshing = true);
 
     try {
-      await context.read<AuthBloc>().refreshProfile();
-    } on TimeoutException {
-      if (mounted) {
-        TopSnackBar.show(
-          context,
-          message: 'Taking longer than usual. Check your connection.',
-          backgroundColor: AppColors.accentOrange,
-          icon: Icons.wifi_off_rounded,
-        );
-      }
+      await handleRefresh(
+        context,
+        () => context.read<AuthBloc>().refreshProfile(),
+      );
     } finally {
       if (mounted) setState(() => _isRefreshing = false);
     }

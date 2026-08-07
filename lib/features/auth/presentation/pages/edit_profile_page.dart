@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../core/utils/validators.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -254,6 +256,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     // First name field
                     TextFormField(
                       controller: _firstNameController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -264,18 +269,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         hintText: 'First Name',
                         prefixIcon: Icon(Icons.person_outline),
                       ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'First name is required';
-                        }
-                        return null;
-                      },
+                      validator: Validators.validateFirstName,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-Z\s]'),
+                        ),
+                        LengthLimitingTextInputFormatter(50),
+                      ],
                     ),
                     const SizedBox(height: 16),
 
                     // Last name field
                     TextFormField(
                       controller: _lastNameController,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -286,6 +295,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         hintText: 'Last Name',
                         prefixIcon: Icon(Icons.person_outline),
                       ),
+                      validator: Validators.validateLastName,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-Z\s]'),
+                        ),
+                        LengthLimitingTextInputFormatter(50),
+                      ],
                     ),
                     const SizedBox(height: 16),
 

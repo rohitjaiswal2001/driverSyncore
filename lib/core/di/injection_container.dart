@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_client.dart';
 import '../utils/active_order_store.dart';
@@ -42,11 +41,10 @@ Future<void> init() async {
   sl.registerLazySingleton(() => sharedPreferences);
   sl.registerLazySingleton(() => RecentOrdersStore(sharedPreferences));
   sl.registerLazySingleton(() => ActiveOrderStore(sharedPreferences));
-  sl.registerLazySingleton(() => Dio());
-  sl.registerLazySingleton(() => ApiClient(sl()));
-  // Its own Dio: document hosts are outside the API base URL and must not
-  // inherit the API client's baseUrl or auth header.
-  sl.registerLazySingleton(() => DocumentDownloader(Dio()));
+  // The app's one and only HTTP client - see ApiClient for every network
+  // setting. Document downloads go through its external transport.
+  sl.registerLazySingleton(() => ApiClient());
+  sl.registerLazySingleton(() => DocumentDownloader(sl()));
 
   // Features - Auth
 

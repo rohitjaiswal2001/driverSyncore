@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
+import '../../../../core/utils/bloc_refresh.dart';
 import '../../domain/entities/trip.dart';
 import '../bloc/trips_bloc.dart';
 import '../bloc/trips_event.dart';
@@ -37,24 +38,13 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
   }
 
   Future<void> _handleRefresh() async {
-    final bloc = context.read<TripsBloc>();
-    final completer = Completer<void>();
-
-    late StreamSubscription sub;
-    sub = bloc.stream.listen((state) {
-      if (state is TripDetailsLoaded || state is TripsError) {
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
-        sub.cancel();
-      }
-    });
-
-    bloc.add(LoadTripDetails(tripId: widget.tripId));
-
-    return completer.future.timeout(
-      const Duration(seconds: 5),
-      onTimeout: () => sub.cancel(),
+    return handleRefresh(
+      context,
+      () => context.read<TripsBloc>().refreshWith(
+        LoadTripDetails(tripId: widget.tripId),
+        isTerminal: (state) =>
+            state is TripDetailsLoaded || state is TripsError,
+      ),
     );
   }
 

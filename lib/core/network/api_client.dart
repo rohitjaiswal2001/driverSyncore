@@ -2,8 +2,21 @@ import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
 import 'api_exceptions.dart';
 
+/// The single HTTP client for the whole app.
+///
+/// Every network call goes through here - our backend, document downloads and
+/// third-party APIs alike - so timeouts, headers, logging and error
+/// translation are defined in exactly one place. Nothing else in the app
+/// should construct a [Dio].
 class ApiClient {
+  /// Talks to our backend: carries [ApiConstants.baseUrl] and the auth token.
   final Dio _dio;
+
+  /// Talks to everyone else (document storage, Google APIs). Deliberately a
+  /// separate transport: those URLs are absolute and must never be handed our
+  /// Authorization header.
+  final Dio _externalDio;
+
   void Function(String path)? onUnauthorized;
 
   static const List<String> _whitelistedAuthPaths = [
@@ -26,15 +39,17 @@ class ApiClient {
     );
   }
 
-  ApiClient(this._dio) {
+  /// Both transports are optional so tests can hand in their own; in the app
+  /// they are built and configured right here.
+  ApiClient({Dio? dio, Dio? externalDio})
+    : _dio = dio ?? Dio(),
+      _externalDio = externalDio ?? Dio() {
+    _applyTimeouts(_dio.options);
     _dio.options.baseUrl = ApiConstants.baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 15);
-    _dio.options.receiveTimeout = const Duration(seconds: 15);
     _dio.options.headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-
     _dio.interceptors.add(
       LogInterceptor(
         request: true,
@@ -45,6 +60,29 @@ class ApiClient {
         error: true,
       ),
     );
+
+    _applyTimeouts(_externalDio.options);
+    // No base URL, no default headers, and bodies stay out of the log: these
+    // responses are PDF bytes and full route payloads.
+    _externalDio.interceptors.add(
+      LogInterceptor(
+        request: true,
+        requestHeader: false,
+        requestBody: false,
+        responseHeader: false,
+        responseBody: false,
+        error: true,
+      ),
+    );
+  }
+
+  /// The one place any request in the app gets its time limits. All three
+  /// matter: `send` bounds uploads (the multipart profile image), `receive`
+  /// bounds slow responses, `connect` bounds a server that never answers.
+  static void _applyTimeouts(BaseOptions options) {
+    options.connectTimeout = ApiConstants.apiTimeout;
+    options.sendTimeout = ApiConstants.apiTimeout;
+    options.receiveTimeout = ApiConstants.apiTimeout;
   }
 
   void setAuthToken(String token) {
@@ -95,7 +133,30 @@ class ApiClient {
     }
   }
 
-  Exception _handleDioError(DioException error) {
+  /// GET against an absolute third-party URL - document hosts, Google APIs.
+  ///
+  /// Same timeouts and error translation as the rest of the app, but without
+  /// our base URL or auth token, and a failure here can never sign the driver
+  /// out: somebody else's 401 says nothing about our session.
+  Future<Response<T>> getExternal<T>(
+    String url, {
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      return await _externalDio.get<T>(
+        url,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e, isExternal: true);
+    }
+  }
+
+  Exception _handleDioError(DioException error, {bool isExternal = false}) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -136,7 +197,7 @@ class ApiClient {
 
             if (statusCode == 401) {
               final requestPath = error.requestOptions.path;
-              if (!_isWhitelisted(requestPath)) {
+              if (!isExternal && !_isWhitelisted(requestPath)) {
                 onUnauthorized?.call(requestPath);
               }
               return UnauthorizedException(message);

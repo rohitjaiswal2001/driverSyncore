@@ -292,11 +292,12 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      // Best-effort, and bounded: telling the server is worth a few seconds,
-      // never worth leaving the driver stuck on a spinner.
+      // Best-effort, and bounded by the app-wide API timeout: telling the
+      // server is worth the wait, never worth leaving the driver stuck on a
+      // spinner forever.
       await _apiClient
           .post(ApiConstants.logout)
-          .timeout(const Duration(seconds: 8));
+          .timeout(ApiConstants.apiTimeout);
     } catch (_) {
       // A failed, timed-out or unauthorized logout call changes nothing about
       // what has to happen locally.
