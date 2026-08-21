@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/reverse_geocoder.dart';
 import '../../domain/entities/tracking_status.dart';
 import '../../domain/entities/trip.dart';
 import '../../domain/repositories/trips_repository.dart';
@@ -145,6 +146,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     try {
       double? lat;
       double? lng;
+      String? address;
       try {
         final pos = await Geolocator.getLastKnownPosition() ??
             await Geolocator.getCurrentPosition(
@@ -152,6 +154,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
             );
         lat = pos.latitude;
         lng = pos.longitude;
+        // Same fix, turned into `area, district, state, country` for the API.
+        address = await di.sl<ReverseGeocoder>().addressFor(lat, lng);
       } catch (_) {}
 
       await di.sl<TripsRepository>().updateTrackingStatus(
@@ -160,6 +164,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         status: selected.code,
         latitude: lat,
         longitude: lng,
+        address: address,
         notes: _notesController.text,
       );
 

@@ -5,6 +5,7 @@ import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/utils/notification_permission.dart';
+import '../../../../core/utils/reverse_geocoder.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../domain/entities/trip.dart';
 import '../../domain/entities/tracking_status.dart';
@@ -188,12 +189,15 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     try {
       double? lat;
       double? lng;
+      String? address;
       try {
         final pos =
             await Geolocator.getLastKnownPosition() ??
             await Geolocator.getCurrentPosition();
         lat = pos.latitude;
         lng = pos.longitude;
+        // Same fix, turned into `area, district, state, country` for the API.
+        address = await di.sl<ReverseGeocoder>().addressFor(lat, lng);
       } catch (_) {}
 
       if (!value) {
@@ -205,6 +209,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
             status: 'PAUSE',
             latitude: lat,
             longitude: lng,
+            address: address,
           );
           if (mounted) {
             TopSnackBar.show(
@@ -238,6 +243,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
             status: 'ONGOING',
             latitude: lat,
             longitude: lng,
+            address: address,
           );
           if (mounted) {
             TopSnackBar.show(
@@ -849,12 +855,12 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  widget.isEnabled
-                      ? 'Location updates are sent automatically every 5 minutes'
-                      : 'Tap switch to resume live tracking',
-                  style: const TextStyle(color: Colors.white70, fontSize: 11),
-                ),
+                // Text(
+                //   widget.isEnabled
+                //       ? 'Location updates are sent automatically every 5 minutes'
+                //       : 'Tap switch to resume live tracking',
+                //   style: const TextStyle(color: Colors.white70, fontSize: 11),
+                // ),
               ],
             ),
           ),

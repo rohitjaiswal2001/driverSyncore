@@ -4,6 +4,7 @@ import '../network/api_client.dart';
 import '../utils/active_order_store.dart';
 import '../utils/document_downloader.dart';
 import '../utils/recent_orders_store.dart';
+import '../utils/reverse_geocoder.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/forgot_password_usecase.dart';
@@ -45,6 +46,9 @@ Future<void> init() async {
   // setting. Document downloads go through its external transport.
   sl.registerLazySingleton(() => ApiClient());
   sl.registerLazySingleton(() => DocumentDownloader(sl()));
+  // Turns a GPS fix into the `address` the tracking API expects. Used by the
+  // screens and the tracking controller, wherever a position is resolved.
+  sl.registerLazySingleton(() => ReverseGeocoder());
 
   // Features - Auth
 

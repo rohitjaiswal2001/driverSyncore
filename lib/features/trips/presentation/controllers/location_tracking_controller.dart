@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/utils/notification_permission.dart';
+import '../../../../core/utils/reverse_geocoder.dart';
 import '../../domain/entities/tracking_status.dart';
 import '../../domain/repositories/trips_repository.dart';
 
@@ -24,8 +25,13 @@ class LocationTrackingController extends ChangeNotifier {
 
   final TripsRepository repository;
   final String orderId;
+  final ReverseGeocoder reverseGeocoder;
 
-  LocationTrackingController({required this.repository, required this.orderId});
+  LocationTrackingController({
+    required this.repository,
+    required this.orderId,
+    ReverseGeocoder? reverseGeocoder,
+  }) : reverseGeocoder = reverseGeocoder ?? ReverseGeocoder();
 
   TrackingStatus? _trackingStatus;
   Position? _currentPosition;
@@ -227,10 +233,17 @@ class LocationTrackingController extends ChangeNotifier {
     debugPrint(startMsg);
 
     try {
+      // Resolved right here, off the same fix that is about to be sent, so the
+      // backend gets a readable place name next to the raw coordinates.
+      final address = await reverseGeocoder.addressFor(
+        position.latitude,
+        position.longitude,
+      );
       await repository.pingTrackingLocation(
         orderId: orderId,
         latitude: position.latitude,
         longitude: position.longitude,
+        address: address,
         status: 'ONGOING',
         statusId: status?.id ?? 3,
       );
