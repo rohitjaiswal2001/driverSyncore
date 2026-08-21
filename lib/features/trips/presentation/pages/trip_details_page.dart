@@ -174,6 +174,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                                   ? 'Completed: ${trip.formattedCompletedDate}'
                                   : 'Completed: ${trip.pickupDate}')
                             : 'Estimated: ${trip.dropEta}',
+                        transitTime: trip.transitTime,
                         timeRequirement: trip.arrivalRequirementText,
                       ),
                     ),

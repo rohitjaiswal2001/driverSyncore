@@ -517,6 +517,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                   CargoMetricsRow(
                     cargoType: trip.cargoType,
                     weight: trip.weight,
+                    transitTime: trip.transitTime,
                   ),
                   const SizedBox(height: 16),
 

@@ -10,6 +10,10 @@ class RouteTimeline extends StatelessWidget {
   final String dropTime;
   final String? timeRequirement;
 
+  /// Server-provided transit time. Null/empty hides the row entirely - the
+  /// backend leaves it unset on plenty of shipments.
+  final String? transitTime;
+
   const RouteTimeline({
     super.key,
     required this.pickupLocation,
@@ -19,10 +23,14 @@ class RouteTimeline extends StatelessWidget {
     required this.dropAddress,
     required this.dropTime,
     this.timeRequirement,
+    this.transitTime,
   });
 
   @override
   Widget build(BuildContext context) {
+    final transit = transitTime?.trim() ?? '';
+    final hasTransit = transit.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -51,9 +59,7 @@ class RouteTimeline extends StatelessWidget {
                 Container(
                   width: 2,
                   height: 48,
-                  decoration: const BoxDecoration(
-                    color: AppColors.border,
-                  ),
+                  decoration: const BoxDecoration(color: AppColors.border),
                 ),
               ],
             ),
@@ -90,20 +96,72 @@ class RouteTimeline extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 2),
-                  Text(
-                    pickupTime,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMedium,
-                    ),
-                  ),
                 ],
               ),
             ),
           ],
         ),
+
+        // Transit time rides the connector between the two nodes - it is the
+        // time spent going from one to the other, so it belongs on the line
+        // rather than under either stop.
+        if (hasTransit)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 14,
+                  child: Center(
+                    child: Container(width: 2, color: AppColors.border),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'TRANSIT TIME',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textMedium,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          transit,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
         // Drop node
         Row(
@@ -162,15 +220,6 @@ class RouteTimeline extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 2),
-                  Text(
-                    dropTime,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMedium,
-                    ),
-                  ),
                 ],
               ),
             ),

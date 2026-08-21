@@ -165,8 +165,8 @@ class ActiveTripCard extends StatelessWidget {
                 address: trip.dropAddress,
                 meta: trip.isShippingDone
                     ? (trip.formattedCompletedDate.isNotEmpty
-                        ? trip.formattedCompletedDate
-                        : trip.pickupDate)
+                          ? trip.formattedCompletedDate
+                          : trip.pickupDate)
                     : trip.dropEta,
               ),
             ],
@@ -433,6 +433,17 @@ class ActiveTripCard extends StatelessWidget {
       );
     }
 
+    final transit = trip.transitTime?.trim() ?? '';
+    if (transit.isNotEmpty) {
+      metrics.add(
+        _Metric(
+          icon: Icons.schedule_rounded,
+          value: transit,
+          label: 'Transit',
+        ),
+      );
+    }
+
     final truck = trip.truckType.trim().isNotEmpty
         ? trip.truckType.trim()
         : trip.truckInfo.trim();
@@ -517,19 +528,7 @@ class _RouteStop extends StatelessWidget {
             ),
           ),
         ],
-        if (meta.trim().isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            meta.trim(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.accentBlue,
-            ),
-          ),
-        ],
+ 
       ],
     );
   }

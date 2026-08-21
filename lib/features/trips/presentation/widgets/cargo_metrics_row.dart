@@ -6,11 +6,15 @@ class CargoMetricsRow extends StatelessWidget {
   final String weight;
   final double? distanceKm;
 
+  /// Server-provided transit time; null/empty simply drops the card.
+  final String? transitTime;
+
   const CargoMetricsRow({
     super.key,
     required this.cargoType,
     required this.weight,
     this.distanceKm,
+    this.transitTime,
   });
 
   String _formatDistance(double km) {
@@ -21,6 +25,8 @@ class CargoMetricsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasDistance = distanceKm != null && distanceKm! > 0;
+    final transit = transitTime?.trim() ?? '';
+    final hasTransit = transit.isNotEmpty;
 
     return Row(
       children: [
@@ -52,6 +58,18 @@ class CargoMetricsRow extends StatelessWidget {
               icon: Icons.straighten_rounded,
               iconColor: AppColors.accentGreen,
               bgTint: AppColors.accentGreen.withValues(alpha: 0.15),
+            ),
+          ),
+        ],
+        if (hasTransit) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildInfoCard(
+              label: 'TRANSIT TIME',
+              value: transit,
+              icon: Icons.schedule_rounded,
+              iconColor: AppColors.accentOrange,
+              bgTint: AppColors.accentOrange.withValues(alpha: 0.12),
             ),
           ),
         ],

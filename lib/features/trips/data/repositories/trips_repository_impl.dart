@@ -123,6 +123,15 @@ class TripsRepositoryImpl implements TripsRepository {
 
     final dropLoc = data['drop_location']?.toString() ?? '';
     final dropEtaVal = data['transit_time']?.toString() ?? '';
+
+    // The backend leaves `transit_time` null until it has been set, so an
+    // absent value stays null rather than becoming an empty or 'null' string -
+    // the screens key off null to hide the field entirely.
+    final rawTransitTime = data['transit_time']?.toString().trim() ?? '';
+    final transitTimeVal =
+        (rawTransitTime.isEmpty || rawTransitTime.toLowerCase() == 'null')
+        ? null
+        : rawTransitTime;
     final distKm =
         double.tryParse(data['distance_km']?.toString() ?? '') ?? 0.0;
 
@@ -183,6 +192,7 @@ class TripsRepositoryImpl implements TripsRepository {
       dropLocation: dropLoc,
       dropAddress: dropLoc,
       dropEta: dropEtaVal,
+      transitTime: transitTimeVal,
       distanceRemainingKm: distKm,
       etaHours: 0.0,
       currentLocation: currentLocationStr,

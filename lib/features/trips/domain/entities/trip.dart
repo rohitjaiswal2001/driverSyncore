@@ -18,6 +18,12 @@ class Trip extends Equatable {
   final String dropLocation;
   final String dropAddress;
   final String dropEta;
+
+  /// Transit time for the shipment, straight from `shipment-details`
+  /// (`transit_time`). A server-formatted display string - rendered as-is,
+  /// never reformatted here. Null when the backend has not set one yet.
+  final String? transitTime;
+
   final double distanceRemainingKm;
   final double etaHours;
   final String currentLocation;
@@ -115,6 +121,7 @@ class Trip extends Equatable {
     required this.dropLocation,
     required this.dropAddress,
     required this.dropEta,
+    this.transitTime,
     required this.distanceRemainingKm,
     required this.etaHours,
     required this.currentLocation,
@@ -146,6 +153,7 @@ class Trip extends Equatable {
     String? dropLocation,
     String? dropAddress,
     String? dropEta,
+    String? transitTime,
     double? distanceRemainingKm,
     double? etaHours,
     String? currentLocation,
@@ -175,6 +183,7 @@ class Trip extends Equatable {
       dropLocation: dropLocation ?? this.dropLocation,
       dropAddress: dropAddress ?? this.dropAddress,
       dropEta: dropEta ?? this.dropEta,
+      transitTime: transitTime ?? this.transitTime,
       distanceRemainingKm: distanceRemainingKm ?? this.distanceRemainingKm,
       etaHours: etaHours ?? this.etaHours,
       currentLocation: currentLocation ?? this.currentLocation,
@@ -208,6 +217,7 @@ class Trip extends Equatable {
     dropLocation,
     dropAddress,
     dropEta,
+    transitTime,
     distanceRemainingKm,
     etaHours,
     currentLocation,
