@@ -501,61 +501,6 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                     ),
                   ),
 
-                  // Failed / Notice Reason Banner (if note exists or failed status)
-                  if (hasFailedNote) ...[
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.dangerBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppColors.danger.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.report_problem_outlined,
-                            size: 20,
-                            color: AppColors.danger,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'REASON / NOTE',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.danger,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  trip.notes.isNotEmpty
-                                      ? trip.notes
-                                      : 'Shipment reported as failed.',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.danger,
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
                   // Live Tracking In Progress Card (Hidden when shipment is completed)
                   if (isTrackingEligible && !trip.isShippingDone) ...[
                     _LiveTrackingToggleCard(
