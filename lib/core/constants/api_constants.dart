@@ -1,6 +1,7 @@
 class ApiConstants {
   static const String baseUrl =
-      'https://perfectwebservices.com/staging/syntracore-tool/public/api';
+      // 'https://perfectwebservices.com/staging/syntracore-tool/public/api';
+      'https://flc.syntra-core.com/api';
 
   /// Single centralized timeout for every network call in the app - connect,
   /// send and receive, plus the outer ceilings the blocs and pull-to-refresh
