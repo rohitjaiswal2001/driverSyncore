@@ -19,6 +19,13 @@ import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  /// This app ships to drivers only, so the role the API is told about is a
+  /// constant. It must never be read back off the signed-in session: the
+  /// login/profile payload does not always carry a `role`, and the empty
+  /// string it parses to used to survive logout and get sent as the role on
+  /// the next login attempt - which the API rejects with a 422.
+  static const String _driverRole = 'Driver';
+
   final LoginUseCase loginUseCase;
   final LoginWithOtpUseCase loginWithOtpUseCase;
   final RegisterUseCase registerUseCase;
@@ -45,7 +52,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.getProfileUseCase,
     required this.updateProfileUseCase,
     required this.removeProfileImageUseCase,
-  }) : super(const AuthInitial(role: 'Driver')) {
+  }) : super(const AuthInitial(role: _driverRole)) {
     on<RoleChanged>(_onRoleChanged);
     on<LoginSubmitted>(_onLoginSubmitted);
     on<RegisterSubmitted>(_onRegisterSubmitted);
@@ -69,8 +76,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LoginSubmitted event,
     Emitter<AuthState> emit,
   ) async {
-    final currentRole = state.role;
-    emit(AuthLoading(role: currentRole));
+    const currentRole = _driverRole;
+    emit(const AuthLoading(role: currentRole));
     try {
       final user = await loginUseCase(
         LoginParams(
@@ -130,8 +137,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LoginWithOtpSubmitted event,
     Emitter<AuthState> emit,
   ) async {
-    final currentRole = state.role;
-    emit(AuthLoading(role: currentRole));
+    const currentRole = _driverRole;
+    emit(const AuthLoading(role: currentRole));
     try {
       final user = await loginWithOtpUseCase(
         LoginWithOtpParams(phoneNumber: event.phoneNumber, role: currentRole),
@@ -194,10 +201,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (user != null) {
         emit(AuthSuccess(user: user));
       } else {
-        emit(const AuthInitial(role: 'Driver'));
+        emit(const AuthInitial(role: _driverRole));
       }
     } catch (_) {
-      emit(const AuthInitial(role: 'Driver'));
+      emit(const AuthInitial(role: _driverRole));
     }
   }
 
@@ -205,11 +212,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    final currentRole = state.role;
     // 1. Spinner up, 2. hit the API, 3. clear the local session (the use case
     // does this in its own `finally`), 4. spinner down and hand the app back to
     // the logged-out state — which is what drives the return to the login page.
-    emit(AuthLoggingOut(role: currentRole));
+    emit(const AuthLoggingOut(role: _driverRole));
     try {
       // Outer ceiling behind the repository's own network timeout, with a
       // small grace so the inner one always fires first. Whatever happens -
@@ -221,7 +227,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       debugPrint('Logout failed but proceeding with local logout: $e');
     } finally {
-      emit(AuthLoggedOut(role: currentRole));
+      emit(const AuthLoggedOut(role: _driverRole));
     }
   }
 
