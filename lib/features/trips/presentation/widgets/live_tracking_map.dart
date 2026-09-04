@@ -130,10 +130,16 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   List<LatLng> _routePoints = const [];
   bool _hasCenteredOnDriver = false;
 
-  /// While true the camera keeps chasing the driver's pin. Any camera move the
-  /// user makes themselves turns it off, so the map stops yanking itself back
-  /// mid-inspection; the locate button turns it on again.
-  bool _isFollowingDriver = true;
+  /// While true the camera keeps chasing the driver's pin. Off to begin with:
+  /// the map opens on the whole journey - where the driver is, where they
+  /// started and where they are going - rather than zoomed onto the pin with
+  /// the route off-screen. The locate button turns it on.
+  bool _isFollowingDriver = false;
+
+  /// Set the moment the driver pans, pinches or zooms. Until then the map
+  /// keeps re-framing itself as the pieces arrive (endpoints geocode, then the
+  /// route, then the first GPS fix); afterwards their view is theirs to keep.
+  bool _userAdjustedCamera = false;
 
   /// Our own `animateCamera` calls also fire [_onCameraMoveStarted], which
   /// would otherwise read as "the user grabbed the map". Camera moves that
@@ -266,7 +272,16 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     }
     if (widget.driverPosition != null &&
         widget.driverPosition != oldWidget.driverPosition) {
-      _followDriver();
+      // Following chases the pin; before the driver has touched the camera the
+      // fresh fix is just one more thing the opening frame should include; and
+      // once the view is theirs, the pin is still never allowed off screen.
+      if (_isFollowingDriver) {
+        _followDriver();
+      } else if (!_userAdjustedCamera) {
+        _autoFrame();
+      } else {
+        _keepDriverInFrame();
+      }
     }
   }
 
@@ -287,9 +302,36 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
       setState(() => _routePoints = routePoints);
     }
 
-    if (_isFollowingDriver) {
-      _fitToVisibleMarkers();
+    _autoFrame();
+  }
+
+  /// Frames everything worth seeing, until the driver takes the camera over.
+  void _autoFrame() {
+    if (_userAdjustedCamera || _isFollowingDriver) return;
+    _fitToVisibleMarkers();
+  }
+
+  /// The driver's own pin is never allowed to drift off screen, however far
+  /// they have panned. Only when it actually leaves the visible region does the
+  /// camera move, and then it pans rather than zooms - their chosen zoom level
+  /// survives, which a re-fit would throw away.
+  Future<void> _keepDriverInFrame() async {
+    final controller = _mapController;
+    final driver = widget.driverPosition;
+    if (controller == null || driver == null) return;
+
+    try {
+      final region = await controller.getVisibleRegion();
+      // A map that has not laid out yet reports a zero-size region; nothing
+      // useful to compare against, so leave the camera alone.
+      if (region.southwest == region.northeast) return;
+      if (region.contains(driver)) return;
+    } catch (_) {
+      return;
     }
+
+    if (!mounted) return;
+    await _animateCamera(CameraUpdate.newLatLng(driver));
   }
 
   Future<LatLng?> _geocode(String query) async {
@@ -333,8 +375,9 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     final deadline = _ignoreCameraMovesUntil;
     if (deadline != null && DateTime.now().isBefore(deadline)) return;
 
-    // A pan/pinch/double-tap from the driver: stop chasing the live pin until
-    // they ask for it back.
+    // A pan/pinch/double-tap from the driver: stop chasing the live pin, and
+    // stop re-framing behind their back, until they ask for it back.
+    _userAdjustedCamera = true;
     if (_isFollowingDriver) {
       setState(() => _isFollowingDriver = false);
     }
@@ -431,7 +474,16 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
 
   void _fitToVisibleMarkers() {
     final points = _framablePoints();
-    if (points.length < 2) return;
+    if (points.isEmpty) return;
+
+    // One known point - a driver whose pickup and drop both failed to geocode,
+    // say - still deserves to be on screen rather than leaving the map parked
+    // on its default camera.
+    if (points.length == 1) {
+      _currentZoom = 14;
+      _animateCamera(CameraUpdate.newLatLngZoom(points.first, 14));
+      return;
+    }
 
     _animateCamera(CameraUpdate.newLatLngBounds(_boundsFor(points), 56));
   }
@@ -639,6 +691,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
 
     setState(() => _isFollowingDriver = true);
     _hasCenteredOnDriver = true;
+    _userAdjustedCamera = false;
 
     final position = widget.driverPosition;
     if (position != null) {
@@ -746,11 +799,12 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
               compassEnabled: true,
               onMapCreated: (controller) {
                 _mapController = controller;
-                if (!_isFollowingDriver) return;
-                if (widget.driverPosition != null) {
+                if (_isFollowingDriver && widget.driverPosition != null) {
                   _followDriver();
                 } else {
-                  _fitToVisibleMarkers();
+                  // First frame the map can actually move: show the driver,
+                  // the start and the destination together.
+                  _autoFrame();
                 }
               },
               onCameraMoveStarted: _onCameraMoveStarted,
