@@ -137,7 +137,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   bool _isFollowingDriver = false;
 
   /// Set the moment the driver pans, pinches or zooms. Until then the map
-  /// keeps re-framing itself as the pieces arrive (endpoints geocode, then the
+  /// keeps re-fr₹aming itself as the pieces arrive (endpoints geocode, then the
   /// route, then the first GPS fix); afterwards their view is theirs to keep.
   bool _userAdjustedCamera = false;
 
@@ -149,10 +149,18 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   double _currentZoom = 12;
   MapType _mapType = MapType.normal;
 
+  static const String _mapsApiKey = String.fromEnvironment(
+    'MAPS_API_KEY',
+    defaultValue: 'AIzaSyCagA-geXsTnJ7YITQ92FwnCKGkMT9Zt6Y',
+  );
+
   /// Route geometry is the one thing here that costs a Directions call, so it
   /// is shared across every map in the app: opening this map full screen, or
   /// rebuilding it, reuses the same route instead of paying for it again.
   static final Map<String, List<LatLng>> _routeCache = {};
+
+  /// Same idea for the place lookups behind the start and destination pins.
+  static final Map<String, LatLng> _geocodeCache = {};
 
   BitmapDescriptor? _directionArrowIcon;
   BitmapDescriptor? _driverArrowIcon;
@@ -334,14 +342,67 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     await _animateCamera(CameraUpdate.newLatLng(driver));
   }
 
+  /// Turns a trip's free-text place into a coordinate for its pin.
+  ///
+  /// The platform geocoder is tried first because it costs no quota, but it
+  /// hands back nothing often enough - simulators, devices without Play
+  /// Services, a throttled lookup - that relying on it alone left the map with
+  /// no start pin, no destination pin and therefore no route at all. Google's
+  /// own geocoder is the backstop, and the answer is cached for every map in
+  /// the app.
   Future<LatLng?> _geocode(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return null;
+
+    final cached = _geocodeCache[trimmed];
+    if (cached != null) return cached;
+
     try {
       final results = await _geocoding.locationFromAddress(trimmed);
-      if (results.isEmpty) return null;
-      return LatLng(results.first.latitude, results.first.longitude);
+      if (results.isNotEmpty) {
+        final resolved = LatLng(
+          results.first.latitude,
+          results.first.longitude,
+        );
+        return _geocodeCache[trimmed] = resolved;
+      }
     } catch (_) {
+      // Falls through to Google below.
+    }
+
+    final resolved = await _geocodeViaGoogle(trimmed);
+    if (resolved != null) _geocodeCache[trimmed] = resolved;
+    return resolved;
+  }
+
+  Future<LatLng?> _geocodeViaGoogle(String query) async {
+    if (_mapsApiKey.isEmpty) return null;
+    try {
+      final response = await _apiClient.getExternal(
+        'https://maps.googleapis.com/maps/api/geocode/json',
+        queryParameters: {'address': query, 'key': _mapsApiKey},
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) return null;
+
+      final results = data['results'] as List? ?? const [];
+      if (results.isEmpty) {
+        debugPrint(
+          '🗺️ [LiveTrackingMap] Could not place "$query": ${data['status']}',
+        );
+        return null;
+      }
+
+      final location =
+          (results.first as Map?)?['geometry']?['location'] as Map?;
+      final lat = (location?['lat'] as num?)?.toDouble();
+      final lng = (location?['lng'] as num?)?.toDouble();
+      if (lat == null || lng == null) return null;
+
+      return LatLng(lat, lng);
+    } catch (e) {
+      debugPrint('🗺️ [LiveTrackingMap] Geocoding "$query" failed: $e');
       return null;
     }
   }
@@ -419,12 +480,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     LatLng origin,
     LatLng destination,
   ) async {
-    const apiKey = String.fromEnvironment(
-      'MAPS_API_KEY',
-      defaultValue: 'AIzaSyCagA-geXsTnJ7YITQ92FwnCKGkMT9Zt6Y',
-    );
-
-    if (apiKey.isEmpty) return const [];
+    if (_mapsApiKey.isEmpty) return const [];
 
     final cacheKey =
         '${origin.latitude},${origin.longitude}'
@@ -439,7 +495,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
           'origin': '${origin.latitude},${origin.longitude}',
           'destination': '${destination.latitude},${destination.longitude}',
           'mode': 'driving',
-          'key': apiKey,
+          'key': _mapsApiKey,
         },
       );
 
