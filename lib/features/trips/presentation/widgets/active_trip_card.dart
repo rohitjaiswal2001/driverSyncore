@@ -118,7 +118,7 @@ class ActiveTripCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Order ID: ',
+                'Booking ID: ',
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.bold,
@@ -127,7 +127,7 @@ class ActiveTripCard extends StatelessWidget {
                 ),
               ),
               Text(
-                trip.bookingId,
+                "#${trip.bookingId}",
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w900,

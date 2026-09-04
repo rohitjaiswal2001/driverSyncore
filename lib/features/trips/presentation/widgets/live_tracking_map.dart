@@ -702,7 +702,7 @@ class _StatusOverlayPill extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            label.toUpperCase(),
+            "Status : " + label.toUpperCase(),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,

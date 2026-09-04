@@ -690,7 +690,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                         ),
                         SizedBox(width: 4),
                         Text(
-                          'Change Order ID',
+                          'Change Booking ID',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.bold,

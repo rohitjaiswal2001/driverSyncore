@@ -62,17 +62,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
     try {
       final trip = await di.sl<TripsRepository>().getTripDetails(activeOrderId);
       if (!mounted) return;
-      final isLive =
-          trip.trackingStatusCode == 'ONGOING' ||
-          trip.trackingStatusCode == 'SHIPMENT_START';
-      setState(() {
-        _activeTrip = trip;
-        _isTrackingEnabled = isLive;
-        _isLoading = false;
-        _loadError = null;
-      });
-      _handleActiveTrip(trip);
-      _fetchTrackingStatusesOnce();
+      _applyTrip(trip);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -104,6 +94,22 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
         _loadError = e.toString().replaceAll('Exception: ', '');
       });
     }
+  }
+
+  /// Puts a freshly fetched shipment on screen - map header, tracking switch
+  /// and the status card all follow whatever the API just returned.
+  void _applyTrip(Trip trip) {
+    final isLive =
+        trip.trackingStatusCode == 'ONGOING' ||
+        trip.trackingStatusCode == 'SHIPMENT_START';
+    setState(() {
+      _activeTrip = trip;
+      _isTrackingEnabled = isLive;
+      _isLoading = false;
+      _loadError = null;
+    });
+    _handleActiveTrip(trip);
+    _fetchTrackingStatusesOnce();
   }
 
   Future<void> _fetchTrackingStatusesOnce() async {
@@ -279,6 +285,8 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 
   /// Opens the update status screen inside a Modal Bottom Sheet.
   Future<void> _openUpdateStatusSheet(Trip trip) async {
+    var didRefresh = false;
+
     await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -303,7 +311,14 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                 ),
               ),
               Expanded(
-                child: UpdateStatusPage(tripId: trip.id, initialTrip: trip),
+                child: UpdateStatusPage(
+                  tripId: trip.id,
+                  initialTrip: trip,
+                  onStatusUpdated: (updated) {
+                    didRefresh = true;
+                    if (mounted) _applyTrip(updated);
+                  },
+                ),
               ),
             ],
           ),
@@ -311,7 +326,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
       },
     );
 
-    if (mounted) {
+    if (mounted && !didRefresh) {
       await _loadActiveTrip();
     }
   }
@@ -572,6 +587,45 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                         ],
                       ),
                     )
+                  else if (isPaused)
+                    // Status changes belong to a running trip: while tracking
+                    // is paused the button is gone, and this says why.
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.warning.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(
+                            Icons.pause_circle_outline,
+                            color: AppColors.warning,
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Tracking is paused. Resume it to change the '
+                              'shipment status.',
+                              style: TextStyle(
+                                color: AppColors.warning,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
                   else
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -656,7 +710,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                trip.bookingId,
+                "#${trip.bookingId}",
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,

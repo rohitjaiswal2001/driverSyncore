@@ -20,7 +20,17 @@ class UpdateStatusPage extends StatefulWidget {
   final String tripId;
   final Trip? initialTrip;
 
-  const UpdateStatusPage({super.key, required this.tripId, this.initialTrip});
+  /// Fires with the freshly fetched shipment right after a successful status
+  /// update, so the screen behind this one can refresh without waiting for the
+  /// sheet to close.
+  final ValueChanged<Trip>? onStatusUpdated;
+
+  const UpdateStatusPage({
+    super.key,
+    required this.tripId,
+    this.initialTrip,
+    this.onStatusUpdated,
+  });
 
   @override
   State<UpdateStatusPage> createState() => _UpdateStatusPageState();
@@ -81,7 +91,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
       setState(() {
         _statuses = statuses;
         _trip = trip;
-        _selected = _matchCurrent(statuses, trip);
+        _selected = _defaultSelection(statuses, trip);
         _isLoading = false;
       });
     } catch (e) {
@@ -123,13 +133,35 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     return null;
   }
 
-  int _getCurrentStatusIndex() {
-    final trip = _trip;
+  int _indexOfCurrent(List<TrackingStatus> statuses, Trip? trip) {
     if (trip == null) return -1;
-    for (int i = 0; i < _statuses.length; i++) {
-      if (_isSameStatus(_statuses[i], trip)) return i;
+    for (int i = 0; i < statuses.length; i++) {
+      if (_isSameStatus(statuses[i], trip)) return i;
     }
     return -1;
+  }
+
+  int _getCurrentStatusIndex() => _indexOfCurrent(_statuses, _trip);
+
+  /// The sheet opens on the step the driver is actually about to take - the
+  /// one right after their current status - so the common case needs no tap.
+  TrackingStatus? _defaultSelection(List<TrackingStatus> statuses, Trip trip) {
+    if (trip.isShippingDone) return _matchCurrent(statuses, trip);
+    final currentIndex = _indexOfCurrent(statuses, trip);
+    if (currentIndex >= 0 && currentIndex + 1 < statuses.length) {
+      return statuses[currentIndex + 1];
+    }
+    return _matchCurrent(statuses, trip);
+  }
+
+  /// The driver can tap their current status or the immediate next one -
+  /// picking the current one just leaves Update disabled. "Failed" is the
+  /// exception: a shipment can fail from wherever it currently stands.
+  bool _isSelectable(int index, int currentIndex) {
+    if (_trip?.isShippingDone ?? false) return false;
+    if (_statuses[index].isFailed) return true;
+    if (currentIndex < 0) return true;
+    return index == currentIndex || index == currentIndex + 1;
   }
 
   Future<void> _submit() async {
@@ -167,13 +199,25 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         notes: _notesController.text,
       );
 
-      // Immediately fetch latest shipment details from API after updating status
+      // Pull the shipment detail back immediately so this sheet and the screen
+      // behind it both show the state the backend just recorded.
+      Trip? refreshed;
       try {
-        await di.sl<TripsRepository>().getTripDetails(trip.bookingId);
+        refreshed = await di.sl<TripsRepository>().getTripDetails(
+          trip.bookingId,
+        );
       } catch (_) {}
 
       if (!mounted) return;
-      setState(() => _isSubmitting = false);
+      final freshTrip = refreshed;
+      setState(() {
+        _isSubmitting = false;
+        if (freshTrip != null) {
+          _trip = freshTrip;
+          _selected = _defaultSelection(_statuses, freshTrip);
+        }
+      });
+      if (freshTrip != null) widget.onStatusUpdated?.call(freshTrip);
 
       if (selected.isDone) {
         Navigator.pushReplacement(
@@ -333,7 +377,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                 ),
                 const SizedBox(height: 3),
                 const Text(
-                  'Status moves forward only. Previous statuses are locked.',
+                  'Status moves one step at a time - you can only move to the '
+                  'next status, or mark the trip Failed.',
                   style: TextStyle(fontSize: 11.5, color: AppColors.textMedium),
                 ),
                 const SizedBox(height: 14),
@@ -470,7 +515,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Order ID',
+                'Booking ID',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -479,7 +524,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                 ),
               ),
               Text(
-                trip.bookingId,
+                ' #${trip.bookingId}',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -500,10 +545,12 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
   ) {
     final isSelected = _selected?.id == status.id;
     final isCurrent = index == currentIndex;
-    final isPast = index < currentIndex;
+    final isPast = currentIndex >= 0 && index < currentIndex;
 
-    final isDone = _trip?.isShippingDone ?? false;
-    final isLocked = isPast || isDone;
+    final isLocked = !_isSelectable(index, currentIndex);
+    // Everything the driver cannot reach in one step reads as locked: the
+    // statuses already passed, the one they are on, and anything beyond next.
+    final isMuted = isLocked && !isCurrent;
 
     return GestureDetector(
       onTap: isLocked
@@ -522,12 +569,12 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: isPast ? const Color(0xFFF8FAFC) : Colors.white,
+          color: isMuted ? const Color(0xFFF8FAFC) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
-                : isPast
+                : isMuted
                 ? AppColors.border.withValues(alpha: 0.5)
                 : AppColors.border,
             width: isSelected ? 2.0 : 1.0,
@@ -549,10 +596,13 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
               height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: isPast ? AppColors.accentGreen : Colors.transparent,
                 border: Border.all(
-                  color: isSelected
+                  color: isPast
+                      ? AppColors.accentGreen
+                      : isSelected
                       ? AppColors.primary
-                      : isPast
+                      : isMuted
                       ? const Color(0xFFCBD5E1)
                       : AppColors.textLight,
                   width: 2,
@@ -560,6 +610,12 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
               ),
               child: Center(
                 child: isPast
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 13,
+                        color: Colors.white,
+                      )
+                    : isMuted
                     ? const Icon(
                         Icons.lock_rounded,
                         size: 11,
@@ -586,7 +642,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                   fontWeight: isSelected || isCurrent
                       ? FontWeight.bold
                       : FontWeight.w500,
-                  color: isPast
+                  color: isMuted
                       ? const Color(0xFF94A3B8)
                       : isSelected
                       ? AppColors.primary
@@ -595,40 +651,47 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
               ),
             ),
             if (isCurrent)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'CURRENT',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                    letterSpacing: 0.4,
-                  ),
-                ),
+              _buildStatusBadge(
+                'CURRENT',
+                background: AppColors.primaryLight,
+                foreground: AppColors.primary,
               )
             else if (isPast)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'PASSED',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF94A3B8),
-                    letterSpacing: 0.4,
-                  ),
-                ),
+              _buildStatusBadge(
+                'PASSED',
+                background: AppColors.accentGreen.withValues(alpha: 0.12),
+                foreground: AppColors.accentGreen,
+              )
+            else if (isMuted)
+              _buildStatusBadge(
+                'LOCKED',
+                background: const Color(0xFFF1F5F9),
+                foreground: const Color(0xFF94A3B8),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(
+    String text, {
+    required Color background,
+    required Color foreground,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
+          color: foreground,
+          letterSpacing: 0.4,
         ),
       ),
     );

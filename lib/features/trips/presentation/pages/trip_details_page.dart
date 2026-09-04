@@ -85,7 +85,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  _cachedTrip!.bookingId,
+                  "#${_cachedTrip!.bookingId}",
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
