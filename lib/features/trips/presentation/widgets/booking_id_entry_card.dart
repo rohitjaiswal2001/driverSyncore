@@ -118,7 +118,7 @@ class _BookingIdEntryCardState extends State<BookingIdEntryCard> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Enter your Booking Order ID to load the shipment and '
+                      'Enter your Order ID to load the shipment and '
                       'start your trip.',
                       style: TextStyle(
                         fontSize: 12.5,

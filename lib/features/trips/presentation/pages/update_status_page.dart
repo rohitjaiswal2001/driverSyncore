@@ -75,9 +75,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
 
       // Filter out PAUSE option from Update Status page as it is managed via the map toggle switch
       final statuses = allStatuses
-          .where((s) =>
-              s.code.toUpperCase() != 'PAUSE' &&
-              s.id != 6)
+          .where((s) => s.code.toUpperCase() != 'PAUSE' && s.id != 6)
           .toList();
 
       setState(() {
@@ -148,7 +146,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
       double? lng;
       String? address;
       try {
-        final pos = await Geolocator.getLastKnownPosition() ??
+        final pos =
+            await Geolocator.getLastKnownPosition() ??
             await Geolocator.getCurrentPosition(
               timeLimit: const Duration(seconds: 3),
             );
@@ -208,8 +207,6 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
       );
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -337,10 +334,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                 const SizedBox(height: 3),
                 const Text(
                   'Status moves forward only. Previous statuses are locked.',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.textMedium,
-                  ),
+                  style: TextStyle(fontSize: 11.5, color: AppColors.textMedium),
                 ),
                 const SizedBox(height: 14),
                 for (int i = 0; i < _statuses.length; i++)
@@ -476,7 +470,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'BOOKING ID',
+                'Order ID',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -499,7 +493,11 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     );
   }
 
-  Widget _buildStatusOption(TrackingStatus status, int index, int currentIndex) {
+  Widget _buildStatusOption(
+    TrackingStatus status,
+    int index,
+    int currentIndex,
+  ) {
     final isSelected = _selected?.id == status.id;
     final isCurrent = index == currentIndex;
     final isPast = index < currentIndex;
@@ -511,14 +509,14 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
       onTap: isLocked
           ? null
           : () => setState(() {
-                HapticFeedback.selectionClick();
-                _selected = status;
-                // Don't carry a failure reason over to a non-failure status.
-                if (!status.isFailed) {
-                  _notesController.clear();
-                  _notesFocus.unfocus();
-                }
-              }),
+              HapticFeedback.selectionClick();
+              _selected = status;
+              // Don't carry a failure reason over to a non-failure status.
+              if (!status.isFailed) {
+                _notesController.clear();
+                _notesFocus.unfocus();
+              }
+            }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(bottom: 12),
@@ -530,8 +528,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
             color: isSelected
                 ? AppColors.primary
                 : isPast
-                    ? AppColors.border.withValues(alpha: 0.5)
-                    : AppColors.border,
+                ? AppColors.border.withValues(alpha: 0.5)
+                : AppColors.border,
             width: isSelected ? 2.0 : 1.0,
           ),
           boxShadow: isSelected
@@ -555,8 +553,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                   color: isSelected
                       ? AppColors.primary
                       : isPast
-                          ? const Color(0xFFCBD5E1)
-                          : AppColors.textLight,
+                      ? const Color(0xFFCBD5E1)
+                      : AppColors.textLight,
                   width: 2,
                 ),
               ),
@@ -591,8 +589,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                   color: isPast
                       ? const Color(0xFF94A3B8)
                       : isSelected
-                          ? AppColors.primary
-                          : AppColors.textDark,
+                      ? AppColors.primary
+                      : AppColors.textDark,
                 ),
               ),
             ),

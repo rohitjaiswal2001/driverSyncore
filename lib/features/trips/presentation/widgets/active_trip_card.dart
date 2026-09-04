@@ -118,7 +118,7 @@ class ActiveTripCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'BOOKING ID: ',
+                'Order ID: ',
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.bold,
@@ -436,11 +436,7 @@ class ActiveTripCard extends StatelessWidget {
     final transit = trip.transitTime?.trim() ?? '';
     if (transit.isNotEmpty) {
       metrics.add(
-        _Metric(
-          icon: Icons.schedule_rounded,
-          value: transit,
-          label: 'Transit',
-        ),
+        _Metric(icon: Icons.schedule_rounded, value: transit, label: 'Transit'),
       );
     }
 
@@ -528,7 +524,6 @@ class _RouteStop extends StatelessWidget {
             ),
           ),
         ],
- 
       ],
     );
   }

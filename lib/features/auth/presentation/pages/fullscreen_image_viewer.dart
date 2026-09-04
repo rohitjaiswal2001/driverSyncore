@@ -36,7 +36,11 @@ class FullscreenImageViewer extends StatelessWidget {
                     return const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline, color: Colors.white54, size: 48),
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors.white54,
+                          size: 48,
+                        ),
                         SizedBox(height: 12),
                         Text(
                           'Failed to load image',

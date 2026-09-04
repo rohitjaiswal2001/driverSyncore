@@ -333,7 +333,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
             body: Column(
               children: [
                 // Integrated Dark Navy Header AppBar
-                _buildHeader(user, driverName),
+                _buildHeader(user, user?.firstName ?? ""),
 
                 // Main Content List
                 Expanded(
@@ -690,7 +690,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                         ),
                         SizedBox(width: 4),
                         Text(
-                          'Change Booking ID',
+                          'Change Order ID',
                           style: TextStyle(
                             fontSize: 11.5,
                             fontWeight: FontWeight.bold,

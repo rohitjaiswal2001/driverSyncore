@@ -28,10 +28,7 @@ class OtpInputFieldState extends State<OtpInputField> {
   @override
   void initState() {
     super.initState();
-    _controllers = List.generate(
-      widget.length,
-      (_) => TextEditingController(),
-    );
+    _controllers = List.generate(widget.length, (_) => TextEditingController());
     _focusNodes = List.generate(
       widget.length,
       (index) => FocusNode(
@@ -54,9 +51,16 @@ class OtpInputFieldState extends State<OtpInputField> {
       widget.length,
       (_) => FocusNode(canRequestFocus: false, skipTraversal: true),
     );
-    for (final node in _focusNodes) {
-      node.addListener(() => setState(() {}));
+    for (final controller in _controllers) {
+      controller.addListener(_onVisualStateChanged);
     }
+    for (final node in _focusNodes) {
+      node.addListener(_onVisualStateChanged);
+    }
+  }
+
+  void _onVisualStateChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -139,71 +143,110 @@ class OtpInputFieldState extends State<OtpInputField> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(widget.length, (index) {
-        final hasFocus = _focusNodes[index].hasFocus;
-        return SizedBox(
-          width: 48,
-          height: 56,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: hasFocus ? AppColors.primary : AppColors.border,
-                width: hasFocus ? 2 : 1,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Boxes shrink on narrow screens instead of overflowing the row.
+        const maxBoxWidth = 48.0;
+        const minGap = 8.0;
+        final available = constraints.maxWidth;
+        final boxWidth = available.isFinite
+            ? ((available - minGap * (widget.length - 1)) / widget.length)
+                  .clamp(34.0, maxBoxWidth)
+            : maxBoxWidth;
+        final boxHeight = boxWidth * 56 / 48;
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(widget.length, (index) {
+            final hasFocus = _focusNodes[index].hasFocus;
+            final isFilled = _controllers[index].text.isNotEmpty;
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOut,
+              width: boxWidth,
+              height: boxHeight,
+              decoration: BoxDecoration(
+                color: hasFocus || isFilled
+                    ? Colors.white
+                    : AppColors.inputBackground,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasFocus
+                      ? AppColors.primary
+                      : isFilled
+                      ? AppColors.primary.withValues(alpha: 0.35)
+                      : AppColors.border,
+                  width: hasFocus ? 1.6 : 1.2,
+                ),
+                boxShadow: hasFocus
+                    ? [
+                        // Flat focus ring, then a soft lift under it.
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.14),
+                          spreadRadius: 3,
+                        ),
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.16),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : const [],
               ),
-              boxShadow: [
-                if (hasFocus)
-                  BoxShadow(
-                    color: AppColors.primary.withAlpha(26),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+              clipBehavior: Clip.antiAlias,
+              // Center keeps the collapsed field's single line centered in
+              // the box at every box height.
+              child: Center(
+                child: KeyboardListener(
+                  focusNode: _backspaceCatcherNodes[index],
+                  onKeyEvent: (event) {
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.backspace) {
+                      _handleBackspaceOnEmpty(index);
+                    }
+                  },
+                  child: TextField(
+                    controller: _controllers[index],
+                    focusNode: _focusNodes[index],
+                    textAlign: TextAlign.center,
+                    textAlignVertical: TextAlignVertical.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: widget.length,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    cursorColor: AppColors.primary,
+                    cursorWidth: 2,
+                    cursorHeight: 22,
+                    cursorRadius: const Radius.circular(2),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onChanged: (value) => _handleChanged(index, value),
+                    onTap: () {
+                      _controllers[index].selection = TextSelection(
+                        baseOffset: 0,
+                        extentOffset: _controllers[index].text.length,
+                      );
+                    },
                   ),
-              ],
-            ),
-            child: KeyboardListener(
-              focusNode: _backspaceCatcherNodes[index],
-              onKeyEvent: (event) {
-                if (event is KeyDownEvent &&
-                    event.logicalKey == LogicalKeyboardKey.backspace) {
-                  _handleBackspaceOnEmpty(index);
-                }
-              },
-              child: TextField(
-                controller: _controllers[index],
-                focusNode: _focusNodes[index],
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                maxLength: widget.length,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
                 ),
-                decoration: const InputDecoration(
-                  counterText: '',
-                  border: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  errorBorder: InputBorder.none,
-                  disabledBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                onChanged: (value) => _handleChanged(index, value),
-                onTap: () {
-                  _controllers[index].selection = TextSelection(
-                    baseOffset: 0,
-                    extentOffset: _controllers[index].text.length,
-                  );
-                },
               ),
-            ),
-          ),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 }
