@@ -39,4 +39,9 @@ class ApiConstants {
   /// Single centralized location ping interval for backend location updates.
   /// Modify this single value to change the tracking frequency for the whole app.
   static const Duration locationPingInterval = Duration(minutes: 5);
+
+  /// How often an open shipment screen re-reads its detail, so a status change
+  /// made elsewhere - dispatch marking a trip failed, say - shows up on its own
+  /// instead of waiting for the driver to pull to refresh.
+  static const Duration shipmentRefreshInterval = Duration(seconds: 60);
 }

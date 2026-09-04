@@ -248,7 +248,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   ) async {
     const apiKey = String.fromEnvironment(
       'MAPS_API_KEY',
-      defaultValue: 'AIzaSyDKjnNPu8LL8i1S8ac3cXCEkJhJ6p5Por0',
+      defaultValue: 'AIzaSyCagA-geXsTnJ7YITQ92FwnCKGkMT9Zt6Y',
     );
 
     if (apiKey.isEmpty) return const [];

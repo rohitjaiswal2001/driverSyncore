@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart' show Geolocator;
 import 'package:google_maps_flutter/google_maps_flutter.dart' show LatLng;
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/active_order_store.dart';
@@ -26,10 +29,12 @@ class DriverTrackingPage extends StatefulWidget {
   State<DriverTrackingPage> createState() => _DriverTrackingPageState();
 }
 
-class _DriverTrackingPageState extends State<DriverTrackingPage> {
+class _DriverTrackingPageState extends State<DriverTrackingPage>
+    with WidgetsBindingObserver {
   Trip? _activeTrip;
   List<TrackingStatus> _trackingStatuses = const [];
   LocationTrackingController? _locationController;
+  Timer? _statusPollTimer;
 
   bool _isLoading = true;
   String? _loadError;
@@ -39,7 +44,53 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadActiveTrip();
+    _startStatusPolling();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Whatever happened to the shipment while the app was away shows up now,
+      // rather than on the driver's next pull.
+      _refreshActiveTripQuietly();
+      _startStatusPolling();
+    } else {
+      _stopStatusPolling();
+    }
+  }
+
+  /// The shipment can move on without the driver touching this screen - the
+  /// fleet desk marking it failed, or the ping loop turning a started trip into
+  /// an ongoing one - so the detail is re-read on a slow loop while the screen
+  /// is in front of them.
+  void _startStatusPolling() {
+    _statusPollTimer?.cancel();
+    _statusPollTimer = Timer.periodic(
+      ApiConstants.shipmentRefreshInterval,
+      (_) => _refreshActiveTripQuietly(),
+    );
+  }
+
+  void _stopStatusPolling() {
+    _statusPollTimer?.cancel();
+    _statusPollTimer = null;
+  }
+
+  /// A background re-read: no spinner, and a failure leaves the good data on
+  /// screen for the next attempt instead of replacing it with an error.
+  Future<void> _refreshActiveTripQuietly() async {
+    if (_isUpdatingTrackingStatus) return;
+    final activeOrderId = di.sl<ActiveOrderStore>().read();
+    if (activeOrderId == null || activeOrderId.isEmpty) return;
+    try {
+      final trip = await di.sl<TripsRepository>().getTripDetails(activeOrderId);
+      if (!mounted) return;
+      _applyTrip(trip);
+    } catch (_) {
+      // Best effort - the next tick tries again.
+    }
   }
 
   Future<void> _loadActiveTrip() async {
@@ -82,11 +133,7 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
       final trip = await di.sl<TripsRepository>().getTripDetails(bookingId);
       await di.sl<ActiveOrderStore>().set(bookingId);
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _loadError = null;
-      });
-      _handleActiveTrip(trip);
+      _applyTrip(trip);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -153,19 +200,29 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
   }
 
   void _handleActiveTrip(Trip trip) {
-    final isNewTrip = _activeTrip?.bookingId != trip.bookingId;
     _activeTrip = trip;
 
+    // Keyed off the controller's own order, not off which trip was on screen
+    // before: this screen is also reachable without a controller handed in
+    // (from trip details), and that route still needs a ping loop of its own.
     if (widget.controller != null &&
         widget.controller!.orderId == trip.bookingId) {
       _locationController = widget.controller;
-    } else if (isNewTrip) {
-      _locationController?.dispose();
+    } else if (_locationController?.orderId != trip.bookingId) {
+      if (_locationController != widget.controller) {
+        _locationController?.dispose();
+      }
       _locationController = LocationTrackingController(
         repository: di.sl<TripsRepository>(),
         orderId: trip.bookingId,
       );
     }
+
+    // The controller promotes a started trip to ONGOING on its first ping, so
+    // pull the shipment back fresh when it does and let this screen follow.
+    _locationController?.onTrackingStatusChanged = (_) {
+      if (mounted) _loadActiveTrip();
+    };
 
     _applyTrackingStatusToController();
   }
@@ -333,8 +390,14 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopStatusPolling();
     if (widget.controller != _locationController) {
       _locationController?.dispose();
+    } else {
+      // Owned by the dashboard: leave it pinging, just stop it calling back
+      // into a State that is on its way out.
+      _locationController?.onTrackingStatusChanged = null;
     }
     super.dispose();
   }
@@ -455,8 +518,9 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
         resolvedTrackingStatus?.isLiveTrackingEligible ?? false;
     final isTrackingEligible = isLiveEligible || isStarted || isPaused;
 
-    final hasFailedNote =
-        trip.notes.isNotEmpty || (resolvedTrackingStatus?.isFailed ?? false);
+    final isFailed =
+        (resolvedTrackingStatus?.isFailed ?? false) ||
+        trip.trackingStatusCode == TrackingStatus.codeFailed;
 
     return RefreshIndicator(
       onRefresh: _loadActiveTrip,
@@ -471,30 +535,51 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
             SizedBox(
               width: double.infinity,
               height: 380,
-              child: AnimatedBuilder(
-                animation: _locationController ?? const _NoopListenable(),
-                builder: (context, _) {
-                  final controller = _locationController;
-                  final position = controller?.currentPosition;
-                  return LiveTrackingMap(
-                    driverPosition: position == null
-                        ? null
-                        : LatLng(position.latitude, position.longitude),
-                    pickupLabel: trip.pickupLocation,
-                    dropLabel: trip.dropLocation,
-                    isLive: controller?.isLiveTracking ?? false,
-                    trackingStatusText:
-                        resolvedTrackingStatus?.label ??
-                        trip.trackingStatusLabel ??
-                        trip.status,
-                    statusMessage: _mapStatusMessage(
-                      controller?.accessState ?? LocationAccessState.unknown,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: AnimatedBuilder(
+                      animation: _locationController ?? const _NoopListenable(),
+                      builder: (context, _) {
+                        final controller = _locationController;
+                        final position = controller?.currentPosition;
+                        return LiveTrackingMap(
+                          driverPosition: position == null
+                              ? null
+                              : LatLng(position.latitude, position.longitude),
+                          pickupLabel: trip.pickupLocation,
+                          dropLabel: trip.dropLocation,
+                          isLive: controller?.isLiveTracking ?? false,
+                          trackingStatusText:
+                              resolvedTrackingStatus?.label ??
+                              trip.trackingStatusLabel ??
+                              trip.status,
+                          statusMessage: _mapStatusMessage(
+                            controller?.accessState ??
+                                LocationAccessState.unknown,
+                          ),
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(24),
+                          ),
+                        );
+                      },
                     ),
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(24),
-                    ),
-                  );
-                },
+                  ),
+
+                  // The map grabs every drag inside it (EagerGestureRecognizer),
+                  // which is what keeps it pannable in a scroll view - but it
+                  // also swallowed the pull-to-refresh. This transparent strip
+                  // along the top edge is left to the page, so a pull that
+                  // starts here reaches the RefreshIndicator. It only covers
+                  // the read-only status pills, never the map's controls.
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 64,
+                    child: Container(color: Colors.transparent),
+                  ),
+                ],
               ),
             ),
 
@@ -523,7 +608,9 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                   ),
 
                   // Live Tracking In Progress Card (Hidden when shipment is completed)
-                  if (isTrackingEligible && !trip.isShippingDone) ...[
+                  if (isTrackingEligible &&
+                      !trip.isShippingDone &&
+                      !isFailed) ...[
                     _LiveTrackingToggleCard(
                       isEnabled: _isTrackingEnabled,
                       statusLabel: resolvedTrackingStatus?.label ?? trip.status,
@@ -582,6 +669,58 @@ class _DriverTrackingPageState extends State<DriverTrackingPage> {
                               color: AppColors.accentGreen,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (isFailed)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.dangerBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.danger.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.danger,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Shipment marked as Failed',
+                                  style: TextStyle(
+                                    color: AppColors.danger,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                if (trip.notes.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    trip.notes,
+                                    style: const TextStyle(
+                                      color: AppColors.textMedium,
+                                      fontSize: 12.5,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],

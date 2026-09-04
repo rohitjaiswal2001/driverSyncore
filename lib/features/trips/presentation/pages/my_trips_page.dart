@@ -622,8 +622,7 @@ class _MyTripsPageState extends State<MyTripsPage> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        TripDetailsPage(tripId: trip.id, initialTrip: trip),
+                    builder: (_) => TripDetailsPage(tripId: trip.id),
                   ),
                 );
                 if (mounted) await _loadTrips();

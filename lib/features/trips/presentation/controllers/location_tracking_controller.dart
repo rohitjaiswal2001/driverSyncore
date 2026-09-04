@@ -23,9 +23,22 @@ class LocationTrackingController extends ChangeNotifier {
   /// Single centralized location ping interval managed in ApiConstants.locationPingInterval
   static Duration get _pingInterval => ApiConstants.locationPingInterval;
 
+  /// The state a started trip settles into once the pings begin, used when the
+  /// `/tracking-statuses` list cannot be reached.
+  static const _fallbackOngoing = TrackingStatus(
+    id: 3,
+    code: TrackingStatus.codeOngoing,
+    label: 'Ongoing',
+  );
+
   final TripsRepository repository;
   final String orderId;
   final ReverseGeocoder reverseGeocoder;
+
+  /// Fires when the controller moves the trip on by itself - today that is the
+  /// SHIPMENT_START -> ONGOING promotion the first ping performs. The screen
+  /// showing the trip sets this to refetch the shipment afterwards.
+  ValueChanged<TrackingStatus>? onTrackingStatusChanged;
 
   LocationTrackingController({
     required this.repository,
@@ -42,7 +55,9 @@ class LocationTrackingController extends ChangeNotifier {
   int _secondsRemaining = ApiConstants.locationPingInterval.inSeconds;
   bool _disposed = false;
   bool _hasSentInitialPing = false;
+  bool _hasPromotedToOngoing = false;
   bool _isTrackingNotificationVisible = true;
+  TrackingStatus? _ongoingStatus;
 
   TrackingStatus? get trackingStatus => _trackingStatus;
   Position? get currentPosition => _currentPosition;
@@ -190,6 +205,7 @@ class LocationTrackingController extends ChangeNotifier {
 
   void _stopLiveTracking() {
     _hasSentInitialPing = false;
+    _hasPromotedToOngoing = false;
     _positionSubscription?.cancel();
     _positionSubscription = null;
     _pingTimer?.cancel();
@@ -227,8 +243,13 @@ class LocationTrackingController extends ChangeNotifier {
     }
     if (status != null && !status.isLiveTrackingEligible) return;
 
+    // Every ping reports the trip as ONGOING: a shipment the driver has only
+    // "started" moves under way with its first ping and stays there until they
+    // pause it or mark it done/failed - and any of those stops this loop.
+    final ongoing = await _resolveOngoingStatus();
+
     final startMsg =
-        '🚀 [LocationTracking] HITTING PING API for Order #$orderId (Interval: ${_pingInterval.inMinutes} mins) -> Lat: ${position.latitude}, Lng: ${position.longitude}, StatusId: ${status?.id ?? 3}';
+        '🚀 [LocationTracking] HITTING PING API for Order #$orderId (Interval: ${_pingInterval.inMinutes} mins) -> Lat: ${position.latitude}, Lng: ${position.longitude}, StatusId: ${ongoing.id}';
     dev.log(startMsg, name: 'LocationTracking');
     debugPrint(startMsg);
 
@@ -244,13 +265,14 @@ class LocationTrackingController extends ChangeNotifier {
         latitude: position.latitude,
         longitude: position.longitude,
         address: address,
-        status: 'ONGOING',
-        statusId: status?.id ?? 3,
+        status: TrackingStatus.codeOngoing,
+        statusId: ongoing.id,
       );
       final successMsg =
           '✅ [LocationTracking] Location Ping API SUCCESS for Order #$orderId';
       dev.log(successMsg, name: 'LocationTracking');
       debugPrint(successMsg);
+      _promoteToOngoing(ongoing);
       _safeNotify();
     } catch (e) {
       final errorMsg =
@@ -258,6 +280,37 @@ class LocationTrackingController extends ChangeNotifier {
       dev.log(errorMsg, name: 'LocationTracking');
       debugPrint(errorMsg);
     }
+  }
+
+  /// The backend's own ONGOING entry, so the pings carry the id it expects
+  /// rather than the one the trip started on. Looked up once per controller.
+  Future<TrackingStatus> _resolveOngoingStatus() async {
+    final cached = _ongoingStatus;
+    if (cached != null) return cached;
+    try {
+      final statuses = await repository.getTrackingStatuses();
+      return _ongoingStatus = statuses.firstWhere(
+        (s) => s.code.trim().toUpperCase() == TrackingStatus.codeOngoing,
+        orElse: () => _fallbackOngoing,
+      );
+    } catch (_) {
+      return _ongoingStatus = _fallbackOngoing;
+    }
+  }
+
+  /// Once a ping lands, the trip is no longer merely started - it is under way.
+  /// Keeping the local status in step means the next ping and the UI both speak
+  /// of an Ongoing trip, and the listener can refetch the shipment.
+  void _promoteToOngoing(TrackingStatus ongoing) {
+    if (_hasPromotedToOngoing) return;
+    if (_trackingStatus?.code == TrackingStatus.codeOngoing) return;
+    _hasPromotedToOngoing = true;
+    _trackingStatus = ongoing;
+    dev.log(
+      '🔁 [LocationTracking] #$orderId moved SHIPMENT_START -> ONGOING',
+      name: 'LocationTracking',
+    );
+    onTrackingStatusChanged?.call(ongoing);
   }
 
   /// Returns true once permission is granted and location services are on.

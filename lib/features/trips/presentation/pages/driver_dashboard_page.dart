@@ -75,17 +75,20 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     }
     final code = trip.trackingStatusCode ?? '';
     final label = trip.trackingStatusLabel;
-    final isLive =
-        code == 'SHIPMENT_START' || code == 'ONGOING' || trip.isTrackingStarted;
-    if (isLive) {
-      _dashboardLocationController?.updateTrackingStatus(
-        TrackingStatus(
-          id: trip.trackingStatusId ?? 3,
-          code: code.isNotEmpty ? code : 'ONGOING',
-          label: label ?? 'Ongoing',
-        ),
-      );
-    }
+
+    // Pushed on every sync, live or not. Only telling the controller about live
+    // trips left it holding an ONGOING status after a trip finished, so its
+    // ping loop kept reporting the shipment as under way long after it was
+    // done - a non-live status here is what stops the loop.
+    _dashboardLocationController?.updateTrackingStatus(
+      TrackingStatus(
+        id: trip.trackingStatusId ?? 3,
+        code: code.isNotEmpty
+            ? code
+            : (trip.isTrackingStarted ? 'ONGOING' : 'NOT_STARTED'),
+        label: label ?? (code.isNotEmpty ? code : 'Ongoing'),
+      ),
+    );
   }
 
   @override
@@ -251,9 +254,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => TripDetailsPage(tripId: trip.id, initialTrip: trip),
-      ),
+      MaterialPageRoute(builder: (_) => TripDetailsPage(tripId: trip.id)),
     );
 
     if (!mounted) return;
