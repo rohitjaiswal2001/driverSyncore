@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show Factory;
 import 'package:flutter/gestures.dart'
@@ -58,6 +59,13 @@ List<LatLng> decodeGooglePolyline(String encoded) {
 /// silent - the map still works with just the driver's live pin.
 class LiveTrackingMap extends StatefulWidget {
   final LatLng? driverPosition;
+
+  /// Compass heading of the driver's last fix, in degrees. Turns the driver's
+  /// puck into a pointed arrow facing the way they are travelling; null or a
+  /// negative value (what the platforms report when standing still) falls back
+  /// to a plain dot.
+  final double? driverHeading;
+
   final String pickupLabel;
   final String dropLabel;
   final bool isLive;
@@ -72,15 +80,29 @@ class LiveTrackingMap extends StatefulWidget {
 
   final BorderRadius borderRadius;
 
+  /// Space around the map's edges the host has already claimed - the status
+  /// bar and its own close button in full screen, for instance. The map's
+  /// overlays, controls and Google's own logo are all inset by it, so nothing
+  /// lands under a notch or behind the host's chrome.
+  final EdgeInsets overlayInsets;
+
+  /// Called to open the map full screen. Supplying it is what puts the expand
+  /// control on the map and arms the drag-down gesture; the full-screen page
+  /// itself passes null so the map cannot expand out of an expanded map.
+  final VoidCallback? onExpand;
+
   const LiveTrackingMap({
     super.key,
     required this.driverPosition,
+    this.driverHeading,
     required this.pickupLabel,
     required this.dropLabel,
     this.isLive = false,
     this.statusMessage,
     this.trackingStatusText,
     this.borderRadius = const BorderRadius.all(Radius.circular(24)),
+    this.overlayInsets = EdgeInsets.zero,
+    this.onExpand,
   });
 
   @override
@@ -121,10 +143,118 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   double _currentZoom = 12;
   MapType _mapType = MapType.normal;
 
+  /// Route geometry is the one thing here that costs a Directions call, so it
+  /// is shared across every map in the app: opening this map full screen, or
+  /// rebuilding it, reuses the same route instead of paying for it again.
+  static final Map<String, List<LatLng>> _routeCache = {};
+
+  BitmapDescriptor? _directionArrowIcon;
+  BitmapDescriptor? _driverArrowIcon;
+  BitmapDescriptor? _driverDotIcon;
+  bool _hasBuiltIcons = false;
+
+  /// Pointer bookkeeping for the drag-down-to-expand gesture. The map claims
+  /// gestures eagerly, so this watches raw pointer events instead of competing
+  /// in the arena it would always lose.
+  Offset? _dragStart;
+  bool _didTriggerExpand = false;
+
   @override
   void initState() {
     super.initState();
     _resolveEndpoints();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasBuiltIcons) return;
+    _hasBuiltIcons = true;
+    _buildIcons(MediaQuery.of(context).devicePixelRatio);
+  }
+
+  Future<void> _buildIcons(double dpr) async {
+    final arrow = await _renderIcon(28, dpr, _paintDirectionArrow);
+    final driverArrow = await _renderIcon(38, dpr, _paintDriverArrow);
+    final driverDot = await _renderIcon(26, dpr, _paintDriverDot);
+    if (!mounted) return;
+    setState(() {
+      _directionArrowIcon = arrow;
+      _driverArrowIcon = driverArrow;
+      _driverDotIcon = driverDot;
+    });
+  }
+
+  /// Paints one marker off-screen and hands it to the map as a PNG, drawn at
+  /// the device's pixel ratio so it stays sharp on every display.
+  Future<BitmapDescriptor> _renderIcon(
+    double logicalSize,
+    double dpr,
+    void Function(Canvas canvas, double size) paint,
+  ) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.scale(dpr);
+    paint(canvas, logicalSize);
+    final pixels = (logicalSize * dpr).round();
+    final image = await recorder.endRecording().toImage(pixels, pixels);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return BytesMapBitmap(data!.buffer.asUint8List(), imagePixelRatio: dpr);
+  }
+
+  /// A chevron pointing "north", which the map then rotates to the bearing of
+  /// the leg it sits on. White casing underneath keeps it readable over both
+  /// the road fill and satellite imagery.
+  static void _paintDirectionArrow(Canvas canvas, double size) {
+    final path = Path()
+      ..moveTo(size / 2, size * 0.16)
+      ..lineTo(size * 0.82, size * 0.8)
+      ..lineTo(size / 2, size * 0.6)
+      ..lineTo(size * 0.18, size * 0.8)
+      ..close();
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size * 0.16
+        ..strokeJoin = StrokeJoin.round,
+    );
+    canvas.drawPath(path, Paint()..color = AppColors.primary);
+  }
+
+  /// The driver, travelling: a navigation arrow in a white collar, the shape
+  /// every mapping app uses for "you, heading that way".
+  static void _paintDriverArrow(Canvas canvas, double size) {
+    final centre = Offset(size / 2, size / 2);
+    canvas.drawCircle(
+      centre,
+      size * 0.42,
+      Paint()..color = AppColors.primary.withValues(alpha: 0.18),
+    );
+    canvas.drawCircle(centre, size * 0.3, Paint()..color = Colors.white);
+
+    final path = Path()
+      ..moveTo(size / 2, size * 0.22)
+      ..lineTo(size * 0.72, size * 0.74)
+      ..lineTo(size / 2, size * 0.6)
+      ..lineTo(size * 0.28, size * 0.74)
+      ..close();
+    canvas.drawPath(path, Paint()..color = AppColors.primary);
+  }
+
+  /// The driver, stationary or without a heading: the familiar blue dot.
+  static void _paintDriverDot(Canvas canvas, double size) {
+    final centre = Offset(size / 2, size / 2);
+    canvas.drawCircle(
+      centre,
+      size * 0.46,
+      Paint()..color = AppColors.primary.withValues(alpha: 0.2),
+    );
+    canvas.drawCircle(centre, size * 0.3, Paint()..color = Colors.white);
+    canvas.drawCircle(centre, size * 0.23, Paint()..color = AppColors.primary);
   }
 
   @override
@@ -253,6 +383,12 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
 
     if (apiKey.isEmpty) return const [];
 
+    final cacheKey =
+        '${origin.latitude},${origin.longitude}'
+        '|${destination.latitude},${destination.longitude}';
+    final cached = _routeCache[cacheKey];
+    if (cached != null) return cached;
+
     try {
       final response = await _apiClient.getExternal(
         'https://maps.googleapis.com/maps/api/directions/json',
@@ -275,7 +411,9 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
           ?.toString();
       if (encodedPoints == null || encodedPoints.isEmpty) return const [];
 
-      return decodeGooglePolyline(encodedPoints);
+      final decoded = decodeGooglePolyline(encodedPoints);
+      if (decoded.isNotEmpty) _routeCache[cacheKey] = decoded;
+      return decoded;
     } catch (_) {
       return const [];
     }
@@ -318,13 +456,17 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   Set<Marker> _buildMarkers() {
     final markers = <Marker>{};
 
+    // Map convention, and the one every driver already knows from Google Maps:
+    // green starts the journey, red ends it, blue is you.
     if (_pickupLatLng != null) {
       markers.add(
         Marker(
           markerId: const MarkerId('pickup'),
           position: _pickupLatLng!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-          infoWindow: InfoWindow(title: 'Pickup', snippet: widget.pickupLabel),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueGreen,
+          ),
+          infoWindow: InfoWindow(title: 'Start', snippet: widget.pickupLabel),
         ),
       );
     }
@@ -333,9 +475,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         Marker(
           markerId: const MarkerId('drop'),
           position: _dropLatLng!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueGreen,
-          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           infoWindow: InfoWindow(
             title: 'Destination',
             snippet: widget.dropLabel,
@@ -343,13 +483,24 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         ),
       );
     }
+
+    markers.addAll(_buildDirectionMarkers());
+
     if (widget.driverPosition != null) {
+      final heading = widget.driverHeading;
+      // Android reports 0.0 when it has no heading to give, so a bare
+      // ">= 0" would point every stationary driver due north.
+      final hasHeading = heading != null && heading > 0;
+      final icon = hasHeading ? _driverArrowIcon : _driverDotIcon;
       markers.add(
         Marker(
           markerId: const MarkerId('driver'),
           position: widget.driverPosition!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          zIndexInt: 2,
+          icon:
+              icon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          rotation: hasHeading ? heading : 0,
+          zIndexInt: 3,
           anchor: const Offset(0.5, 0.5),
           flat: true,
           infoWindow: const InfoWindow(title: 'You'),
@@ -357,6 +508,53 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
       );
     }
     return markers;
+  }
+
+  /// Chevrons spaced along the route, each turned to face the way the road is
+  /// going, so the line reads as a direction of travel rather than a bare link
+  /// between two pins. Deliberately few - a dense trail of arrows buries the
+  /// road underneath at low zoom.
+  Set<Marker> _buildDirectionMarkers() {
+    final icon = _directionArrowIcon;
+    final points = _routePoints;
+    if (icon == null || points.length < 8) return const {};
+
+    const arrowCount = 7;
+    final markers = <Marker>{};
+    final step = points.length / (arrowCount + 1);
+
+    for (var i = 1; i <= arrowCount; i++) {
+      final index = (step * i).floor();
+      if (index <= 0 || index >= points.length - 1) continue;
+      markers.add(
+        Marker(
+          markerId: MarkerId('route_arrow_$i'),
+          position: points[index],
+          icon: icon,
+          rotation: _bearingBetween(points[index], points[index + 1]),
+          anchor: const Offset(0.5, 0.5),
+          flat: true,
+          zIndexInt: 1,
+          consumeTapEvents: true,
+        ),
+      );
+    }
+    return markers;
+  }
+
+  /// Initial bearing from one coordinate to the next, in degrees clockwise
+  /// from north - the same convention [Marker.rotation] takes.
+  static double _bearingBetween(LatLng from, LatLng to) {
+    final lat1 = from.latitude * math.pi / 180;
+    final lat2 = to.latitude * math.pi / 180;
+    final deltaLng = (to.longitude - from.longitude) * math.pi / 180;
+
+    final y = math.sin(deltaLng) * math.cos(lat2);
+    final x =
+        math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(deltaLng);
+
+    return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
   }
 
   String _remainingDistanceText() {
@@ -403,12 +601,27 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         : <LatLng>[?_pickupLatLng, ?_dropLatLng];
 
     if (points.length >= 2) {
+      // Two lines, not one: a wider dark casing under the coloured route is
+      // what keeps it legible over motorways and satellite imagery alike.
+      polylines.add(
+        Polyline(
+          polylineId: const PolylineId('active_route_casing'),
+          points: points,
+          color: AppColors.navy.withValues(alpha: 0.55),
+          width: 11,
+          zIndex: 0,
+          jointType: JointType.round,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+        ),
+      );
       polylines.add(
         Polyline(
           polylineId: const PolylineId('active_route'),
           points: points,
           color: AppColors.primary,
-          width: 4,
+          width: 6,
+          zIndex: 1,
           jointType: JointType.round,
           startCap: Cap.roundCap,
           endCap: Cap.roundCap,
@@ -436,6 +649,42 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     }
   }
 
+  void _handleExpand() {
+    final onExpand = widget.onExpand;
+    if (onExpand == null) return;
+    HapticFeedback.mediumImpact();
+    onExpand();
+  }
+
+  /// Drag-down-to-expand, watched at the pointer level. The map's own
+  /// [EagerGestureRecognizer] wins every gesture arena it enters, so a
+  /// competing drag recognizer would never fire; [Listener] sees the pointers
+  /// regardless of who wins. Deliberately long and deliberately vertical, so
+  /// panning the map a little never throws the driver into full screen.
+  static const double _expandDragThreshold = 90;
+
+  void _onPointerDown(PointerDownEvent event) {
+    _dragStart = event.position;
+    _didTriggerExpand = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (widget.onExpand == null || _didTriggerExpand) return;
+    final start = _dragStart;
+    if (start == null) return;
+
+    final delta = event.position - start;
+    if (delta.dy >= _expandDragThreshold && delta.dy > delta.dx.abs() * 2) {
+      _didTriggerExpand = true;
+      _handleExpand();
+    }
+  }
+
+  void _endPointer(PointerEvent _) {
+    _dragStart = null;
+    _didTriggerExpand = false;
+  }
+
   /// Zooms out to show pickup, destination and the driver in one frame.
   void _fitRoute() {
     if (_mapController == null) return;
@@ -454,136 +703,152 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         _pickupLatLng ??
         const LatLng(20.5937, 78.9629);
 
-    return ClipRRect(
-      borderRadius: widget.borderRadius,
-      child: Stack(
-        children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: initialTarget,
-              zoom: _currentZoom,
-            ),
-            markers: _buildMarkers(),
-            polylines: _buildPolylines(),
-            mapType: _mapType,
-            // Every gesture the platform offers: pan, pinch, double-tap and
-            // two-finger tap to zoom, two-finger rotate and tilt.
-            gestureRecognizers: _mapGestures,
-            zoomGesturesEnabled: true,
-            scrollGesturesEnabled: true,
-            rotateGesturesEnabled: true,
-            tiltGesturesEnabled: true,
-            minMaxZoomPreference: const MinMaxZoomPreference(
-              _minZoom,
-              _maxZoom,
-            ),
-            trafficEnabled: widget.isLive,
-            // Keeps the native compass and Google logo clear of the pills and
-            // the control column drawn over the map.
-            padding: const EdgeInsets.only(
-              top: 56,
-              right: 8,
-              bottom: 12,
-              left: 8,
-            ),
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            compassEnabled: true,
-            onMapCreated: (controller) {
-              _mapController = controller;
-              if (!_isFollowingDriver) return;
-              if (widget.driverPosition != null) {
-                _followDriver();
-              } else {
-                _fitToVisibleMarkers();
-              }
-            },
-            onCameraMoveStarted: _onCameraMoveStarted,
-            onCameraMove: _onCameraMove,
-          ),
-
-          // Top left: Status overlay pill
-          if (widget.trackingStatusText != null &&
-              widget.trackingStatusText!.isNotEmpty)
-            Positioned(
-              top: 14,
-              left: 14,
-              child: _StatusOverlayPill(
-                label: widget.trackingStatusText!,
-                isLive: widget.isLive,
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _endPointer,
+      onPointerCancel: _endPointer,
+      child: ClipRRect(
+        borderRadius: widget.borderRadius,
+        child: Stack(
+          children: [
+            GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: initialTarget,
+                zoom: _currentZoom,
               ),
-            ),
-
-          if (_remainingDistanceText().isNotEmpty)
-            Positioned(
-              top: 14,
-              right: 14,
-              child: _DistanceOverlayPill(
-                distanceText: _remainingDistanceText(),
+              markers: _buildMarkers(),
+              polylines: _buildPolylines(),
+              mapType: _mapType,
+              // Every gesture the platform offers: pan, pinch, double-tap and
+              // two-finger tap to zoom, two-finger rotate and tilt.
+              gestureRecognizers: _mapGestures,
+              zoomGesturesEnabled: true,
+              scrollGesturesEnabled: true,
+              rotateGesturesEnabled: true,
+              tiltGesturesEnabled: true,
+              minMaxZoomPreference: const MinMaxZoomPreference(
+                _minZoom,
+                _maxZoom,
               ),
+              trafficEnabled: widget.isLive,
+              // Keeps the native compass and Google logo clear of the pills and
+              // the control column drawn over the map.
+              padding: EdgeInsets.only(
+                top: 56 + widget.overlayInsets.top,
+                right: 8 + widget.overlayInsets.right,
+                bottom: 12 + widget.overlayInsets.bottom,
+                left: 8 + widget.overlayInsets.left,
+              ),
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              compassEnabled: true,
+              onMapCreated: (controller) {
+                _mapController = controller;
+                if (!_isFollowingDriver) return;
+                if (widget.driverPosition != null) {
+                  _followDriver();
+                } else {
+                  _fitToVisibleMarkers();
+                }
+              },
+              onCameraMoveStarted: _onCameraMoveStarted,
+              onCameraMove: _onCameraMove,
             ),
 
-          // Control column, bottom-aligned on the right. Which controls fit
-          // depends on how tall the host made the map, so short cards drop the
-          // optional ones instead of overflowing.
-          Positioned(
-            right: 12,
-            top: 56,
-            bottom: 12,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // Locate 44 + zoom pill 81 + layers 40, plus 10px gaps.
-                final availableHeight = constraints.maxHeight;
-                if (availableHeight < 60) return const SizedBox.shrink();
-                final hasRouteToFrame = _framablePoints().length >= 2;
+            // Top left: Status overlay pill
+            if (widget.trackingStatusText != null &&
+                widget.trackingStatusText!.isNotEmpty)
+              Positioned(
+                top: 14 + widget.overlayInsets.top,
+                left: 14 + widget.overlayInsets.left,
+                child: _StatusOverlayPill(
+                  label: widget.trackingStatusText!,
+                  isLive: widget.isLive,
+                ),
+              ),
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (availableHeight >= 210)
-                      _MapActionButton(
-                        icon: _mapType == MapType.normal
-                            ? Icons.layers_rounded
-                            : Icons.map_rounded,
-                        tooltip: _mapType == MapType.normal
-                            ? 'Satellite view'
-                            : 'Map view',
-                        size: 40,
-                        onTap: _toggleMapType,
-                      ),
-                    if (availableHeight >= 150) ...[
+            if (_remainingDistanceText().isNotEmpty)
+              Positioned(
+                top: 14 + widget.overlayInsets.top,
+                right: 14 + widget.overlayInsets.right,
+                child: _DistanceOverlayPill(
+                  distanceText: _remainingDistanceText(),
+                ),
+              ),
+
+            // Control column, bottom-aligned on the right. Which controls fit
+            // depends on how tall the host made the map, so short cards drop the
+            // optional ones instead of overflowing.
+            Positioned(
+              right: 12 + widget.overlayInsets.right,
+              top: 56 + widget.overlayInsets.top,
+              bottom: 12 + widget.overlayInsets.bottom,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Locate 44 + zoom pill 81 + layers 40, plus 10px gaps.
+                  final availableHeight = constraints.maxHeight;
+                  if (availableHeight < 60) return const SizedBox.shrink();
+                  final hasRouteToFrame = _framablePoints().length >= 2;
+
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (widget.onExpand != null &&
+                          availableHeight >= 250) ...[
+                        _MapActionButton(
+                          icon: Icons.open_in_full_rounded,
+                          tooltip: 'Full screen (or drag the map down)',
+                          size: 40,
+                          onTap: _handleExpand,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (availableHeight >= 210)
+                        _MapActionButton(
+                          icon: _mapType == MapType.normal
+                              ? Icons.layers_rounded
+                              : Icons.map_rounded,
+                          tooltip: _mapType == MapType.normal
+                              ? 'Satellite view'
+                              : 'Map view',
+                          size: 40,
+                          onTap: _toggleMapType,
+                        ),
+                      if (availableHeight >= 150) ...[
+                        const SizedBox(height: 10),
+                        _MapZoomControls(
+                          canZoomIn: _currentZoom < _maxZoom,
+                          canZoomOut: _currentZoom > _minZoom,
+                          onZoomIn: () => _zoomBy(_zoomStep),
+                          onZoomOut: () => _zoomBy(-_zoomStep),
+                        ),
+                      ],
                       const SizedBox(height: 10),
-                      _MapZoomControls(
-                        canZoomIn: _currentZoom < _maxZoom,
-                        canZoomOut: _currentZoom > _minZoom,
-                        onZoomIn: () => _zoomBy(_zoomStep),
-                        onZoomOut: () => _zoomBy(-_zoomStep),
+                      _MapActionButton(
+                        icon: widget.driverPosition != null
+                            ? Icons.my_location_rounded
+                            : Icons.center_focus_strong_rounded,
+                        tooltip: widget.driverPosition != null
+                            ? (hasRouteToFrame
+                                  ? 'Centre on me (hold to fit route)'
+                                  : 'Centre on me')
+                            : 'Fit route',
+                        // Filled while the camera is locked to the driver, so the
+                        // button doubles as an indicator of which mode you are in.
+                        isActive:
+                            _isFollowingDriver && widget.driverPosition != null,
+                        onTap: _centerOnDriverPosition,
+                        onLongPress: hasRouteToFrame ? _fitRoute : null,
                       ),
                     ],
-                    const SizedBox(height: 10),
-                    _MapActionButton(
-                      icon: widget.driverPosition != null
-                          ? Icons.my_location_rounded
-                          : Icons.center_focus_strong_rounded,
-                      tooltip: widget.driverPosition != null
-                          ? (hasRouteToFrame
-                                ? 'Centre on me (hold to fit route)'
-                                : 'Centre on me')
-                          : 'Fit route',
-                      // Filled while the camera is locked to the driver, so the
-                      // button doubles as an indicator of which mode you are in.
-                      isActive:
-                          _isFollowingDriver && widget.driverPosition != null,
-                      onTap: _centerOnDriverPosition,
-                      onLongPress: hasRouteToFrame ? _fitRoute : null,
-                    ),
-                  ],
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
