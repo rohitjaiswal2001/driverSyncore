@@ -1,0 +1,6 @@
+# Copy to android/key.properties (gitignored) and fill in the two passwords.
+# The driver app reuses the GLOBELINK customer upload keystore.
+storePassword=CHANGEME
+keyPassword=CHANGEME
+keyAlias=customer-app
+storeFile=android/android-keystores/customer-app-upload-key.jks

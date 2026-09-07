@@ -23,8 +23,11 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Secrets - never commit real API keys
+# Secrets - never commit real API keys or signing material
 android/local.properties
+android/key.properties
+*.jks
+*.keystore
 ios/Flutter/Secrets.xcconfig
 
 # Flutter/Dart/Pub related
