@@ -128,7 +128,7 @@ flutter_native_splash:
   # branding: assets/images/splash_branding.png
   branding_bottom_padding: 30
   android_12:
-    image: assets/images/splash_logo.png
+    image: assets/images/splash_logo_android12.png
     color: "#ffffff"
     # branding: assets/images/splash_branding.png
   web: true

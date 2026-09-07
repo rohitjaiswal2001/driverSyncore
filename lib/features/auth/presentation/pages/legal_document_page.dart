@@ -113,7 +113,7 @@ class LegalDocumentPage extends StatelessWidget {
 
   static const _termsContent = '''
 1. Acceptance of Terms
-By creating a globelink Driver account and using our logistics tracking services, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use the application.
+By creating a TruckLink by GLOBELINK account and using our logistics tracking services, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use the application.
 
 2. Driver Account & Authentication
 You are responsible for maintaining the confidentiality of your login credentials and for all activities conducted under your account. You must notify globelink immediately of any unauthorized use.

@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
-        android:label="GlobeLink Driver"
+        android:label="TruckLink by GLOBELINK"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <meta-data

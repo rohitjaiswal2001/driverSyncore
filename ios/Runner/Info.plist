@@ -7,7 +7,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>GlobeLink Driver</string>
+		<string>TruckLink by GLOBELINK</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 		<key>CFBundleInfoDictionaryVersion</key>
 		<string>6.0</string>
 		<key>CFBundleName</key>
-		<string>GlobeLink Driver</string>
+		<string>TruckLink</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
@@ -27,11 +27,11 @@
 		<key>GMSApiKey</key>
 		<string>$(MAPS_API_KEY)</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>GlobeLink Driver uses your location to show your live position on the map while a trip is in progress.</string>
+		<string>TruckLink by GLOBELINK uses your location to show your live position on the map while a trip is in progress.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-		<string>GlobeLink Driver shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
+		<string>TruckLink by GLOBELINK shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
 		<key>NSLocationAlwaysUsageDescription</key>
-		<string>GlobeLink Driver shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
+		<string>TruckLink by GLOBELINK shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
 		<!-- Required for allowBackgroundLocationUpdates: without it iOS stops
 		     delivering positions the moment the app leaves the foreground. -->
 		<key>UIBackgroundModes</key>

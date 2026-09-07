@@ -88,7 +88,7 @@ class LocationTrackingController extends ChangeNotifier {
   /// holding the process alive.
   ForegroundNotificationConfig get _trackingNotification =>
       ForegroundNotificationConfig(
-        notificationTitle: 'GlobeLink Driver • Live tracking',
+        notificationTitle: 'TruckLink by GLOBELINK • Live tracking',
         notificationText: 'Sharing your location for shipment #$orderId',
         notificationChannelName: 'Live trip tracking',
         enableWakeLock: true,

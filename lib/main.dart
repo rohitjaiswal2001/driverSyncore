@@ -108,7 +108,7 @@ class _MyAppState extends State<MyApp> {
       ],
       child: MaterialApp(
         navigatorKey: _navigatorKey,
-        title: 'GlobeLink Driver',
+        title: 'TruckLink by GLOBELINK',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         // Sits above the Navigator, so the logout spinner covers pushed pages
