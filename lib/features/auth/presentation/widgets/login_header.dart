@@ -17,7 +17,7 @@ class LoginHeader extends StatelessWidget {
             children: [
               Image.asset(
                 AppAssets.logo,
-                height: 55,
+                height: 76,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return Row(
