@@ -32,12 +32,18 @@
 		<string>TruckLink by GLOBELINK shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
 		<key>NSLocationAlwaysUsageDescription</key>
 		<string>TruckLink by GLOBELINK shares your location with dispatch while a trip is in progress, including when the app is in the background, so the shipment can be tracked to delivery.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>TruckLink by GLOBELINK needs the camera so you can take a profile photo for your driver account.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>TruckLink by GLOBELINK needs access to your photos so you can choose an existing picture as your profile photo.</string>
 		<!-- Required for allowBackgroundLocationUpdates: without it iOS stops
 		     delivering positions the moment the app leaves the foreground. -->
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>location</string>
 		</array>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UIApplicationSceneManifest</key>
