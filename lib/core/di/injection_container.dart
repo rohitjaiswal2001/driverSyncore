@@ -19,6 +19,7 @@ import '../../features/auth/domain/usecases/resend_otp_usecase.dart';
 import '../../features/auth/domain/usecases/get_profile_usecase.dart';
 import '../../features/auth/domain/usecases/update_profile_usecase.dart';
 import '../../features/auth/domain/usecases/remove_profile_image_usecase.dart';
+import '../../features/auth/domain/usecases/delete_account_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../features/trips/data/repositories/trips_repository_impl.dart';
@@ -67,6 +68,7 @@ Future<void> init() async {
       getProfileUseCase: sl(),
       updateProfileUseCase: sl(),
       removeProfileImageUseCase: sl(),
+      deleteAccountUseCase: sl(),
     ),
   );
 
@@ -83,9 +85,12 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => RemoveProfileImageUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAccountUseCase(sl()));
 
   // Repository
-  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(sl(), sl()));
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(sl(), sl()),
+  );
 
   // Features - Trips
   // Bloc

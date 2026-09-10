@@ -15,6 +15,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc_extensions.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/presentation/pages/delete_account_page.dart';
 import '../../../auth/presentation/pages/edit_profile_page.dart';
 import '../../../auth/presentation/pages/fullscreen_image_viewer.dart';
 import '../../../auth/presentation/pages/profile_details_page.dart';
@@ -230,6 +231,15 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
             accentColor: AppColors.accentBlue,
             onTap: () => _openPage(const EditProfilePage()),
           ),
+
+          ProfileSettingTile(
+            icon: Icons.delete_forever_outlined,
+            title: 'Delete Account',
+            subtitle: 'Request removal of your account and data',
+            accentColor: AppColors.danger,
+            onTap: () => _openPage(const DeleteAccountPage()),
+          ),
+
           // ProfileSettingTile(
           //   icon: Icons.assignment_outlined,
           //   title: 'Documents',
@@ -275,6 +285,8 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
         //   ),
         // ]),
         // const SizedBox(height: 28),
+        const SizedBox(height: 24),
+
         _buildLogoutButton(),
         const SizedBox(height: 20),
 
@@ -340,11 +352,11 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
         const SizedBox(height: 26),
         const SkeletonBox(width: 90, height: 12),
         const SizedBox(height: 10),
-        _skeletonGroup(3),
-        const SizedBox(height: 24),
-        const SkeletonBox(width: 140, height: 12),
-        const SizedBox(height: 10),
         _skeletonGroup(2),
+        const SizedBox(height: 24),
+        const SkeletonBox(width: 110, height: 12),
+        const SizedBox(height: 10),
+        _skeletonGroup(1),
         const SizedBox(height: 28),
         const SkeletonBox(
           height: 54,

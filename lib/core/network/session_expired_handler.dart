@@ -45,7 +45,12 @@ class SessionExpiredHandler {
   /// logout is in flight. A late 401 from an in-flight request would otherwise
   /// pop this dialog on top of the login screen.
   static bool _hasNoSession(AuthState state) =>
-      state is AuthInitial || state is AuthLoggedOut || state is AuthLoggingOut;
+      state is AuthInitial ||
+      state is AuthLoggedOut ||
+      state is AuthLoggingOut ||
+      // The account is already gone and the session cleared; a late 401 must
+      // not cover the deletion confirmation with a session-expired dialog.
+      state is AccountDeleted;
 
   static Future<void> showUnauthorizedDialog(
     BuildContext context, {

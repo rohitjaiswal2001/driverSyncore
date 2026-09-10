@@ -21,6 +21,10 @@ class ApiConstants {
   static const String updateProfile = '/profile/update';
   static const String removeProfileImage = '/profile/remove-image';
 
+  /// DELETE: permanently removes the signed-in driver's account. Takes no
+  /// body - the account is identified by the bearer token alone.
+  static const String deleteAccount = '/delete-account';
+
   // Booking & Quote Endpoints
   static const String quoteData = '/quote-data';
   static const String bookingQuote = '/booking/quote';

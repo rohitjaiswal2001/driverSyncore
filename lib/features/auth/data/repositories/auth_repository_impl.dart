@@ -426,4 +426,42 @@ class AuthRepositoryImpl implements AuthRepository {
 
     throw ServerException('Invalid response format from server');
   }
+
+  @override
+  Future<String> deleteAccount({required String deletionReason}) async {
+    // Deliberately not wrapped in a try/catch: unlike logout, a failure here
+    // has to reach the caller so the driver is told the account still exists
+    // instead of being quietly signed out.
+    final response = await _apiClient
+        .delete(
+          ApiConstants.deleteAccount,
+          data: {'deletion_reason': deletionReason},
+        )
+        .timeout(ApiConstants.apiTimeout);
+
+    final data = response.data;
+    // Only used when the API sends no message of its own. It is the sole
+    // feedback the driver gets after deletion, so it has to stand alone.
+    String message =
+        'Your account has been scheduled for deletion and you can no longer '
+        'log in. Contact the admin within 7 days if this was a mistake.';
+
+    if (data is Map<String, dynamic>) {
+      final success = data['success'] ?? data['status'];
+      if (success == false) {
+        throw AuthException(
+          _extractErrorMessage(data, 'Failed to delete account'),
+        );
+      }
+      final serverMessage = data['message'] as String?;
+      if (serverMessage != null && serverMessage.trim().isNotEmpty) {
+        message = serverMessage.trim();
+      }
+    }
+
+    // The account is gone server-side, so the cached user and token are now
+    // meaningless - drop them before returning so nothing can replay them.
+    await _clearSession();
+    return message;
+  }
 }

@@ -18,23 +18,16 @@ abstract class AuthRepository {
     required String passwordConfirmation,
   });
 
-  Future<User> verifyOtp({
-    required String email,
-    required String otp,
-  });
+  Future<User> verifyOtp({required String email, required String otp});
 
-  Future<String> resendOtp({
-    required String email,
-  });
+  Future<String> resendOtp({required String email});
 
   Future<User> loginWithOtp({
     required String phoneNumber,
     required String role,
   });
 
-  Future<String> forgotPassword({
-    required String email,
-  });
+  Future<String> forgotPassword({required String email});
 
   Future<String> resetPassword({
     required String email,
@@ -57,4 +50,15 @@ abstract class AuthRepository {
   });
 
   Future<User> removeProfileImage();
+
+  /// Permanently deletes the signed-in driver's account on the server and
+  /// wipes the local session. Returns the server's confirmation message.
+  ///
+  /// [deletionReason] is the driver's own words, sent to the API as
+  /// `deletion_reason`.
+  ///
+  /// Throws when the server refuses; the local session is left untouched in
+  /// that case, so a failed deletion never strands the driver signed out of an
+  /// account that still exists.
+  Future<String> deleteAccount({required String deletionReason});
 }

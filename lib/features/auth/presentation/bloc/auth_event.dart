@@ -142,9 +142,40 @@ class UpdateProfileSubmitted extends AuthEvent {
   });
 
   @override
-  List<Object?> get props => [firstName, lastName, phone, companyName, profileImagePath];
+  List<Object?> get props => [
+    firstName,
+    lastName,
+    phone,
+    companyName,
+    profileImagePath,
+  ];
 }
 
 class RemoveProfileImageSubmitted extends AuthEvent {
   const RemoveProfileImageSubmitted();
+}
+
+/// Fired when the driver closes the "account deleted" dialog, by the button or
+/// by dismissing it. The session is already gone by then; this is what hands
+/// the app back to the login screen, so the dialog is never yanked away
+/// mid-read.
+class AccountDeletionAcknowledged extends AuthEvent {
+  /// True when they chose "Create new account" rather than "Go to login".
+  final bool openRegister;
+
+  const AccountDeletionAcknowledged({this.openRegister = false});
+
+  @override
+  List<Object?> get props => [openRegister];
+}
+
+/// Fired once the driver has confirmed the account deletion form.
+class DeleteAccountRequested extends AuthEvent {
+  /// The driver's own words, sent to the API as `deletion_reason`.
+  final String deletionReason;
+
+  const DeleteAccountRequested({required this.deletionReason});
+
+  @override
+  List<Object?> get props => [deletionReason];
 }

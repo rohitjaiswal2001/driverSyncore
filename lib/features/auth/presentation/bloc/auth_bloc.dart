@@ -15,6 +15,7 @@ import '../../domain/usecases/resend_otp_usecase.dart';
 import '../../domain/usecases/get_profile_usecase.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import '../../domain/usecases/remove_profile_image_usecase.dart';
+import '../../domain/usecases/delete_account_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -38,6 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetProfileUseCase getProfileUseCase;
   final UpdateProfileUseCase updateProfileUseCase;
   final RemoveProfileImageUseCase removeProfileImageUseCase;
+  final DeleteAccountUseCase deleteAccountUseCase;
 
   AuthBloc({
     required this.loginUseCase,
@@ -52,6 +54,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.getProfileUseCase,
     required this.updateProfileUseCase,
     required this.removeProfileImageUseCase,
+    required this.deleteAccountUseCase,
   }) : super(const AuthInitial(role: _driverRole)) {
     on<RoleChanged>(_onRoleChanged);
     on<LoginSubmitted>(_onLoginSubmitted);
@@ -66,6 +69,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<GetProfileDetails>(_onGetProfileDetails);
     on<UpdateProfileSubmitted>(_onUpdateProfileSubmitted);
     on<RemoveProfileImageSubmitted>(_onRemoveProfileImageSubmitted);
+    on<DeleteAccountRequested>(_onDeleteAccountRequested);
+    on<AccountDeletionAcknowledged>(_onAccountDeletionAcknowledged);
   }
 
   void _onRoleChanged(RoleChanged event, Emitter<AuthState> emit) {
@@ -229,6 +234,43 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } finally {
       emit(const AuthLoggedOut(role: _driverRole));
     }
+  }
+
+  Future<void> _onDeleteAccountRequested(
+    DeleteAccountRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(const AccountDeleting(role: _driverRole));
+    try {
+      // Outer ceiling behind the repository's own network timeout, with a
+      // small grace so the inner one always fires first and the page can never
+      // sit on the spinner forever.
+      final message = await deleteAccountUseCase(
+        DeleteAccountParams(deletionReason: event.deletionReason),
+      ).timeout(ApiConstants.apiTimeout + const Duration(seconds: 2));
+      // Stops here rather than going straight to AuthLoggedOut: the page shows
+      // the confirmation dialog, and only the driver closing it hands the app
+      // back to login. The message rides along for the login screen to show.
+      emit(AccountDeleted(message: message, role: _driverRole));
+    } catch (e) {
+      // The account still exists, so the session stays exactly as it was.
+      emit(
+        AccountDeleteFailure(
+          role: _driverRole,
+          errorMessage: _getErrorMessage(e),
+        ),
+      );
+    }
+  }
+
+  void _onAccountDeletionAcknowledged(
+    AccountDeletionAcknowledged event,
+    Emitter<AuthState> emit,
+  ) {
+    // The repository already cleared the session when the delete succeeded;
+    // this only moves the app to the state that routes away from the deletion
+    // screen, carrying the driver's choice of where to land.
+    emit(AuthLoggedOut(role: _driverRole, openRegister: event.openRegister));
   }
 
   Future<void> _onResendOtpRequested(

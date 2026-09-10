@@ -10,6 +10,7 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/register_page.dart';
 import 'features/trips/presentation/bloc/trips_bloc.dart';
 import 'features/trips/presentation/bloc/dashboard_bloc.dart';
 import 'features/trips/presentation/bloc/dashboard_event.dart';
@@ -87,11 +88,30 @@ class _MyAppState extends State<MyApp> {
       TopSnackBar.dismiss();
       setState(() => _currentUser = null);
       _resetToRootRoute(rebuildRoot: true);
+      if (state.openRegister) _openRegistration();
     } else if (state is AuthInitial && _currentUser != null) {
       // Session dropped without an explicit logout (e.g. cache check failed).
       setState(() => _currentUser = null);
       _resetToRootRoute(rebuildRoot: true);
     }
+  }
+
+  /// Opens registration on top of the login page, for someone who deleted an
+  /// account and wants a fresh one.
+  ///
+  /// Registered after [_resetToRootRoute] has queued its own callback, so it
+  /// runs immediately after the route swap in the same frame and pushes onto
+  /// the rebuilt login route instead of being wiped by it.
+  void _openRegistration() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = _navigatorKey.currentState;
+      if (navigator == null) return;
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => const RegisterPage(initialRole: 'Driver'),
+        ),
+      );
+    });
   }
 
   @override

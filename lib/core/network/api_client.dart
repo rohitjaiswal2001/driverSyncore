@@ -133,6 +133,30 @@ class ApiClient {
     }
   }
 
+  /// DELETE against our backend. Same error translation and 401 handling as
+  /// every other verb here; used by account deletion, which identifies the
+  /// account by bearer token and sends no body.
+  Future<Response> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _dio.delete(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+      return response;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   /// GET against an absolute third-party URL - document hosts, Google APIs.
   ///
   /// Same timeouts and error translation as the rest of the app, but without
