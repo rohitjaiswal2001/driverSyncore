@@ -73,4 +73,3 @@ class Validators {
     return validateName(val, fieldName: 'Last name');
   }
 }
-

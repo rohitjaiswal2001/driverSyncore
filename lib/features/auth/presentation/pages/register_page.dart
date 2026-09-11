@@ -273,46 +273,46 @@ class _RegisterPageState extends State<RegisterPage> {
                                     ),
                                     const SizedBox(height: 20),
 
-                                    // Phone Number field
-                                    const Text(
-                                      'Phone Number (Optional)',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textDark,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    TextFormField(
-                                      controller: _phoneController,
-                                      autovalidateMode:
-                                          AutovalidateMode.onUserInteraction,
-                                      keyboardType: TextInputType.phone,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textDark,
-                                      ),
-                                      validator: (val) {
-                                        if (val == null || val.trim().isEmpty) {
-                                          return null;
-                                        }
-                                        if (val.trim().length < 10) {
-                                          return 'Enter a valid phone number';
-                                        }
-                                        return null;
-                                      },
-                                      decoration: const InputDecoration(
-                                        hintText:
-                                            'Phone Number (e.g. +919876543210)',
-                                        prefixIcon: Icon(
-                                          Icons.phone_outlined,
-                                          color: AppColors.textMedium,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
+                                    // // Phone Number field
+                                    // const Text(
+                                    //   'Phone Number (Optional)',
+                                    //   style: TextStyle(
+                                    //     fontSize: 15,
+                                    //     fontWeight: FontWeight.bold,
+                                    //     color: AppColors.textDark,
+                                    //   ),
+                                    // ),
+                                    // const SizedBox(height: 8),
+                                    // TextFormField(
+                                    //   controller: _phoneController,
+                                    //   autovalidateMode:
+                                    //       AutovalidateMode.onUserInteraction,
+                                    //   keyboardType: TextInputType.phone,
+                                    //   style: const TextStyle(
+                                    //     fontSize: 16,
+                                    //     fontWeight: FontWeight.w600,
+                                    //     color: AppColors.textDark,
+                                    //   ),
+                                    //   validator: (val) {
+                                    //     if (val == null || val.trim().isEmpty) {
+                                    //       return null;
+                                    //     }
+                                    //     if (val.trim().length < 10) {
+                                    //       return 'Enter a valid phone number';
+                                    //     }
+                                    //     return null;
+                                    //   },
+                                    //   decoration: const InputDecoration(
+                                    //     hintText:
+                                    //         'Phone Number (e.g. +919876543210)',
+                                    //     prefixIcon: Icon(
+                                    //       Icons.phone_outlined,
+                                    //       color: AppColors.textMedium,
+                                    //       size: 20,
+                                    //     ),
+                                    //   ),
+                                    // ),
+                                    // const SizedBox(height: 20),
 
                                     // Company Name field
                                     const Text(
