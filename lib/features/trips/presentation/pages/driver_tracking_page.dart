@@ -1126,7 +1126,7 @@ class __LiveTrackingToggleCardState extends State<_LiveTrackingToggleCard>
                 const SizedBox(height: 2),
                 // Text(
                 //   widget.isEnabled
-                //       ? 'Location updates are sent automatically every 5 minutes'
+                //       ? 'Location updates are sent automatically every 30 minutes'
                 //       : 'Tap switch to resume live tracking',
                 //   style: const TextStyle(color: Colors.white70, fontSize: 11),
                 // ),

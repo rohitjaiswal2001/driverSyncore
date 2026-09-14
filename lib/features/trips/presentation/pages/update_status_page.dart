@@ -83,9 +83,12 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
       final allStatuses = results[0] as List<TrackingStatus>;
       final trip = results[1] as Trip;
 
-      // Filter out PAUSE option from Update Status page as it is managed via the map toggle switch
+      // Filter out PAUSE option from Update Status page as it is managed via the map toggle switch.
+      // FAILED is hidden as well so drivers can't mark a trip failed from here.
       final statuses = allStatuses
-          .where((s) => s.code.toUpperCase() != 'PAUSE' && s.id != 6)
+          .where(
+            (s) => s.code.toUpperCase() != 'PAUSE' && s.id != 6 && !s.isFailed,
+          )
           .toList();
 
       setState(() {
@@ -378,7 +381,7 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                 const SizedBox(height: 3),
                 const Text(
                   'Status moves one step at a time - you can only move to the '
-                  'next status, or mark the trip Failed.',
+                  'next status.',
                   style: TextStyle(fontSize: 11.5, color: AppColors.textMedium),
                 ),
                 const SizedBox(height: 14),
