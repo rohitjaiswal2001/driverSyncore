@@ -545,263 +545,296 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
         (resolvedTrackingStatus?.isFailed ?? false) ||
         trip.trackingStatusCode == TrackingStatus.codeFailed;
 
-    // No pull-to-refresh here: the pull fought the map for every downward
-    // drag. Refreshing lives in the app bar instead, next to a line saying how
-    // fresh the data is, and the screen re-reads itself on a timer anyway.
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 380,
-            child: AnimatedBuilder(
-              animation: _locationController ?? const _NoopListenable(),
-              builder: (context, _) {
-                final controller = _locationController;
-                final position = controller?.currentPosition;
-                return LiveTrackingMap(
-                  driverPosition: position == null
-                      ? null
-                      : LatLng(position.latitude, position.longitude),
-                  driverHeading: position?.heading,
-                  pickupLabel: trip.pickupLocation,
-                  dropLabel: trip.dropLocation,
-                  isLive: controller?.isLiveTracking ?? false,
-                  trackingStatusText:
-                      resolvedTrackingStatus?.label ??
-                      trip.trackingStatusLabel ??
-                      trip.status,
-                  statusMessage: _mapStatusMessage(
-                    controller?.accessState ?? LocationAccessState.unknown,
-                  ),
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(24),
-                  ),
-                  onExpand: () => _openFullScreenMap(trip),
-                );
-              },
-            ),
-          ),
+    // Status changes belong to a running trip - completed, failed and paused
+    // trips show a banner in the scroll content instead of the button.
+    final canChangeStatus = !trip.isShippingDone && !isFailed && !isPaused;
 
-          // Says how fresh the numbers below are, since nothing on this screen
-          // is pulled by hand any more.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: _FreshnessLine(
-              lastUpdatedAt: _lastUpdatedAt,
-              isRefreshing: _isLoading,
-            ),
-          ),
-
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              10,
-              16,
-              24 + MediaQuery.of(context).padding.bottom,
-            ),
+    // No pull-to-refresh here: every drag on the map just moves the map.
+    // Refreshing lives in the app bar instead, and the screen re-reads itself
+    // on a timer anyway.
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AnimatedBuilder(
-                  animation: _locationController ?? const _NoopListenable(),
-                  builder: (context, _) => _LocationAccessBanner(
-                    state:
-                        _locationController?.accessState ??
-                        LocationAccessState.unknown,
-                    isTrackingNotificationHidden:
-                        (_locationController?.isLiveTracking ?? false) &&
-                        !(_locationController?.isTrackingNotificationVisible ??
-                            true),
+                SizedBox(
+                  width: double.infinity,
+                  height: 380,
+                  child: AnimatedBuilder(
+                    animation: _locationController ?? const _NoopListenable(),
+                    builder: (context, _) {
+                      final controller = _locationController;
+                      final position = controller?.currentPosition;
+                      return LiveTrackingMap(
+                        driverPosition: position == null
+                            ? null
+                            : LatLng(position.latitude, position.longitude),
+                        driverHeading: position?.heading,
+                        pickupLabel: trip.pickupLocation,
+                        dropLabel: trip.dropLocation,
+                        isLive: controller?.isLiveTracking ?? false,
+                        trackingStatusText:
+                            resolvedTrackingStatus?.label ??
+                            trip.trackingStatusLabel ??
+                            trip.status,
+                        statusMessage: _mapStatusMessage(
+                          controller?.accessState ??
+                              LocationAccessState.unknown,
+                        ),
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(24),
+                        ),
+                        onExpand: () => _openFullScreenMap(trip),
+                        // A downward drag should pan the map, not expand it.
+                        expandOnDragDown: false,
+                      );
+                    },
                   ),
                 ),
 
-                // Live Tracking In Progress Card (Hidden when shipment is completed)
-                if (isTrackingEligible &&
-                    !trip.isShippingDone &&
-                    !isFailed) ...[
-                  _LiveTrackingToggleCard(
-                    isEnabled: _isTrackingEnabled,
-                    statusLabel: resolvedTrackingStatus?.label ?? trip.status,
-                    onToggleChanged: _isUpdatingTrackingStatus
-                        ? (_) {}
-                        : (value) => _handleTrackingToggle(value, trip),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Basic Cargo Detail
-                CargoMetricsRow(
-                  cargoType: trip.cargoType,
-                  weight: trip.weight,
-                  transitTime: trip.transitTime,
-                ),
-                const SizedBox(height: 16),
-
-                // Customer Detail
-                CustomerContactCard(
-                  customerName: trip.customerName,
-                  customerPhone: trip.customerPhone,
-                ),
-                const SizedBox(height: 20),
-
-                // Button to change / update shipment status (or Shipping Completed Banner)
-                if (trip.isShippingDone)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentGreen.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.accentGreen.withValues(alpha: 0.3),
+                // Says how fresh the numbers below are, since nothing on this screen
+                // is pulled by hand any more.
+                // Padding(
+                //   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                //   child: _FreshnessLine(
+                //     lastUpdatedAt: _lastUpdatedAt,
+                //     isRefreshing: _isLoading,
+                //   ),
+                // ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 10, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedBuilder(
+                        animation:
+                            _locationController ?? const _NoopListenable(),
+                        builder: (context, _) => _LocationAccessBanner(
+                          state:
+                              _locationController?.accessState ??
+                              LocationAccessState.unknown,
+                          isTrackingNotificationHidden:
+                              (_locationController?.isLiveTracking ?? false) &&
+                              !(_locationController
+                                      ?.isTrackingNotificationVisible ??
+                                  true),
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: AppColors.accentGreen,
-                          size: 22,
+
+                      // Live Tracking In Progress Card (Hidden when shipment is completed)
+                      if (isTrackingEligible &&
+                          !trip.isShippingDone &&
+                          !isFailed) ...[
+                        _LiveTrackingToggleCard(
+                          isEnabled: _isTrackingEnabled,
+                          statusLabel:
+                              resolvedTrackingStatus?.label ?? trip.status,
+                          onToggleChanged: _isUpdatingTrackingStatus
+                              ? (_) {}
+                              : (value) => _handleTrackingToggle(value, trip),
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          (trip.formattedCompletedDate.isNotEmpty ||
-                                  trip.pickupDate.isNotEmpty)
-                              ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
-                              : 'Shipping is Completed',
-                          style: const TextStyle(
-                            color: AppColors.accentGreen,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
+                        const SizedBox(height: 16),
                       ],
-                    ),
-                  )
-                else if (isFailed)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.dangerBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.danger.withValues(alpha: 0.3),
+
+                      // Basic Cargo Detail
+                      CargoMetricsRow(
+                        cargoType: trip.cargoType,
+                        weight: trip.weight,
+                        transitTime: trip.transitTime,
                       ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          color: AppColors.danger,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+
+                      // Customer Detail
+                      CustomerContactCard(
+                        customerName: trip.customerName,
+                        customerPhone: trip.customerPhone,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Button to change / update shipment status (or Shipping Completed Banner)
+                      if (trip.isShippingDone)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentGreen.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.accentGreen.withValues(
+                                alpha: 0.3,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Shipment marked as Failed',
-                                style: TextStyle(
-                                  color: AppColors.danger,
+                              const Icon(
+                                Icons.check_circle,
+                                color: AppColors.accentGreen,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                (trip.formattedCompletedDate.isNotEmpty ||
+                                        trip.pickupDate.isNotEmpty)
+                                    ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
+                                    : 'Shipping is Completed',
+                                style: const TextStyle(
+                                  color: AppColors.accentGreen,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
                                 ),
                               ),
-                              if (trip.notes.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  trip.notes,
-                                  style: const TextStyle(
-                                    color: AppColors.textMedium,
-                                    fontSize: 12.5,
+                            ],
+                          ),
+                        )
+                      else if (isFailed)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.dangerBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.danger.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.error_outline_rounded,
+                                color: AppColors.danger,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Shipment marked as Failed',
+                                      style: TextStyle(
+                                        color: AppColors.danger,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    if (trip.notes.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        trip.notes,
+                                        style: const TextStyle(
+                                          color: AppColors.textMedium,
+                                          fontSize: 12.5,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (isPaused)
+                        // Status changes belong to a running trip: while tracking
+                        // is paused the button is gone, and this says why.
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warningBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.warning.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: const [
+                              Icon(
+                                Icons.pause_circle_outline,
+                                color: AppColors.warning,
+                                size: 20,
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Tracking is paused. Resume it to change the '
+                                  'shipment status.',
+                                  style: TextStyle(
+                                    color: AppColors.warning,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
                                     height: 1.35,
                                   ),
                                 ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                else if (isPaused)
-                  // Status changes belong to a running trip: while tracking
-                  // is paused the button is gone, and this says why.
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.warning.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(
-                          Icons.pause_circle_outline,
-                          color: AppColors.warning,
-                          size: 20,
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Tracking is paused. Resume it to change the '
-                            'shipment status.',
-                            style: TextStyle(
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              height: 1.35,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(54),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 2,
-                    ),
-                    onPressed: () => _openUpdateStatusSheet(trip),
-                    icon: const Icon(Icons.edit_note_rounded, size: 24),
-                    label: const Text(
-                      'Change Shipment Status',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                    ],
                   ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+
+        // Pinned to the bottom of the screen so it's always in reach, however
+        // far the content above has scrolled.
+        if (canChangeStatus)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              12 + MediaQuery.of(context).padding.bottom,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(54),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 2,
+              ),
+              onPressed: () => _openUpdateStatusSheet(trip),
+              icon: const Icon(Icons.edit_note_rounded, size: 24),
+              label: const Text(
+                'Change Shipment Status',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

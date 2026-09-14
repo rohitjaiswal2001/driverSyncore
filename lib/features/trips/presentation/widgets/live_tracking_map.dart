@@ -91,6 +91,11 @@ class LiveTrackingMap extends StatefulWidget {
   /// itself passes null so the map cannot expand out of an expanded map.
   final VoidCallback? onExpand;
 
+  /// Whether a long downward drag on the map opens it full screen. Screens that
+  /// want every drag to simply pan the map turn it off; the expand button
+  /// still works either way.
+  final bool expandOnDragDown;
+
   const LiveTrackingMap({
     super.key,
     required this.driverPosition,
@@ -103,6 +108,7 @@ class LiveTrackingMap extends StatefulWidget {
     this.borderRadius = const BorderRadius.all(Radius.circular(24)),
     this.overlayInsets = EdgeInsets.zero,
     this.onExpand,
+    this.expandOnDragDown = true,
   });
 
   @override
@@ -778,7 +784,11 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   }
 
   void _onPointerMove(PointerMoveEvent event) {
-    if (widget.onExpand == null || _didTriggerExpand) return;
+    if (widget.onExpand == null ||
+        !widget.expandOnDragDown ||
+        _didTriggerExpand) {
+      return;
+    }
     final start = _dragStart;
     if (start == null) return;
 

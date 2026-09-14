@@ -157,14 +157,14 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     return _matchCurrent(statuses, trip);
   }
 
-  /// The driver can tap their current status or the immediate next one -
-  /// picking the current one just leaves Update disabled. "Failed" is the
-  /// exception: a shipment can fail from wherever it currently stands.
+  /// The driver can only tap the immediate next status - their current one is
+  /// shown highlighted but can't be picked. "Failed" is the exception: a
+  /// shipment can fail from wherever it currently stands.
   bool _isSelectable(int index, int currentIndex) {
     if (_trip?.isShippingDone ?? false) return false;
     if (_statuses[index].isFailed) return true;
     if (currentIndex < 0) return true;
-    return index == currentIndex || index == currentIndex + 1;
+    return index == currentIndex + 1;
   }
 
   Future<void> _submit() async {
@@ -546,14 +546,18 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     int index,
     int currentIndex,
   ) {
-    final isSelected = _selected?.id == status.id;
     final isCurrent = index == currentIndex;
+    // The current status is never shown as a picked radio - it has its own look.
+    final isSelected = !isCurrent && _selected?.id == status.id;
     final isPast = currentIndex >= 0 && index < currentIndex;
 
     final isLocked = !_isSelectable(index, currentIndex);
     // Everything the driver cannot reach in one step reads as locked: the
-    // statuses already passed, the one they are on, and anything beyond next.
+    // statuses already passed and anything beyond next. The current status is
+    // also untappable, but is highlighted rather than muted.
     final isMuted = isLocked && !isCurrent;
+
+    const currentColor = AppColors.warning;
 
     return GestureDetector(
       onTap: isLocked
@@ -572,15 +576,21 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: isMuted ? const Color(0xFFF8FAFC) : Colors.white,
+          color: isCurrent
+              ? AppColors.warningBg
+              : isMuted
+              ? const Color(0xFFF8FAFC)
+              : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
+                : isCurrent
+                ? currentColor.withValues(alpha: 0.5)
                 : isMuted
                 ? AppColors.border.withValues(alpha: 0.5)
                 : AppColors.border,
-            width: isSelected ? 2.0 : 1.0,
+            width: isSelected || isCurrent ? 2.0 : 1.0,
           ),
           boxShadow: isSelected
               ? [
@@ -599,10 +609,16 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
               height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isPast ? AppColors.accentGreen : Colors.transparent,
+                color: isPast
+                    ? AppColors.accentGreen
+                    : isCurrent
+                    ? currentColor
+                    : Colors.transparent,
                 border: Border.all(
                   color: isPast
                       ? AppColors.accentGreen
+                      : isCurrent
+                      ? currentColor
                       : isSelected
                       ? AppColors.primary
                       : isMuted
@@ -616,6 +632,12 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                     ? const Icon(
                         Icons.check_rounded,
                         size: 13,
+                        color: Colors.white,
+                      )
+                    : isCurrent
+                    ? const Icon(
+                        Icons.local_shipping_rounded,
+                        size: 11,
                         color: Colors.white,
                       )
                     : isMuted
@@ -645,7 +667,9 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                   fontWeight: isSelected || isCurrent
                       ? FontWeight.bold
                       : FontWeight.w500,
-                  color: isMuted
+                  color: isCurrent
+                      ? currentColor
+                      : isMuted
                       ? const Color(0xFF94A3B8)
                       : isSelected
                       ? AppColors.primary
@@ -656,8 +680,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
             if (isCurrent)
               _buildStatusBadge(
                 'CURRENT',
-                background: AppColors.primaryLight,
-                foreground: AppColors.primary,
+                background: currentColor.withValues(alpha: 0.15),
+                foreground: currentColor,
               )
             else if (isPast)
               _buildStatusBadge(
