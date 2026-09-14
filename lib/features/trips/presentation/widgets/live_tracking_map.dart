@@ -877,26 +877,44 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
               onCameraMove: _onCameraMove,
             ),
 
-            // Top left: Status overlay pill
-            if (widget.trackingStatusText != null &&
-                widget.trackingStatusText!.isNotEmpty)
-              Positioned(
-                top: 14 + widget.overlayInsets.top,
-                left: 14 + widget.overlayInsets.left,
-                child: _StatusOverlayPill(
-                  label: widget.trackingStatusText!,
-                  isLive: widget.isLive,
-                ),
+            // Top row: status pill on the left, distance/ETA on the right.
+            // Sharing one Row means they can never overlap - each gets at most
+            // half the width and ellipsizes its text past that.
+            Positioned(
+              top: 14 + widget.overlayInsets.top,
+              left: 14 + widget.overlayInsets.left,
+              right: 14 + widget.overlayInsets.right,
+              child: Builder(
+                builder: (context) {
+                  final statusText = widget.trackingStatusText;
+                  final distanceText = _remainingDistanceText();
+                  return Row(
+                    children: [
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: statusText != null && statusText.isNotEmpty
+                              ? _StatusOverlayPill(
+                                  label: statusText,
+                                  isLive: widget.isLive,
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: distanceText.isNotEmpty
+                              ? _DistanceOverlayPill(distanceText: distanceText)
+                              : const SizedBox.shrink(),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-
-            if (_remainingDistanceText().isNotEmpty)
-              Positioned(
-                top: 14 + widget.overlayInsets.top,
-                right: 14 + widget.overlayInsets.right,
-                child: _DistanceOverlayPill(
-                  distanceText: _remainingDistanceText(),
-                ),
-              ),
+            ),
 
             // Control column, bottom-aligned on the right. Which controls fit
             // depends on how tall the host made the map, so short cards drop the
@@ -1086,13 +1104,18 @@ class _StatusOverlayPill extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            "Status : " + label.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+          Flexible(
+            child: Text(
+              'Status : ${label.toUpperCase()}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
@@ -1120,13 +1143,18 @@ class _DistanceOverlayPill extends StatelessWidget {
         children: [
           const Icon(Icons.route_rounded, color: Colors.white, size: 15),
           const SizedBox(width: 6),
-          Text(
-            distanceText.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
+          Flexible(
+            child: Text(
+              distanceText.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
         ],

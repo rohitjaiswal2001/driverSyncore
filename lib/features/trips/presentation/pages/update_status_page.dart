@@ -52,6 +52,10 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
   /// A failed shipment must say why, so the fleet desk can act on it.
   bool get _requiresNotes => _selected?.isFailed ?? false;
 
+  /// Accent for the step the shipment is on right now, distinct from the
+  /// indigo used for the driver's pick and the green used for passed steps.
+  static const _currentColor = AppColors.warning;
+
   @override
   void initState() {
     super.initState();
@@ -257,25 +261,67 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Lives inside a bottom sheet, so it gets a sheet-style header with a
+    // close button instead of an app bar with a back arrow.
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Update Trip Status',
-          style: TextStyle(
-            color: AppColors.textDark,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(child: _buildBody()),
+        ],
       ),
-      body: _buildBody(),
+    );
+  }
+
+  Widget _buildHeader() {
+    final trip = _trip;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 12, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Update shipment status',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                if (trip != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Booking #${trip.bookingId}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMedium,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Close',
+            onPressed: () => Navigator.pop(context),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white,
+              side: const BorderSide(color: AppColors.border),
+            ),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: AppColors.textDark,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -294,25 +340,48 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.cloud_off_rounded,
-                color: AppColors.danger,
-                size: 48,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: AppColors.dangerBg,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.cloud_off_rounded,
+                  color: AppColors.danger,
+                  size: 32,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+              const Text(
+                "Couldn't load statuses",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
               Text(
                 error,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMedium),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textMedium,
+                ),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: _load,
-                child: const Text('Retry'),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Try again'),
               ),
             ],
           ),
@@ -328,66 +397,26 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         Expanded(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (trip != null) ...[
-                  _buildTripSummary(trip),
-                  const SizedBox(height: 20),
+                  _buildRouteCard(trip),
+                  const SizedBox(height: 16),
                 ],
                 if (trip != null && trip.isShippingDone) ...[
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentGreen.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.accentGreen.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(
-                          Icons.check_circle,
-                          color: AppColors.accentGreen,
-                          size: 22,
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Shipping Completed: This shipment is delivered and status updates are locked.',
-                            style: TextStyle(
-                              color: AppColors.accentGreen,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildCompletedBanner(),
+                  const SizedBox(height: 16),
                 ],
-                const Text(
-                  'SELECT NEW STATUS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textLight,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Status moves one step at a time - you can only move to the '
-                  'next status.',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.textMedium),
-                ),
-                const SizedBox(height: 14),
+                _buildSectionHeader(currentIndex),
+                const SizedBox(height: 10),
                 for (int i = 0; i < _statuses.length; i++)
-                  _buildStatusOption(_statuses[i], i, currentIndex),
-                if (_requiresNotes) _buildFailureNotes(),
+                  _buildTimelineStep(_statuses[i], i, currentIndex),
+                if (_requiresNotes) ...[
+                  const SizedBox(height: 8),
+                  _buildFailureNotes(),
+                ],
               ],
             ),
           ),
@@ -502,223 +531,517 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     );
   }
 
-  Widget _buildTripSummary(Trip trip) {
+  /// Pickup → drop, with the same green/red dots the map uses for its pins.
+  Widget _buildRouteCard(Trip trip) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Booking ID',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                ' #${trip.bookingId}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
+          Expanded(
+            child: _buildRouteEnd(
+              label: 'PICKUP',
+              place: trip.pickupLocation,
+              dotColor: AppColors.accentGreen,
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.all(6),
+            decoration: const BoxDecoration(
+              color: AppColors.primaryLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_forward_rounded,
+              size: 16,
+              color: AppColors.primary,
+            ),
+          ),
+          Expanded(
+            child: _buildRouteEnd(
+              label: 'DROP',
+              place: trip.dropLocation,
+              dotColor: AppColors.danger,
+              alignEnd: true,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusOption(
+  Widget _buildRouteEnd({
+    required String label,
+    required String place,
+    required Color dotColor,
+    bool alignEnd = false,
+  }) {
+    return Column(
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textLight,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          place.isEmpty ? '—' : place,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompletedBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.successBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.accentGreen.withValues(alpha: 0.3)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.verified_rounded, color: AppColors.success, size: 22),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'This shipment is delivered. Status updates are locked.',
+              style: TextStyle(
+                color: AppColors.success,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(int currentIndex) {
+    final total = _statuses.length;
+    final isDone = _trip?.isShippingDone ?? false;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Shipment progress',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ),
+            if (currentIndex >= 0 && total > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Text(
+                  'Step ${currentIndex + 1} of $total',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        if (!isDone) ...[
+          const SizedBox(height: 4),
+          const Text(
+            'Status moves one step at a time. Pick the next step to move '
+            'this shipment forward.',
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.35,
+              color: AppColors.textMedium,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// One row of the progress timeline: a node on a connecting rail, and the
+  /// step itself. Only the immediate next step is a tappable card; passed,
+  /// current and later steps are read-only.
+  Widget _buildTimelineStep(
     TrackingStatus status,
     int index,
     int currentIndex,
   ) {
+    final isFirst = index == 0;
+    final isLast = index == _statuses.length - 1;
     final isCurrent = index == currentIndex;
-    // The current status is never shown as a picked radio - it has its own look.
-    final isSelected = !isCurrent && _selected?.id == status.id;
     final isPast = currentIndex >= 0 && index < currentIndex;
+    // The current status is never pickable - it has its own highlighted look.
+    final isSelectable = !isCurrent && _isSelectable(index, currentIndex);
+    final isSelected = isSelectable && _selected?.id == status.id;
 
-    final isLocked = !_isSelectable(index, currentIndex);
-    // Everything the driver cannot reach in one step reads as locked: the
-    // statuses already passed and anything beyond next. The current status is
-    // also untappable, but is highlighted rather than muted.
-    final isMuted = isLocked && !isCurrent;
+    // A rail segment is "travelled" once the trip has moved past it.
+    final topRailDone = currentIndex >= 0 && index <= currentIndex;
+    final bottomRailDone = currentIndex >= 0 && index < currentIndex;
 
-    const currentColor = AppColors.warning;
-
-    return GestureDetector(
-      onTap: isLocked
-          ? null
-          : () => setState(() {
-              HapticFeedback.selectionClick();
-              _selected = status;
-              // Don't carry a failure reason over to a non-failure status.
-              if (!status.isFailed) {
-                _notesController.clear();
-                _notesFocus.unfocus();
-              }
-            }),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: isCurrent
-              ? AppColors.warningBg
-              : isMuted
-              ? const Color(0xFFF8FAFC)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : isCurrent
-                ? currentColor.withValues(alpha: 0.5)
-                : isMuted
-                ? AppColors.border.withValues(alpha: 0.5)
-                : AppColors.border,
-            width: isSelected || isCurrent ? 2.0 : 1.0,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 32,
+            child: Column(
+              children: [
+                Expanded(
+                  child: _buildRail(visible: !isFirst, done: topRailDone),
+                ),
+                _buildNode(
+                  isPast: isPast,
+                  isCurrent: isCurrent,
+                  isSelectable: isSelectable,
+                  isSelected: isSelected,
+                ),
+                Expanded(
+                  child: _buildRail(visible: !isLast, done: bottomRailDone),
+                ),
+              ],
+            ),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : const [],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isPast
-                    ? AppColors.accentGreen
-                    : isCurrent
-                    ? currentColor
-                    : Colors.transparent,
-                border: Border.all(
-                  color: isPast
-                      ? AppColors.accentGreen
-                      : isCurrent
-                      ? currentColor
-                      : isSelected
-                      ? AppColors.primary
-                      : isMuted
-                      ? const Color(0xFFCBD5E1)
-                      : AppColors.textLight,
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: isPast
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 13,
-                        color: Colors.white,
-                      )
-                    : isCurrent
-                    ? const Icon(
-                        Icons.local_shipping_rounded,
-                        size: 11,
-                        color: Colors.white,
-                      )
-                    : isMuted
-                    ? const Icon(
-                        Icons.lock_rounded,
-                        size: 11,
-                        color: Color(0xFF94A3B8),
-                      )
-                    : Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                        ),
-                      ),
-              ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: isSelectable
+                  ? _buildSelectableStep(status, isSelected: isSelected)
+                  : _buildReadOnlyStep(
+                      status,
+                      index,
+                      isPast: isPast,
+                      isCurrent: isCurrent,
+                    ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                status.label,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: isSelected || isCurrent
-                      ? FontWeight.bold
-                      : FontWeight.w500,
-                  color: isCurrent
-                      ? currentColor
-                      : isMuted
-                      ? const Color(0xFF94A3B8)
-                      : isSelected
-                      ? AppColors.primary
-                      : AppColors.textDark,
-                ),
-              ),
-            ),
-            if (isCurrent)
-              _buildStatusBadge(
-                'CURRENT',
-                background: currentColor.withValues(alpha: 0.15),
-                foreground: currentColor,
-              )
-            else if (isPast)
-              _buildStatusBadge(
-                'PASSED',
-                background: AppColors.accentGreen.withValues(alpha: 0.12),
-                foreground: AppColors.accentGreen,
-              )
-            else if (isMuted)
-              _buildStatusBadge(
-                'LOCKED',
-                background: const Color(0xFFF1F5F9),
-                foreground: const Color(0xFF94A3B8),
-              ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRail({required bool visible, required bool done}) {
+    return Center(
+      child: Container(
+        width: 2.5,
+        decoration: BoxDecoration(
+          color: !visible
+              ? Colors.transparent
+              : done
+              ? AppColors.accentGreen
+              : AppColors.border,
+          borderRadius: BorderRadius.circular(2),
         ),
       ),
     );
   }
 
-  Widget _buildStatusBadge(
-    String text, {
-    required Color background,
-    required Color foreground,
+  Widget _buildNode({
+    required bool isPast,
+    required bool isCurrent,
+    required bool isSelectable,
+    required bool isSelected,
   }) {
+    if (isPast) {
+      return Container(
+        width: 26,
+        height: 26,
+        decoration: const BoxDecoration(
+          color: AppColors.accentGreen,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
+      );
+    }
+    if (isCurrent) {
+      return Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: _currentColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: _currentColor.withValues(alpha: 0.3),
+              spreadRadius: 4,
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.local_shipping_rounded,
+          size: 16,
+          color: Colors.white,
+        ),
+      );
+    }
+    if (isSelectable) {
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.primary, width: 2),
+        ),
+        child: Icon(
+          Icons.arrow_downward_rounded,
+          size: 14,
+          color: isSelected ? Colors.white : AppColors.primary,
+        ),
+      );
+    }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      width: 26,
+      height: 26,
       decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFFCBD5E1), width: 2),
+      ),
+      child: const Icon(
+        Icons.lock_rounded,
+        size: 12,
+        color: AppColors.textLight,
+      ),
+    );
+  }
+
+  /// The next step - the only one the driver can act on - as a radio card.
+  Widget _buildSelectableStep(
+    TrackingStatus status, {
+    required bool isSelected,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => setState(() {
+          HapticFeedback.selectionClick();
+          _selected = status;
+          // Don't carry a failure reason over to a non-failure status.
+          if (!status.isFailed) {
+            _notesController.clear();
+            _notesFocus.unfocus();
+          }
+        }),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryLight : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.border,
+              width: isSelected ? 1.8 : 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStepTag('NEXT STEP', AppColors.primary),
+                    const SizedBox(height: 6),
+                    Text(
+                      status.label,
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isSelected
+                          ? 'Selected - tap the button below to confirm'
+                          : 'Tap to select',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : AppColors.textLight,
+                    width: 2,
+                  ),
+                ),
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: isSelected ? 10 : 0,
+                    height: isSelected ? 10 : 0,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Passed, current and locked steps: informative, not tappable.
+  Widget _buildReadOnlyStep(
+    TrackingStatus status,
+    int index, {
+    required bool isPast,
+    required bool isCurrent,
+  }) {
+    final isDone = _trip?.isShippingDone ?? false;
+
+    final String subtitle;
+    final Color titleColor;
+    final Color subtitleColor;
+    if (isCurrent) {
+      subtitle = isDone ? 'Shipment delivered' : 'Your shipment is here now';
+      titleColor = AppColors.textDark;
+      subtitleColor = _currentColor;
+    } else if (isPast) {
+      subtitle = 'Completed';
+      titleColor = AppColors.textMedium;
+      subtitleColor = AppColors.success;
+    } else {
+      subtitle = index > 0
+          ? 'Unlocks after ${_statuses[index - 1].label}'
+          : 'Locked';
+      titleColor = AppColors.textLight;
+      subtitleColor = AppColors.textLight;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: isCurrent
+          ? BoxDecoration(
+              color: AppColors.warningBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _currentColor.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
+            )
+          : null,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  status.label,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                    color: subtitleColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isCurrent) _buildStepTag('CURRENT', _currentColor),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepTag(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.w800,
-          color: foreground,
-          letterSpacing: 0.4,
+          color: color,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -729,63 +1052,115 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     final hasReasonIfNeeded =
         !_requiresNotes || _notesController.text.trim().isNotEmpty;
     final isDone = _trip?.isShippingDone ?? false;
+    final selected = _selected;
     final canSubmit =
         !isDone &&
-        _selected != null &&
+        selected != null &&
         !_isSubmitting &&
         hasReasonIfNeeded &&
         _trip != null &&
-        !_isSameStatus(_selected!, _trip!);
+        !_isSameStatus(selected, _trip!);
+
+    // Finishing the trip is the moment worth celebrating, so it goes green.
+    final isFinalStep = canSubmit && selected.isDone;
+    final buttonColor = isDone || isFinalStep
+        ? AppColors.accentGreen
+        : AppColors.primary;
+
+    final String label;
+    if (isDone) {
+      label = 'Shipment completed';
+    } else if (canSubmit) {
+      label = 'Update status';
+    } else {
+      label = 'Select the next step';
+    }
 
     return Container(
-      color: Colors.white,
       padding: EdgeInsets.fromLTRB(
         20,
         12,
         20,
         12 + MediaQuery.of(context).padding.bottom,
       ),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isDone ? AppColors.accentGreen : AppColors.primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: isDone
-              ? AppColors.accentGreen.withValues(alpha: 0.8)
-              : AppColors.primary.withValues(alpha: 0.35),
-          disabledForegroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(54),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        onPressed: canSubmit ? _submit : null,
-        child: _isSubmitting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isDone) ...[
+            const Row(
+              children: [
+                Icon(
+                  Icons.my_location_rounded,
+                  size: 14,
+                  color: AppColors.textLight,
                 ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    isDone ? 'Shipping Completed' : 'Update',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Your current location is attached to this update.',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textMedium,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    isDone ? Icons.check_circle : Icons.check_circle_outline,
-                    size: 20,
-                  ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: buttonColor,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: isDone
+                  ? AppColors.accentGreen.withValues(alpha: 0.8)
+                  : AppColors.primary.withValues(alpha: 0.35),
+              disabledForegroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(54),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
               ),
+            ),
+            onPressed: canSubmit ? _submit : null,
+            child: _isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isDone || isFinalStep
+                            ? Icons.check_circle_rounded
+                            : Icons.arrow_circle_right_outlined,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }
