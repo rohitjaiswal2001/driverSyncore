@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../../core/utils/validators.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl_phone_field/countries.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_overlay.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
@@ -28,6 +30,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? _localImagePath;
   User? _cachedUser;
 
+  static const String _defaultCountryIso = 'IN';
+
+  /// ISO code the picker opens on, resolved once from the saved profile.
+  late final String _initialCountryIso;
+
+  /// Country currently picked in the phone field; drives the dial code,
+  /// the hint and the length error message.
+  late Country _phoneCountry;
+
+  /// Dial code sent as `phone_country_code`, e.g. '+91'.
+  String get _phoneCountryCode => '+${_phoneCountry.fullCountryCode}';
+
   @override
   void initState() {
     super.initState();
@@ -36,19 +50,76 @@ class _EditProfilePageState extends State<EditProfilePage> {
     String initialLastName = '';
     String initialPhone = '';
     String initialCompanyName = '';
+    String initialCountryCode = '';
 
     if (authState is AuthSuccess) {
       _cachedUser = authState.user;
       initialFirstName = authState.user.firstName;
       initialLastName = authState.user.lastName ?? '';
       initialPhone = authState.user.phone;
+      initialCountryCode = authState.user.phoneCountryCode;
       initialCompanyName = authState.user.companyName;
     }
 
     _firstNameController = TextEditingController(text: initialFirstName);
     _lastNameController = TextEditingController(text: initialLastName);
-    _phoneController = TextEditingController(text: initialPhone);
+    final country = _resolveCountry(initialCountryCode);
+    _initialCountryIso = country.code;
+    _phoneCountry = country;
+    _phoneController = TextEditingController(
+      text: _stripDialCode(initialPhone, country),
+    );
     _companyNameController = TextEditingController(text: initialCompanyName);
+  }
+
+  /// Accepts the stored value as a dial code ('+91', '91') or an ISO code
+  /// ('IN'). Falls back to the default country when empty or unknown.
+  Country _resolveCountry(String stored) {
+    final value = stored.trim();
+    Country? match;
+    if (value.isNotEmpty) {
+      final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+      if (digits.isNotEmpty) {
+        // Several countries share a dial code (e.g. +1); prefer the default
+        // country when it matches, otherwise the first exact match.
+        final byDial = countries
+            .where((c) => c.fullCountryCode == digits)
+            .toList();
+        if (byDial.isNotEmpty) {
+          match = byDial.firstWhere(
+            (c) => c.code == _defaultCountryIso,
+            orElse: () => byDial.first,
+          );
+        }
+      } else {
+        final upper = value.toUpperCase();
+        for (final c in countries) {
+          if (c.code == upper) {
+            match = c;
+            break;
+          }
+        }
+      }
+    }
+    return match ?? countries.firstWhere((c) => c.code == _defaultCountryIso);
+  }
+
+  /// Digit count the selected country accepts, e.g. '10' or '8-10'.
+  String get _phoneDigitsLabel {
+    final min = _phoneCountry.minLength;
+    final max = _phoneCountry.maxLength;
+    return min == max ? '$max' : '$min-$max';
+  }
+
+  /// Older profiles may have the dial code baked into `phone`; the field
+  /// shows it in the picker, so only the national number goes in the input.
+  String _stripDialCode(String phone, Country country) {
+    final value = phone.trim().replaceAll(RegExp(r'[\s-]'), '');
+    final withPlus = '+${country.fullCountryCode}';
+    if (value.startsWith(withPlus)) {
+      return value.substring(withPlus.length);
+    }
+    return value;
   }
 
   @override
@@ -306,27 +377,34 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     const SizedBox(height: 16),
 
                     // Phone field
-                    TextFormField(
+                    IntlPhoneField(
                       controller: _phoneController,
-                      keyboardType: TextInputType.phone,
+                      initialCountryCode: _initialCountryIso,
+                      invalidNumberMessage:
+                          'Phone number must be $_phoneDigitsLabel digits for '
+                          '${_phoneCountry.name}',
+                      dropdownIconPosition: IconPosition.trailing,
+                      flagsButtonPadding: const EdgeInsets.only(left: 12),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textDark,
                       ),
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        hintText: 'Phone Number',
-                        prefixIcon: Icon(Icons.phone_outlined),
+                      dropdownTextStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
                       ),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) {
-                          return 'Phone number is required';
-                        }
-                        if (val.trim().length < 8) {
-                          return 'Enter a valid phone number';
-                        }
-                        return null;
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        hintText: 'Enter $_phoneDigitsLabel digit number',
+                        counterText: '',
+                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onCountryChanged: (country) {
+                        setState(() {
+                          _phoneCountry = country;
+                        });
                       },
                     ),
                     const SizedBox(height: 16),
@@ -359,12 +437,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                       ),
                       onPressed: () {
-                        if (_formKey.currentState?.validate() ?? false) {
+                        final isValid =
+                            _formKey.currentState?.validate() ?? false;
+                        // IntlPhoneField lets an empty number through its
+                        // own validator, so the required check lives here.
+                        if (isValid && _phoneController.text.trim().isEmpty) {
+                          TopSnackBar.show(
+                            context,
+                            message: 'Phone number is required',
+                            backgroundColor: Colors.redAccent,
+                            icon: Icons.error_outline,
+                          );
+                          return;
+                        }
+                        if (isValid) {
                           context.read<AuthBloc>().add(
                             UpdateProfileSubmitted(
                               firstName: _firstNameController.text.trim(),
                               lastName: _lastNameController.text.trim(),
                               phone: _phoneController.text.trim(),
+                              phoneCountryCode: _phoneCountryCode,
                               companyName: _companyNameController.text.trim(),
                               profileImagePath: _localImagePath,
                             ),

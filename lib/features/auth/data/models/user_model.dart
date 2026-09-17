@@ -7,6 +7,7 @@ class UserModel extends User {
     super.lastName,
     required super.email,
     required super.phone,
+    super.phoneCountryCode,
     required super.role,
     required super.companyName,
     required super.isVerified,
@@ -44,6 +45,7 @@ class UserModel extends User {
       lastName: userMap['last_name'] as String?,
       email: userMap['email'] as String? ?? '',
       phone: userMap['phone'] as String? ?? userMap['phoneNumber'] as String? ?? '',
+      phoneCountryCode: userMap['phone_country_code']?.toString() ?? '',
       // Driver-only app: the login/profile payload does not always carry a
       // role, and an empty one here is what the API rejects on the next
       // login. Fall back rather than propagate a blank role.
@@ -64,6 +66,7 @@ class UserModel extends User {
       'last_name': lastName,
       'email': email,
       'phone': phone,
+      'phone_country_code': phoneCountryCode,
       'role': role,
       'company_name': companyName,
       'is_verified': isVerified,

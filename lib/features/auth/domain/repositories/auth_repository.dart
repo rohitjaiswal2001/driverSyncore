@@ -45,6 +45,7 @@ abstract class AuthRepository {
     required String firstName,
     required String lastName,
     required String phone,
+    required String phoneCountryCode,
     String? companyName,
     String? profileImagePath,
   });

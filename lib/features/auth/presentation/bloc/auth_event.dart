@@ -130,6 +130,7 @@ class UpdateProfileSubmitted extends AuthEvent {
   final String firstName;
   final String lastName;
   final String phone;
+  final String phoneCountryCode;
   final String? companyName;
   final String? profileImagePath;
 
@@ -137,6 +138,7 @@ class UpdateProfileSubmitted extends AuthEvent {
     required this.firstName,
     required this.lastName,
     required this.phone,
+    required this.phoneCountryCode,
     this.companyName,
     this.profileImagePath,
   });
@@ -146,6 +148,7 @@ class UpdateProfileSubmitted extends AuthEvent {
     firstName,
     lastName,
     phone,
+    phoneCountryCode,
     companyName,
     profileImagePath,
   ];

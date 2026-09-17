@@ -182,7 +182,7 @@ class AuthRepositoryImpl implements AuthRepository {
     // API endpoint: /forgot-password
     final response = await _apiClient.post(
       ApiConstants.forgotPassword,
-      data: {'email': email},
+      data: {'email': email, 'role': 'driver'},
     );
 
     final data = response.data;
@@ -242,6 +242,7 @@ class AuthRepositoryImpl implements AuthRepository {
       lastName: user.lastName,
       email: user.email,
       phone: user.phone,
+      phoneCountryCode: user.phoneCountryCode,
       role: user.role,
       companyName: user.companyName,
       isVerified: user.isVerified,
@@ -357,6 +358,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String firstName,
     required String lastName,
     required String phone,
+    required String phoneCountryCode,
     String? companyName,
     String? profileImagePath,
   }) async {
@@ -364,6 +366,7 @@ class AuthRepositoryImpl implements AuthRepository {
       'first_name': firstName,
       'last_name': lastName,
       'phone': phone,
+      'phone_country_code': phoneCountryCode,
     };
 
     if (companyName != null) {

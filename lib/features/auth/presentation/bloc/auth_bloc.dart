@@ -317,6 +317,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           firstName: event.firstName,
           lastName: event.lastName,
           phone: event.phone,
+          phoneCountryCode: event.phoneCountryCode,
           companyName: event.companyName,
           profileImagePath: event.profileImagePath,
         ),

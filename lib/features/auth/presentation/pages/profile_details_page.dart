@@ -160,7 +160,7 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                         _buildDetailRow(
                           icon: Icons.phone_outlined,
                           label: 'Phone Number',
-                          value: user.phone,
+                          value: _formatPhone(user),
                         ),
                         const Divider(height: 1, color: AppColors.divider),
                         _buildDetailRow(
@@ -209,6 +209,16 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         },
       ),
     );
+  }
+
+  /// Prefixes the dial code unless `phone` is empty or already carries one
+  /// (older profiles stored it inside `phone`).
+  String _formatPhone(User user) {
+    final phone = user.phone.trim();
+    if (phone.isEmpty) return '-';
+    final code = user.phoneCountryCode.trim();
+    if (code.isEmpty || phone.startsWith('+')) return phone;
+    return '$code $phone';
   }
 
   Widget _buildDetailRow({

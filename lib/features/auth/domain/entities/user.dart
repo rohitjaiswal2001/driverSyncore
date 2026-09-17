@@ -6,6 +6,9 @@ class User extends Equatable {
   final String? lastName;
   final String email;
   final String phone;
+
+  /// Dial code with a leading '+', e.g. '+91'. Empty when the server has none.
+  final String phoneCountryCode;
   final String role;
   final String companyName;
   final bool isVerified;
@@ -18,6 +21,7 @@ class User extends Equatable {
     this.lastName,
     required this.email,
     required this.phone,
+    this.phoneCountryCode = '',
     required this.role,
     required this.companyName,
     required this.isVerified,
@@ -34,6 +38,7 @@ class User extends Equatable {
         lastName,
         email,
         phone,
+        phoneCountryCode,
         role,
         companyName,
         isVerified,

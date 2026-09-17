@@ -1,30 +1,37 @@
 class Validators {
-  /// Validates a password based on:
-  /// - At least one capital letter (A-Z)
-  /// - At least one small letter (a-z)
-  /// - At least one number (0-9)
-  /// - At least one special character
+  /// Strength rules for a password the user is choosing — registration and
+  /// reset share this so both screens accept and reject exactly the same
+  /// passwords. Not for the login field, which must accept whatever the
+  /// account was created with.
   static String? validatePassword(String? val) {
     if (val == null || val.isEmpty) {
-      return 'Enter your password';
+      return 'Enter password';
     }
-    if (val.length < 6) {
-      return 'Password must be at least 6 characters';
+    if (val.length < 8) {
+      return 'Password must be at least 8 characters';
     }
-    if (!RegExp(r'[A-Z]').hasMatch(val)) {
-      return 'Password must contain at least one capital letter';
-    }
-    if (!RegExp(r'[a-z]').hasMatch(val)) {
-      return 'Password must contain at least one small letter';
-    }
-    if (!RegExp(r'[0-9]').hasMatch(val)) {
-      return 'Password must contain at least one number';
-    }
-    // Match any character that is NOT a lowercase/uppercase letter, digit, or whitespace
-    if (!RegExp(r'[^a-zA-Z0-9\s]').hasMatch(val)) {
-      return 'Password must contain at least one special character';
+    final hasUpper = RegExp(r'[A-Z]').hasMatch(val);
+    final hasLower = RegExp(r'[a-z]').hasMatch(val);
+    final hasDigit = RegExp(r'[0-9]').hasMatch(val);
+    final hasSpecial = RegExp(
+      r'[@$!%*?&^#()_\-+={}\[\]:;"<>,.?/~`|\\]',
+    ).hasMatch(val);
+    final missing = <String>[
+      if (!hasUpper) 'one uppercase letter',
+      if (!hasLower) 'one lowercase letter',
+      if (!hasDigit) 'one number',
+      if (!hasSpecial) 'one special character',
+    ];
+    if (missing.isNotEmpty) {
+      return 'Password must contain ${_joinRequirements(missing)}.';
     }
     return null;
+  }
+
+  static String _joinRequirements(List<String> items) {
+    if (items.length == 1) return items.first;
+    if (items.length == 2) return '${items[0]} and ${items[1]}';
+    return '${items.sublist(0, items.length - 1).join(', ')}, and ${items.last}';
   }
 
   /// Validates email address format
