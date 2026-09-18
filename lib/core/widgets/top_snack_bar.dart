@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../layout/responsive.dart';
 
 class TopSnackBar {
   static OverlayEntry? _overlayEntry;
@@ -101,53 +102,58 @@ class _TopSnackBarWidgetState extends State<_TopSnackBarWidget>
       right: 16,
       child: Material(
         color: Colors.transparent,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, _offsetAnimation.value),
-              child: Opacity(opacity: _fadeAnimation.value, child: child),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: widget.backgroundColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(30),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                if (widget.icon != null) ...[
-                  Icon(widget.icon, color: Colors.white, size: 22),
-                  const SizedBox(width: 12),
+        // Centred and capped, so a one-line toast on an iPad is a banner over
+        // the content rather than a stripe across the whole window.
+        child: AdaptiveContainer(
+          maxWidth: AppContentWidth.sheet,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _offsetAnimation.value),
+                child: Opacity(opacity: _fadeAnimation.value, child: child),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: widget.backgroundColor,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(30),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
-                Expanded(
-                  child: Text(
-                    widget.message,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+              ),
+              child: Row(
+                children: [
+                  if (widget.icon != null) ...[
+                    Icon(widget.icon, color: Colors.white, size: 22),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Text(
+                      widget.message,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: widget.onDismiss,
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.white.withAlpha(180),
-                    size: 18,
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: widget.onDismiss,
+                    child: Icon(
+                      Icons.close,
+                      color: Colors.white.withAlpha(180),
+                      size: 18,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

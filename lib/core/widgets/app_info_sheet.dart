@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../layout/responsive.dart';
 
 /// A tappable row rendered inside [showAppInfoSheet].
 class AppSheetAction {
@@ -39,6 +40,9 @@ Future<void> showAppInfoSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
+    // A constrained sheet is centred by the framework, so on a tablet it
+    // reads as a card rising from the bottom rather than a full-width bar.
+    constraints: const BoxConstraints(maxWidth: AppContentWidth.sheet),
     builder: (sheetCtx) => SafeArea(
       top: false,
       child: Padding(

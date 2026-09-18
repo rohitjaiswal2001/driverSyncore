@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 
@@ -30,8 +31,11 @@ class TripCompletedPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: AdaptiveContainer.form(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -138,7 +142,8 @@ class TripCompletedPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (transitTime.isNotEmpty || dropLocation.isNotEmpty) ...[
+                      if (transitTime.isNotEmpty ||
+                          dropLocation.isNotEmpty) ...[
                         const Divider(height: 24, color: AppColors.divider),
                         if (dropLocation.isNotEmpty)
                           _DetailRow(label: 'DESTINATION', value: dropLocation),
@@ -170,7 +175,10 @@ class TripCompletedPage extends StatelessWidget {
                     icon: const Icon(Icons.check_circle_outline, size: 20),
                     label: const Text(
                       'View Tracking Status',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -205,15 +213,24 @@ class TripCompletedPage extends StatelessWidget {
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.navy,
-                      side: const BorderSide(color: AppColors.border, width: 1.5),
+                      side: const BorderSide(
+                        color: AppColors.border,
+                        width: 1.5,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                    icon: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      size: 20,
+                    ),
                     label: const Text(
                       'New Order ID',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/widgets/loading_overlay.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../bloc/auth_bloc.dart';
@@ -131,17 +132,19 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(24.0),
-              child: _emailSent
-                  ? ResetPasswordForm(
-                      key: _resetFormKey,
-                      email: _email,
-                      message: _sentMessage,
-                      canResend: _canResend,
-                      resendSeconds: _resendSeconds,
-                      onResend: _resendCode,
-                      onVerify: _verifyAndReset,
-                    )
-                  : ForgotPasswordForm(onSubmit: _sendResetCode),
+              child: AdaptiveContainer.form(
+                child: _emailSent
+                    ? ResetPasswordForm(
+                        key: _resetFormKey,
+                        email: _email,
+                        message: _sentMessage,
+                        canResend: _canResend,
+                        resendSeconds: _resendSeconds,
+                        onResend: _resendCode,
+                        onVerify: _verifyAndReset,
+                      )
+                    : ForgotPasswordForm(onSubmit: _sendResetCode),
+              ),
             ),
           );
         },

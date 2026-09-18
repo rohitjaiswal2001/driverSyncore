@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/labeled_form_field.dart';
 import '../../../../core/widgets/loading_overlay.dart';
@@ -147,7 +148,8 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
         ),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
+          child: AdaptiveContainer.form(
+            alignment: Alignment.center,
             padding: EdgeInsets.fromLTRB(
               24,
               16,
@@ -282,11 +284,15 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
-          padding: EdgeInsets.fromLTRB(
-            20,
-            8,
-            20,
-            28 + MediaQuery.of(context).padding.bottom,
+          // Padded rather than wrapped in a ConstrainedBox so the list keeps
+          // its full-width scrollbar and overscroll glow while the fields
+          // themselves stay in a readable column on an iPad.
+          padding: adaptiveScrollPadding(
+            context,
+            horizontal: 20,
+            top: 8,
+            bottom: 28 + MediaQuery.of(context).padding.bottom,
+            maxContentWidth: AppContentWidth.form,
           ),
           children: [
             _buildWarningCard(),

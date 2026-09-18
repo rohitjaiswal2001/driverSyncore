@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
+import '../layout/responsive.dart';
 
 /// Shared confirmation dialog for destructive or irreversible actions.
 ///
@@ -93,6 +94,10 @@ class _AppConfirmDialogWidgetState extends State<_AppConfirmDialogWidget> {
         elevation: 10,
         backgroundColor: Colors.white,
         insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        // Without a ceiling the inset padding alone decides the width, which
+        // on an iPad stretches a two-line confirmation across the screen and
+        // pushes Cancel and Confirm a hand's width apart.
+        constraints: const BoxConstraints(maxWidth: AppContentWidth.dialog),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           child: Column(
@@ -143,8 +148,9 @@ class _AppConfirmDialogWidgetState extends State<_AppConfirmDialogWidget> {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      onPressed:
-                          _isLoading ? null : () => Navigator.pop(context, false),
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.pop(context, false),
                       child: Text(
                         widget.cancelLabel,
                         style: const TextStyle(

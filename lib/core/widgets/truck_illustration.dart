@@ -9,10 +9,7 @@ class TruckIllustration extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Image.asset(
-        AppAssets.truck,
-        fit: BoxFit.fitWidth,
-      ),
+      child: Image.asset(AppAssets.truck, fit: BoxFit.fitWidth),
     );
   }
 }

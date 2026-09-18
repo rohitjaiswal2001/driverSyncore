@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/document_downloader.dart';
 
 /// Full-screen in-app PDF reader with native pinch-zoom, pan and page swipe.
@@ -157,7 +158,8 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
 
   Widget _buildError(String message) {
     return Center(
-      child: Padding(
+      child: AdaptiveContainer.form(
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_info.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/bloc_refresh.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/skeleton_box.dart';
@@ -192,11 +193,11 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        8,
-        20,
-        24 + MediaQuery.of(context).padding.bottom,
+      padding: adaptiveScrollPadding(
+        context,
+        horizontal: 20,
+        top: 8,
+        bottom: 24 + MediaQuery.of(context).padding.bottom,
       ),
       children: [
         DriverProfileHeader(
@@ -343,7 +344,12 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: adaptiveScrollPadding(
+        context,
+        horizontal: 20,
+        top: 8,
+        bottom: 24,
+      ),
       children: [
         const SkeletonBox(
           height: 196,
@@ -415,7 +421,8 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
         ),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
+          child: AdaptiveContainer.form(
+            alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

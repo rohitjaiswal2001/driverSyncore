@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/reverse_geocoder.dart';
 import '../../domain/entities/tracking_status.dart';
 import '../../domain/entities/trip.dart';
@@ -278,49 +279,53 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     final trip = _trip;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 12, 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Update shipment status',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textDark,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                if (trip != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Booking #${trip.bookingId}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textMedium,
+      // Held to the same column as the timeline below, so the close button
+      // stays next to the title instead of at the far edge of an iPad.
+      child: AdaptiveContainer(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Update shipment status',
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textDark,
+                      letterSpacing: -0.3,
                     ),
                   ),
+                  if (trip != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Booking #${trip.bookingId}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMedium,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Close',
-            onPressed: () => Navigator.pop(context),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: AppColors.border),
+            IconButton(
+              tooltip: 'Close',
+              onPressed: () => Navigator.pop(context),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: AppColors.border),
+              ),
+              icon: const Icon(
+                Icons.close_rounded,
+                color: AppColors.textDark,
+                size: 20,
+              ),
             ),
-            icon: const Icon(
-              Icons.close_rounded,
-              color: AppColors.textDark,
-              size: 20,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -335,7 +340,8 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
     final error = _loadError;
     if (error != null && _statuses.isEmpty) {
       return Center(
-        child: Padding(
+        child: AdaptiveContainer.form(
+          alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -398,26 +404,28 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (trip != null) ...[
-                  _buildRouteCard(trip),
-                  const SizedBox(height: 16),
+            child: AdaptiveContainer(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (trip != null) ...[
+                    _buildRouteCard(trip),
+                    const SizedBox(height: 16),
+                  ],
+                  if (trip != null && trip.isShippingDone) ...[
+                    _buildCompletedBanner(),
+                    const SizedBox(height: 16),
+                  ],
+                  _buildSectionHeader(currentIndex),
+                  const SizedBox(height: 10),
+                  for (int i = 0; i < _statuses.length; i++)
+                    _buildTimelineStep(_statuses[i], i, currentIndex),
+                  if (_requiresNotes) ...[
+                    const SizedBox(height: 8),
+                    _buildFailureNotes(),
+                  ],
                 ],
-                if (trip != null && trip.isShippingDone) ...[
-                  _buildCompletedBanner(),
-                  const SizedBox(height: 16),
-                ],
-                _buildSectionHeader(currentIndex),
-                const SizedBox(height: 10),
-                for (int i = 0; i < _statuses.length; i++)
-                  _buildTimelineStep(_statuses[i], i, currentIndex),
-                if (_requiresNotes) ...[
-                  const SizedBox(height: 8),
-                  _buildFailureNotes(),
-                ],
-              ],
+              ),
             ),
           ),
         ),
@@ -1087,80 +1095,82 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
         color: Colors.white,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!isDone) ...[
-            const Row(
-              children: [
-                Icon(
-                  Icons.my_location_rounded,
-                  size: 14,
-                  color: AppColors.textLight,
-                ),
-                SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Your current location is attached to this update.',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.textMedium,
+      child: AdaptiveContainer(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isDone) ...[
+              const Row(
+                children: [
+                  Icon(
+                    Icons.my_location_rounded,
+                    size: 14,
+                    color: AppColors.textLight,
+                  ),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Your current location is attached to this update.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textMedium,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-          ],
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: buttonColor,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: isDone
-                  ? AppColors.accentGreen.withValues(alpha: 0.8)
-                  : AppColors.primary.withValues(alpha: 0.35),
-              disabledForegroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(54),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                ],
               ),
-            ),
-            onPressed: canSubmit ? _submit : null,
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        isDone || isFinalStep
-                            ? Icons.check_circle_rounded
-                            : Icons.arrow_circle_right_outlined,
-                        size: 20,
+              const SizedBox(height: 10),
+            ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: buttonColor,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: isDone
+                    ? AppColors.accentGreen.withValues(alpha: 0.8)
+                    : AppColors.primary.withValues(alpha: 0.35),
+                disabledForegroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(54),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: canSubmit ? _submit : null,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
                       ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isDone || isFinalStep
+                              ? Icons.check_circle_rounded
+                              : Icons.arrow_circle_right_outlined,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

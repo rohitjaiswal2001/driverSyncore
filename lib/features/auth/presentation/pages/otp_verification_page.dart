@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -82,9 +83,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   void _resendOtp() {
     if (!_canResend) return;
 
-    context.read<AuthBloc>().add(
-      ResendOtpRequested(email: widget.email),
-    );
+    context.read<AuthBloc>().add(ResendOtpRequested(email: widget.email));
   }
 
   @override
@@ -147,7 +146,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
           children: [
             SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              child: Padding(
+              child: AdaptiveContainer.form(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

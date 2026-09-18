@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/bloc_refresh.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_bloc_extensions.dart';
@@ -81,128 +82,130 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
                 parent: BouncingScrollPhysics(),
               ),
               padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Avatar Hero
-                  GestureDetector(
-                    onTap: hasImage
-                        ? () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FullscreenImageViewer(
-                                imageUrl: user.profileImage!,
-                                heroTag: 'profile_avatar_hero',
-                              ),
-                            ),
-                          )
-                        : null,
-                    child: Hero(
-                      tag: 'profile_avatar_hero',
-                      child: CircleAvatar(
-                        radius: 56,
-                        backgroundColor: AppColors.primary.withAlpha(26),
-                        backgroundImage: hasImage
-                            ? NetworkImage(user.profileImage!)
-                            : null,
-                        child: !hasImage
-                            ? Text(
-                                initials,
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+              child: AdaptiveContainer.form(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Avatar Hero
+                    GestureDetector(
+                      onTap: hasImage
+                          ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FullscreenImageViewer(
+                                  imageUrl: user.profileImage!,
+                                  heroTag: 'profile_avatar_hero',
                                 ),
-                              )
-                            : null,
+                              ),
+                            )
+                          : null,
+                      child: Hero(
+                        tag: 'profile_avatar_hero',
+                        child: CircleAvatar(
+                          radius: 56,
+                          backgroundColor: AppColors.primary.withAlpha(26),
+                          backgroundImage: hasImage
+                              ? NetworkImage(user.profileImage!)
+                              : null,
+                          child: !hasImage
+                              ? Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : null,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (hasImage)
-                    const Text(
-                      'Tap to view photo',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textLight,
+                    const SizedBox(height: 12),
+                    if (hasImage)
+                      const Text(
+                        'Tap to view photo',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textLight,
+                        ),
                       ),
-                    ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                  // Details Card
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.border),
+                    // Details Card
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildDetailRow(
+                            icon: Icons.person_outline,
+                            label: 'First Name',
+                            value: user.firstName,
+                          ),
+                          const Divider(height: 1, color: AppColors.divider),
+                          _buildDetailRow(
+                            icon: Icons.person_outline,
+                            label: 'Last Name',
+                            value: user.lastName ?? '-',
+                          ),
+                          const Divider(height: 1, color: AppColors.divider),
+                          _buildDetailRow(
+                            icon: Icons.email_outlined,
+                            label: 'Email Address',
+                            value: user.email,
+                          ),
+                          const Divider(height: 1, color: AppColors.divider),
+                          _buildDetailRow(
+                            icon: Icons.phone_outlined,
+                            label: 'Phone Number',
+                            value: _formatPhone(user),
+                          ),
+                          const Divider(height: 1, color: AppColors.divider),
+                          _buildDetailRow(
+                            icon: Icons.business_outlined,
+                            label: 'Company Name',
+                            value: user.companyName.isNotEmpty
+                                ? user.companyName
+                                : '-',
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      children: [
-                        _buildDetailRow(
-                          icon: Icons.person_outline,
-                          label: 'First Name',
-                          value: user.firstName,
-                        ),
-                        const Divider(height: 1, color: AppColors.divider),
-                        _buildDetailRow(
-                          icon: Icons.person_outline,
-                          label: 'Last Name',
-                          value: user.lastName ?? '-',
-                        ),
-                        const Divider(height: 1, color: AppColors.divider),
-                        _buildDetailRow(
-                          icon: Icons.email_outlined,
-                          label: 'Email Address',
-                          value: user.email,
-                        ),
-                        const Divider(height: 1, color: AppColors.divider),
-                        _buildDetailRow(
-                          icon: Icons.phone_outlined,
-                          label: 'Phone Number',
-                          value: _formatPhone(user),
-                        ),
-                        const Divider(height: 1, color: AppColors.divider),
-                        _buildDetailRow(
-                          icon: Icons.business_outlined,
-                          label: 'Company Name',
-                          value: user.companyName.isNotEmpty
-                              ? user.companyName
-                              : '-',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                  // Edit Profile Button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 54),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const EditProfilePage(),
+                    // Edit Profile Button
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 54),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      );
-                    },
-                    child: const Text(
-                      'Edit Profile',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfilePage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Edit Profile',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

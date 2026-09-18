@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/validators.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -165,7 +166,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Padding(
+                            AdaptiveContainer.form(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24.0,
                                 vertical: 24.0,
@@ -617,18 +618,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ),
                               ),
                             ),
-                            // Bottom semi-truck illustration
-                            SizedBox(
-                              width: double.infinity,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 8,
-                                ),
-                                child: Image.asset(
-                                  'assets/images/truck.png',
-                                  fit: BoxFit.contain,
-                                ),
+                            // Bottom semi-truck illustration, held to the
+                            // form's column width on a tablet.
+                            AdaptiveContainer.form(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 8,
+                              ),
+                              child: Image.asset(
+                                'assets/images/truck.png',
+                                fit: BoxFit.contain,
                               ),
                             ),
                           ],

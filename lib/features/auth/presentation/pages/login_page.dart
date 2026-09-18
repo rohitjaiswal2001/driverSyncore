@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/validators.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -102,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               // Top & Middle Form Section
-                              Padding(
+                              AdaptiveContainer.form(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 24.0,
                                   vertical: 16.0,
@@ -268,21 +269,17 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                               ),
-                              // Truck Image Illustration
-                              Container(
-                                width: double.infinity,
-
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  child: Image.asset(
-                                    'assets/images/truck.png',
-                                    fit: BoxFit.fitWidth,
-                                  ),
+                              // Truck Image Illustration. Capped at the form
+                              // width so it stays a companion to the form on
+                              // an iPad instead of a billboard across it.
+                              AdaptiveContainer.form(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
+                                child: Image.asset(
+                                  'assets/images/truck.png',
+                                  fit: BoxFit.fitWidth,
                                 ),
                               ),
                               // Bottom Features Sheet

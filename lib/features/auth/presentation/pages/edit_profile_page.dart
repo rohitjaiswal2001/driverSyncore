@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_field/countries.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/widgets/loading_overlay.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../bloc/auth_bloc.dart';
@@ -276,202 +277,206 @@ class _EditProfilePageState extends State<EditProfilePage> {
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    // Image picker avatar
-                    GestureDetector(
-                      onTap: () => _showImageSourcePicker(hasImage),
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 56,
-                            backgroundColor: AppColors.primary.withAlpha(26),
-                            backgroundImage: _localImagePath != null
-                                ? FileImage(File(_localImagePath!))
-                                      as ImageProvider
-                                : (hasImage
-                                      ? NetworkImage(user.profileImage!)
-                                      : null),
-                            child: _localImagePath == null && !hasImage
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 56,
-                                    color: AppColors.primary,
-                                  )
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 16,
+              child: AdaptiveContainer.form(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      // Image picker avatar
+                      GestureDetector(
+                        onTap: () => _showImageSourcePicker(hasImage),
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 56,
+                              backgroundColor: AppColors.primary.withAlpha(26),
+                              backgroundImage: _localImagePath != null
+                                  ? FileImage(File(_localImagePath!))
+                                        as ImageProvider
+                                  : (hasImage
+                                        ? NetworkImage(user.profileImage!)
+                                        : null),
+                              child: _localImagePath == null && !hasImage
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 56,
+                                      color: AppColors.primary,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // First name field
+                      TextFormField(
+                        controller: _firstNameController,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        keyboardType: TextInputType.name,
+                        textCapitalization: TextCapitalization.words,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'First Name',
+                          hintText: 'First Name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: Validators.validateFirstName,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z\s]'),
                           ),
+                          LengthLimitingTextInputFormatter(50),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 16),
 
-                    // First name field
-                    TextFormField(
-                      controller: _firstNameController,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      keyboardType: TextInputType.name,
-                      textCapitalization: TextCapitalization.words,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'First Name',
-                        hintText: 'First Name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: Validators.validateFirstName,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[a-zA-Z\s]'),
-                        ),
-                        LengthLimitingTextInputFormatter(50),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Last name field
-                    TextFormField(
-                      controller: _lastNameController,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      keyboardType: TextInputType.name,
-                      textCapitalization: TextCapitalization.words,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Last Name',
-                        hintText: 'Last Name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: Validators.validateLastName,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[a-zA-Z\s]'),
-                        ),
-                        LengthLimitingTextInputFormatter(50),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Phone field
-                    IntlPhoneField(
-                      controller: _phoneController,
-                      initialCountryCode: _initialCountryIso,
-                      invalidNumberMessage:
-                          'Phone number must be $_phoneDigitsLabel digits for '
-                          '${_phoneCountry.name}',
-                      dropdownIconPosition: IconPosition.trailing,
-                      flagsButtonPadding: const EdgeInsets.only(left: 12),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                      ),
-                      dropdownTextStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        hintText: 'Enter $_phoneDigitsLabel digit number',
-                        counterText: '',
-                      ),
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onCountryChanged: (country) {
-                        setState(() {
-                          _phoneCountry = country;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Company Name field
-                    TextFormField(
-                      controller: _companyNameController,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Company Name',
-                        hintText: 'Company Name',
-                        prefixIcon: Icon(Icons.business_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Save Button
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 54),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      onPressed: () {
-                        final isValid =
-                            _formKey.currentState?.validate() ?? false;
-                        // IntlPhoneField lets an empty number through its
-                        // own validator, so the required check lives here.
-                        if (isValid && _phoneController.text.trim().isEmpty) {
-                          TopSnackBar.show(
-                            context,
-                            message: 'Phone number is required',
-                            backgroundColor: Colors.redAccent,
-                            icon: Icons.error_outline,
-                          );
-                          return;
-                        }
-                        if (isValid) {
-                          context.read<AuthBloc>().add(
-                            UpdateProfileSubmitted(
-                              firstName: _firstNameController.text.trim(),
-                              lastName: _lastNameController.text.trim(),
-                              phone: _phoneController.text.trim(),
-                              phoneCountryCode: _phoneCountryCode,
-                              companyName: _companyNameController.text.trim(),
-                              profileImagePath: _localImagePath,
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text(
-                        'Save Changes',
-                        style: TextStyle(
+                      // Last name field
+                      TextFormField(
+                        controller: _lastNameController,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        keyboardType: TextInputType.name,
+                        textCapitalization: TextCapitalization.words,
+                        style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Last Name',
+                          hintText: 'Last Name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: Validators.validateLastName,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'[a-zA-Z\s]'),
+                          ),
+                          LengthLimitingTextInputFormatter(50),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Phone field
+                      IntlPhoneField(
+                        controller: _phoneController,
+                        initialCountryCode: _initialCountryIso,
+                        invalidNumberMessage:
+                            'Phone number must be $_phoneDigitsLabel digits for '
+                            '${_phoneCountry.name}',
+                        dropdownIconPosition: IconPosition.trailing,
+                        flagsButtonPadding: const EdgeInsets.only(left: 12),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                        dropdownTextStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Phone Number',
+                          hintText: 'Enter $_phoneDigitsLabel digit number',
+                          counterText: '',
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onCountryChanged: (country) {
+                          setState(() {
+                            _phoneCountry = country;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Company Name field
+                      TextFormField(
+                        controller: _companyNameController,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Company Name',
+                          hintText: 'Company Name',
+                          prefixIcon: Icon(Icons.business_outlined),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 40),
+
+                      // Save Button
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 54),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: () {
+                          final isValid =
+                              _formKey.currentState?.validate() ?? false;
+                          // IntlPhoneField lets an empty number through its
+                          // own validator, so the required check lives here.
+                          if (isValid && _phoneController.text.trim().isEmpty) {
+                            TopSnackBar.show(
+                              context,
+                              message: 'Phone number is required',
+                              backgroundColor: Colors.redAccent,
+                              icon: Icons.error_outline,
+                            );
+                            return;
+                          }
+                          if (isValid) {
+                            context.read<AuthBloc>().add(
+                              UpdateProfileSubmitted(
+                                firstName: _firstNameController.text.trim(),
+                                lastName: _lastNameController.text.trim(),
+                                phone: _phoneController.text.trim(),
+                                phoneCountryCode: _phoneCountryCode,
+                                companyName: _companyNameController.text.trim(),
+                                profileImagePath: _localImagePath,
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

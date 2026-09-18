@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 
 class LegalDocumentPage extends StatelessWidget {
   final String title;
@@ -58,53 +59,58 @@ class LegalDocumentPage extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         physics: const BouncingScrollPhysics(),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textDark,
+        // Legal copy is the one thing on the app that is genuinely read rather
+        // than scanned, so the measure is capped: full-width lines on an iPad
+        // run past the point where the eye can find the next one.
+        child: AdaptiveContainer(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Last updated: August 2026',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textMedium,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textDark,
+                  ),
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Divider(color: AppColors.border),
-              ),
-              Text(
-                contentMarkdown,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  height: 1.6,
-                  color: AppColors.textDark,
+                const SizedBox(height: 6),
+                const Text(
+                  'Last updated: August 2026',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMedium,
+                  ),
                 ),
-              ),
-            ],
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(color: AppColors.border),
+                ),
+                Text(
+                  contentMarkdown,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    height: 1.6,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

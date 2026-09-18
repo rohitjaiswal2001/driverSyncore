@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import '../../../../core/utils/recent_orders_store.dart';
 import '../../domain/entities/trip.dart';
@@ -198,73 +199,77 @@ class _MyTripsPageState extends State<MyTripsPage> {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-      child: Column(
-        children: [
-          TextField(
-            controller: _searchController,
-            textCapitalization: TextCapitalization.characters,
-            textInputAction: TextInputAction.search,
-            onChanged: (_) => setState(() {}),
-            onSubmitted: _lookUpOrder,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textDark,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Search or add a Booking Order ID',
-              hintStyle: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w400,
-                color: AppColors.textLight,
+      // The white bar spans the window, but the search field and the tab
+      // switcher stay over the column of trip cards they filter.
+      child: AdaptiveContainer(
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchController,
+              textCapitalization: TextCapitalization.characters,
+              textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: _lookUpOrder,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textDark,
               ),
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _searchController.text.trim().isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: 'Look up this order',
-                      icon: const Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 20,
-                        color: AppColors.primary,
+              decoration: InputDecoration(
+                hintText: 'Search or add a Booking Order ID',
+                hintStyle: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textLight,
+                ),
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _searchController.text.trim().isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Look up this order',
+                        icon: const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
+                        onPressed: () => _lookUpOrder(_searchController.text),
                       ),
-                      onPressed: () => _lookUpOrder(_searchController.text),
-                    ),
-              filled: true,
-              fillColor: AppColors.inputBackground,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1.6,
+                filled: true,
+                fillColor: AppColors.inputBackground,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.6,
+                  ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.border),
                 ),
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: AppColors.border),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: _buildTabButton('Assigned')),
+                  Expanded(child: _buildTabButton('Completed')),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              children: [
-                Expanded(child: _buildTabButton('Assigned')),
-                Expanded(child: _buildTabButton('Completed')),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -350,7 +355,12 @@ class _MyTripsPageState extends State<MyTripsPage> {
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
-        padding: const EdgeInsets.all(16),
+        padding: adaptiveScrollPadding(
+          context,
+          horizontal: 16,
+          top: 16,
+          bottom: 16,
+        ),
         children: [
           for (final trip in filtered) _buildTripCard(trip),
           if (_failedLookups.isNotEmpty) _buildFailedLookups(),
@@ -443,7 +453,8 @@ class _MyTripsPageState extends State<MyTripsPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
+          child: AdaptiveContainer.form(
+            alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

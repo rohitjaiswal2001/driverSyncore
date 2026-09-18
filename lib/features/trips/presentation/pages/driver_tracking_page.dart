@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' show LatLng;
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/utils/notification_permission.dart';
 import '../../../../core/utils/reverse_geocoder.dart';
@@ -371,6 +372,9 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // Constrained sheets are centred by the framework, so on an iPad this
+      // rises as a panel rather than a 1300pt-wide slab.
+      constraints: const BoxConstraints(maxWidth: AppContentWidth.sheet),
       builder: (context) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.85,
@@ -498,7 +502,8 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
     final error = _loadError;
     if (error != null && _activeTrip == null) {
       return Center(
-        child: Padding(
+        child: AdaptiveContainer.form(
+          alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -562,7 +567,11 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
               children: [
                 SizedBox(
                   width: double.infinity,
-                  height: 380,
+                  // The map is the one element that earns the extra room an
+                  // iPad gives, so it keeps the full width and gets more
+                  // height instead of leaving the route squeezed into a
+                  // phone-sized strip at the top of a much taller screen.
+                  height: context.isWideLayout ? 460 : 380,
                   child: AnimatedBuilder(
                     animation: _locationController ?? const _NoopListenable(),
                     builder: (context, _) {
@@ -605,189 +614,193 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
                 //   ),
                 // ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(16, 10, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AnimatedBuilder(
-                        animation:
-                            _locationController ?? const _NoopListenable(),
-                        builder: (context, _) => _LocationAccessBanner(
-                          state:
-                              _locationController?.accessState ??
-                              LocationAccessState.unknown,
-                          isTrackingNotificationHidden:
-                              (_locationController?.isLiveTracking ?? false) &&
-                              !(_locationController
-                                      ?.isTrackingNotificationVisible ??
-                                  true),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                  child: AdaptiveContainer(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AnimatedBuilder(
+                          animation:
+                              _locationController ?? const _NoopListenable(),
+                          builder: (context, _) => _LocationAccessBanner(
+                            state:
+                                _locationController?.accessState ??
+                                LocationAccessState.unknown,
+                            isTrackingNotificationHidden:
+                                (_locationController?.isLiveTracking ??
+                                    false) &&
+                                !(_locationController
+                                        ?.isTrackingNotificationVisible ??
+                                    true),
+                          ),
                         ),
-                      ),
 
-                      // Live Tracking In Progress Card (Hidden when shipment is completed)
-                      if (isTrackingEligible &&
-                          !trip.isShippingDone &&
-                          !isFailed) ...[
-                        _LiveTrackingToggleCard(
-                          isEnabled: _isTrackingEnabled,
-                          statusLabel:
-                              resolvedTrackingStatus?.label ?? trip.status,
-                          onToggleChanged: _isUpdatingTrackingStatus
-                              ? (_) {}
-                              : (value) => _handleTrackingToggle(value, trip),
+                        // Live Tracking In Progress Card (Hidden when shipment is completed)
+                        if (isTrackingEligible &&
+                            !trip.isShippingDone &&
+                            !isFailed) ...[
+                          _LiveTrackingToggleCard(
+                            isEnabled: _isTrackingEnabled,
+                            statusLabel:
+                                resolvedTrackingStatus?.label ?? trip.status,
+                            onToggleChanged: _isUpdatingTrackingStatus
+                                ? (_) {}
+                                : (value) => _handleTrackingToggle(value, trip),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Basic Cargo Detail
+                        CargoMetricsRow(
+                          cargoType: trip.cargoType,
+                          weight: trip.weight,
+                          transitTime: trip.transitTime,
                         ),
                         const SizedBox(height: 16),
-                      ],
 
-                      // Basic Cargo Detail
-                      CargoMetricsRow(
-                        cargoType: trip.cargoType,
-                        weight: trip.weight,
-                        transitTime: trip.transitTime,
-                      ),
-                      const SizedBox(height: 16),
+                        // Customer Detail
+                        CustomerContactCard(
+                          customerName: trip.customerName,
+                          customerPhone: trip.customerPhone,
+                        ),
+                        const SizedBox(height: 20),
 
-                      // Customer Detail
-                      CustomerContactCard(
-                        customerName: trip.customerName,
-                        customerPhone: trip.customerPhone,
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Button to change / update shipment status (or Shipping Completed Banner)
-                      if (trip.isShippingDone)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentGreen.withValues(
-                              alpha: 0.12,
+                        // Button to change / update shipment status (or Shipping Completed Banner)
+                        if (trip.isShippingDone)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
                             ),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
+                            decoration: BoxDecoration(
                               color: AppColors.accentGreen.withValues(
-                                alpha: 0.3,
+                                alpha: 0.12,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppColors.accentGreen.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
                             ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.check_circle,
-                                color: AppColors.accentGreen,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                (trip.formattedCompletedDate.isNotEmpty ||
-                                        trip.pickupDate.isNotEmpty)
-                                    ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
-                                    : 'Shipping is Completed',
-                                style: const TextStyle(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
                                   color: AppColors.accentGreen,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                                  size: 22,
                                 ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (isFailed)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.dangerBg,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: AppColors.danger.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: AppColors.danger,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Shipment marked as Failed',
-                                      style: TextStyle(
-                                        color: AppColors.danger,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    if (trip.notes.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        trip.notes,
-                                        style: const TextStyle(
-                                          color: AppColors.textMedium,
-                                          fontSize: 12.5,
-                                          height: 1.35,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (isPaused)
-                        // Status changes belong to a running trip: while tracking
-                        // is paused the button is gone, and this says why.
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.warningBg,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: AppColors.warning.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: const [
-                              Icon(
-                                Icons.pause_circle_outline,
-                                color: AppColors.warning,
-                                size: 20,
-                              ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Tracking is paused. Resume it to change the '
-                                  'shipment status.',
-                                  style: TextStyle(
-                                    color: AppColors.warning,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                    height: 1.35,
+                                const SizedBox(width: 10),
+                                Text(
+                                  (trip.formattedCompletedDate.isNotEmpty ||
+                                          trip.pickupDate.isNotEmpty)
+                                      ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
+                                      : 'Shipping is Completed',
+                                  style: const TextStyle(
+                                    color: AppColors.accentGreen,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
                                   ),
                                 ),
+                              ],
+                            ),
+                          )
+                        else if (isFailed)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.dangerBg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppColors.danger.withValues(alpha: 0.3),
                               ),
-                            ],
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppColors.danger,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Shipment marked as Failed',
+                                        style: TextStyle(
+                                          color: AppColors.danger,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      if (trip.notes.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          trip.notes,
+                                          style: const TextStyle(
+                                            color: AppColors.textMedium,
+                                            fontSize: 12.5,
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (isPaused)
+                          // Status changes belong to a running trip: while tracking
+                          // is paused the button is gone, and this says why.
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warningBg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppColors.warning.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: const [
+                                Icon(
+                                  Icons.pause_circle_outline,
+                                  color: AppColors.warning,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Tracking is paused. Resume it to change the '
+                                    'shipment status.',
+                                    style: TextStyle(
+                                      color: AppColors.warning,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -816,21 +829,23 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
                 ),
               ],
             ),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(54),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            child: AdaptiveContainer(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(54),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 2,
                 ),
-                elevation: 2,
-              ),
-              onPressed: () => _openUpdateStatusSheet(trip),
-              icon: const Icon(Icons.edit_note_rounded, size: 24),
-              label: const Text(
-                'Change Shipment Status',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                onPressed: () => _openUpdateStatusSheet(trip),
+                icon: const Icon(Icons.edit_note_rounded, size: 24),
+                label: const Text(
+                  'Change Shipment Status',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
             ),
           ),
@@ -925,39 +940,42 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: AppColors.primaryLight,
-                shape: BoxShape.circle,
+        child: AdaptiveContainer.form(
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.map_outlined,
+                  size: 64,
+                  color: AppColors.primary,
+                ),
               ),
-              child: const Icon(
-                Icons.map_outlined,
-                size: 64,
-                color: AppColors.primary,
+              const SizedBox(height: 20),
+              const Text(
+                'No Active Shipment Loaded',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'No Active Shipment Loaded',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
+              const SizedBox(height: 8),
+              const Text(
+                'Enter a Booking Order ID below to load shipment details, start live location tracking, and update status.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: AppColors.textMedium),
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Enter a Booking Order ID below to load shipment details, start live location tracking, and update status.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textMedium),
-            ),
-            const SizedBox(height: 24),
-            BookingIdEntryCard(onSubmit: _fetchTripForBookingId),
-          ],
+              const SizedBox(height: 24),
+              BookingIdEntryCard(onSubmit: _fetchTripForBookingId),
+            ],
+          ),
         ),
       ),
     );

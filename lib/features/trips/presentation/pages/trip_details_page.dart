@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/utils/bloc_refresh.dart';
 import '../../domain/entities/trip.dart';
@@ -163,164 +164,166 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                 parent: BouncingScrollPhysics(),
               ),
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Route Timeline Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: RouteTimeline(
-                      pickupLocation: trip.pickupLocation,
-                      pickupAddress: trip.pickupAddress,
-                      pickupTime: trip.pickupDate,
-                      dropLocation: trip.dropLocation,
-                      dropAddress: trip.dropAddress,
-                      dropTime: isCompleted
-                          ? (trip.formattedCompletedDate.isNotEmpty
-                                ? 'Completed: ${trip.formattedCompletedDate}'
-                                : 'Completed: ${trip.pickupDate}')
-                          : 'Estimated: ${trip.dropEta}',
-                      transitTime: trip.transitTime,
-                      timeRequirement: trip.arrivalRequirementText,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 2. Customer Section Card
-                  CustomerContactCard(
-                    customerName: trip.customerName,
-                    customerPhone: trip.customerPhone,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 3. Current Shipment Status Banner Card (Placed below Customer details)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isCompleted
-                          ? AppColors.accentGreen.withValues(alpha: 0.10)
-                          : AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isCompleted
-                            ? AppColors.accentGreen.withValues(alpha: 0.35)
-                            : AppColors.primary.withValues(alpha: 0.25),
+              child: AdaptiveContainer(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Route Timeline Card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: RouteTimeline(
+                        pickupLocation: trip.pickupLocation,
+                        pickupAddress: trip.pickupAddress,
+                        pickupTime: trip.pickupDate,
+                        dropLocation: trip.dropLocation,
+                        dropAddress: trip.dropAddress,
+                        dropTime: isCompleted
+                            ? (trip.formattedCompletedDate.isNotEmpty
+                                  ? 'Completed: ${trip.formattedCompletedDate}'
+                                  : 'Completed: ${trip.pickupDate}')
+                            : 'Estimated: ${trip.dropEta}',
+                        transitTime: trip.transitTime,
+                        timeRequirement: trip.arrivalRequirementText,
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isCompleted
-                                ? AppColors.accentGreen.withValues(alpha: 0.2)
-                                : AppColors.primary.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isCompleted
-                                ? Icons.check_circle_rounded
-                                : Icons.local_shipping_rounded,
-                            color: isCompleted
-                                ? AppColors.accentGreen
-                                : AppColors.primary,
-                            size: 20,
-                          ),
+                    const SizedBox(height: 16),
+
+                    // 2. Customer Section Card
+                    CustomerContactCard(
+                      customerName: trip.customerName,
+                      customerPhone: trip.customerPhone,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 3. Current Shipment Status Banner Card (Placed below Customer details)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isCompleted
+                            ? AppColors.accentGreen.withValues(alpha: 0.10)
+                            : AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isCompleted
+                              ? AppColors.accentGreen.withValues(alpha: 0.35)
+                              : AppColors.primary.withValues(alpha: 0.25),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'CURRENT SHIPMENT STATUS',
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isCompleted
+                                  ? AppColors.accentGreen.withValues(alpha: 0.2)
+                                  : AppColors.primary.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isCompleted
+                                  ? Icons.check_circle_rounded
+                                  : Icons.local_shipping_rounded,
+                              color: isCompleted
+                                  ? AppColors.accentGreen
+                                  : AppColors.primary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'CURRENT SHIPMENT STATUS',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textMedium,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  statusText,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: isCompleted
+                                        ? AppColors.accentGreen
+                                        : AppColors.primary,
+                                  ),
+                                ),
+                                if (isCompleted &&
+                                    (trip.formattedCompletedDate.isNotEmpty ||
+                                        trip.pickupDate.isNotEmpty)) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Date: ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.accentGreen,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (isCompleted)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentGreen,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'COMPLETED',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.textMedium,
+                                  color: Colors.white,
                                   letterSpacing: 0.5,
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                statusText,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: isCompleted
-                                      ? AppColors.accentGreen
-                                      : AppColors.primary,
-                                ),
-                              ),
-                              if (isCompleted &&
-                                  (trip.formattedCompletedDate.isNotEmpty ||
-                                      trip.pickupDate.isNotEmpty)) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Date: ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.accentGreen,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        if (isCompleted)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.accentGreen,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'COMPLETED',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  // 4. Cargo Details Row (Cargo, Weight, Distance)
-                  CargoMetricsRow(
-                    cargoType: trip.cargoType,
-                    weight: trip.weight,
-                    distanceKm: trip.distanceRemainingKm,
-                  ),
-                  const SizedBox(height: 16),
+                    // 4. Cargo Details Row (Cargo, Weight, Distance)
+                    CargoMetricsRow(
+                      cargoType: trip.cargoType,
+                      weight: trip.weight,
+                      distanceKm: trip.distanceRemainingKm,
+                    ),
+                    const SizedBox(height: 16),
 
-                  // 5. Truck / Vehicle Card
-                  TruckInfoCard(truckInfo: trip.truckInfo),
-                  const SizedBox(height: 16),
+                    // 5. Truck / Vehicle Card
+                    TruckInfoCard(truckInfo: trip.truckInfo),
+                    const SizedBox(height: 16),
 
-                  // // 6. Shipment Documents Card (Positioned at the bottom)
-                  // TripDocumentsCard(
-                  //   documentUrl: trip.documentUrl,
-                  //   bookingId: trip.bookingId,
-                  // ),
-                  // const SizedBox(height: 32),
-                ],
+                    // // 6. Shipment Documents Card (Positioned at the bottom)
+                    // TripDocumentsCard(
+                    //   documentUrl: trip.documentUrl,
+                    //   bookingId: trip.bookingId,
+                    // ),
+                    // const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
           );
@@ -344,39 +347,41 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   20,
                   12 + MediaQuery.of(context).padding.bottom,
                 ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentGreen.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.accentGreen.withValues(alpha: 0.3),
+                child: AdaptiveContainer(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 16,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: AppColors.accentGreen,
-                        size: 22,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGreen.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.accentGreen.withValues(alpha: 0.3),
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        (trip.formattedCompletedDate.isNotEmpty ||
-                                trip.pickupDate.isNotEmpty)
-                            ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
-                            : 'Shipping is Completed',
-                        style: const TextStyle(
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
                           color: AppColors.accentGreen,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          size: 22,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Text(
+                          (trip.formattedCompletedDate.isNotEmpty ||
+                                  trip.pickupDate.isNotEmpty)
+                              ? 'Shipping Completed on ${trip.formattedCompletedDate.isNotEmpty ? trip.formattedCompletedDate : trip.pickupDate}'
+                              : 'Shipping is Completed',
+                          style: const TextStyle(
+                            color: AppColors.accentGreen,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -393,43 +398,52 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                 20,
                 12 + MediaQuery.of(context).padding.bottom,
               ),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(54),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              // The bar keeps its full-width white background, but the button
+              // itself lines up with the cards above rather than stretching
+              // into a 1300pt target.
+              child: AdaptiveContainer(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(54),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                ),
-                onPressed: () async {
-                  await di.sl<ActiveOrderStore>().set(trip.bookingId);
-                  if (!context.mounted) return;
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const DriverTrackingPage(),
-                    ),
-                  );
-                  if (!context.mounted) return;
-                  context.read<TripsBloc>().add(
-                    LoadTripDetails(tripId: widget.tripId),
-                  );
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.navigation, color: Colors.white, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      buttonText,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                  onPressed: () async {
+                    await di.sl<ActiveOrderStore>().set(trip.bookingId);
+                    if (!context.mounted) return;
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DriverTrackingPage(),
                       ),
-                    ),
-                  ],
+                    );
+                    if (!context.mounted) return;
+                    context.read<TripsBloc>().add(
+                      LoadTripDetails(tripId: widget.tripId),
+                    );
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.navigation,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        buttonText,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

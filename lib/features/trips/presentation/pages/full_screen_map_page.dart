@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' show LatLng;
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../controllers/location_tracking_controller.dart';
 import '../widgets/live_tracking_map.dart';
 
@@ -83,10 +84,15 @@ class _FullScreenMapPageState extends State<FullScreenMapPage> {
             left: 16,
             right: 16,
             bottom: legendOffset,
-            child: _RouteLegend(
-              key: _legendKey,
-              pickup: widget.pickupLabel,
-              drop: widget.dropLabel,
+            // The map itself stays edge to edge; only the legend is reined in,
+            // so it does not become a full-width bar across an iPad.
+            child: AdaptiveContainer(
+              alignment: Alignment.bottomCenter,
+              child: _RouteLegend(
+                key: _legendKey,
+                pickup: widget.pickupLabel,
+                drop: widget.dropLabel,
+              ),
             ),
           ),
         ],

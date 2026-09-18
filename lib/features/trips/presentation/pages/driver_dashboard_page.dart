@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_info.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/utils/recent_orders_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
@@ -345,11 +346,15 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                       physics: const AlwaysScrollableScrollPhysics(
                         parent: BouncingScrollPhysics(),
                       ),
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        20,
-                        16,
-                        24 + MediaQuery.of(context).padding.bottom,
+                      // Wide windows turn the extra width into side margin
+                      // rather than a 1300pt-wide trip card; the list itself
+                      // still owns the full width, so the scrollbar and the
+                      // pull-to-refresh sit where they always did.
+                      padding: adaptiveScrollPadding(
+                        context,
+                        horizontal: 16,
+                        top: 20,
+                        bottom: 24 + MediaQuery.of(context).padding.bottom,
                       ),
                       children: [
                         // Active Trip / Booking Section
@@ -407,96 +412,101 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
           bottom: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: widget.onNavigateToProfile,
-                    borderRadius: BorderRadius.circular(14),
-                    child: Row(
-                      children: [
-                        Stack(
-                          children: [
-                            UserAvatar(
-                              name: driverName,
-                              imageUrl: user?.profileImage,
-                              radius: 24,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: AppColors.accentGreen,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.navy,
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
+            // The gradient stays edge to edge, but the greeting and the logout
+            // button are held to the same column as the cards below so they
+            // line up instead of drifting to opposite bezels on an iPad.
+            child: AdaptiveContainer(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: widget.onNavigateToProfile,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Row(
+                        children: [
+                          Stack(
                             children: [
-                              Text(
-                                '${_getSalutation()},',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white.withValues(alpha: 0.75),
-                                ),
+                              UserAvatar(
+                                name: driverName,
+                                imageUrl: user?.profileImage,
+                                radius: 24,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                driverName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: -0.4,
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentGreen,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.navy,
+                                      width: 2,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${_getSalutation()},',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white.withValues(alpha: 0.75),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  driverName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Semantics(
-                  button: true,
-                  label: 'Log out',
-                  child: Material(
-                    color: Colors.white,
-                    shape: const CircleBorder(),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: _confirmLogout,
-                      child: const SizedBox(
-                        width: 42,
-                        height: 42,
-                        child: Icon(
-                          Icons.logout_rounded,
-                          color: AppColors.danger,
-                          size: 20,
+                  const SizedBox(width: 16),
+                  Semantics(
+                    button: true,
+                    label: 'Log out',
+                    child: Material(
+                      color: Colors.white,
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: _confirmLogout,
+                        child: const SizedBox(
+                          width: 42,
+                          height: 42,
+                          child: Icon(
+                            Icons.logout_rounded,
+                            color: AppColors.danger,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
