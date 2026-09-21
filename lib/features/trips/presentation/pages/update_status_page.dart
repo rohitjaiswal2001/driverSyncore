@@ -11,6 +11,7 @@ import '../../domain/entities/trip.dart';
 import '../../domain/repositories/trips_repository.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
 import 'trip_completed_page.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// Lets the driver move a shipment through its tracking states.
 ///
@@ -377,17 +378,12 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+              AppButton.secondary(
+                label: 'Try again',
+                icon: Icons.refresh_rounded,
+                size: AppButtonSize.compact,
+                expand: false,
                 onPressed: _load,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Try again'),
               ),
             ],
           ),
@@ -1121,53 +1117,14 @@ class _UpdateStatusPageState extends State<UpdateStatusPage> {
               ),
               const SizedBox(height: 10),
             ],
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: isDone
-                    ? AppColors.accentGreen.withValues(alpha: 0.8)
-                    : AppColors.primary.withValues(alpha: 0.35),
-                disabledForegroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(54),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
+            AppButton(
+              label: label,
+              icon: isDone || isFinalStep
+                  ? Icons.check_circle_rounded
+                  : Icons.arrow_circle_right_outlined,
+              accent: buttonColor,
+              isLoading: _isSubmitting,
               onPressed: canSubmit ? _submit : null,
-              child: _isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isDone || isFinalStep
-                              ? Icons.check_circle_rounded
-                              : Icons.arrow_circle_right_outlined,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
             ),
           ],
         ),

@@ -214,8 +214,7 @@ class AppButton extends StatelessWidget {
     );
 
     final Widget button = switch (variant) {
-      AppButtonVariant.primary ||
-      AppButtonVariant.danger => ElevatedButton(
+      AppButtonVariant.primary || AppButtonVariant.danger => ElevatedButton(
         onPressed: press,
         style: style,
         child: child,

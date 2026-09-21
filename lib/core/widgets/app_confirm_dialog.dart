@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../layout/responsive.dart';
+import 'app_button.dart';
 
 /// Shared confirmation dialog for destructive or irreversible actions.
 ///
@@ -137,59 +138,23 @@ class _AppConfirmDialogWidgetState extends State<_AppConfirmDialogWidget> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(
-                          color: AppColors.border,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+                    child: AppButton.secondary(
+                      label: widget.cancelLabel,
+                      size: AppButtonSize.compact,
+                      accent: AppColors.textMedium,
                       onPressed: _isLoading
                           ? null
                           : () => Navigator.pop(context, false),
-                      child: Text(
-                        widget.cancelLabel,
-                        style: const TextStyle(
-                          color: AppColors.textMedium,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.accentColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: _isLoading ? null : _handleConfirm,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : Text(
-                              widget.confirmLabel,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
+                    child: AppButton(
+                      label: widget.confirmLabel,
+                      size: AppButtonSize.compact,
+                      accent: widget.accentColor,
+                      isLoading: _isLoading,
+                      onPressed: _handleConfirm,
                     ),
                   ),
                 ],

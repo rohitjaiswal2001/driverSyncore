@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/quote.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// A card widget representing a single Quote's overview, including its
 /// ID, status, route timeline, estimated price, packaging details, and
@@ -246,20 +247,12 @@ class QuoteCard extends StatelessWidget {
                     Row(
                       children: [
                         if (isPending && onAccept != null) ...[
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.accentGreen,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              minimumSize: Size.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
+                          AppButton(
+                            label: 'Accept Quote',
+                            size: AppButtonSize.compact,
+                            accent: AppColors.accentGreen,
+                            expand: false,
                             onPressed: onAccept,
-                            child: const Text(
-                              'Accept Quote',
-                              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
                           ),
                           const SizedBox(width: 8),
                         ],

@@ -475,15 +475,11 @@ class _MyTripsPageState extends State<MyTripsPage> {
                 ),
                 if (actionLabel != null && onAction != null) ...[
                   const SizedBox(height: 20),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
+                  AppButton(
+                    label: actionLabel,
+                    size: AppButtonSize.compact,
+                    expand: false,
                     onPressed: onAction,
-                    child: Text(actionLabel),
                   ),
                 ],
               ],

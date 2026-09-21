@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
+import '../widgets/app_button.dart';
 
 class SessionExpiredHandler {
   static bool _isDialogShowing = false;
@@ -118,7 +119,9 @@ class SessionExpiredHandler {
             right: 20,
           ),
           actions: [
-            ElevatedButton(
+            AppButton(
+              label: 'Re-login',
+              size: AppButtonSize.compact,
               onPressed: () {
                 Navigator.of(dialogContext).pop();
 
@@ -132,21 +135,6 @@ class SessionExpiredHandler {
                 // even though `context` may be gone by the time it is tapped.
                 authBloc.add(const LogoutRequested());
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                minimumSize: const Size.fromHeight(46),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Re-login',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
             ),
           ],
         );

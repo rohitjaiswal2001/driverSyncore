@@ -172,29 +172,29 @@ class TripCompletedPage extends StatelessWidget {
                   icon: Icons.add_circle_outline_rounded,
                   accent: AppColors.navy,
                   onPressed: () async {
-                      final confirmed = await showAppConfirmDialog(
-                        context,
-                        icon: Icons.swap_horiz_rounded,
-                        title: 'Clear order ID?',
-                        message:
-                            'Your completed shipment will be cleared from the dashboard so you can enter a new Booking Order ID.',
-                        confirmLabel: 'Clear Order',
-                        accentColor: AppColors.navy,
-                        accentBackground: AppColors.primaryLight,
-                      );
+                    final confirmed = await showAppConfirmDialog(
+                      context,
+                      icon: Icons.swap_horiz_rounded,
+                      title: 'Clear order ID?',
+                      message:
+                          'Your completed shipment will be cleared from the dashboard so you can enter a new Booking Order ID.',
+                      confirmLabel: 'Clear Order',
+                      accentColor: AppColors.navy,
+                      accentBackground: AppColors.primaryLight,
+                    );
 
-                      if (confirmed && context.mounted) {
-                        await di.sl<ActiveOrderStore>().clear();
-                        if (context.mounted) {
-                          // Pop back to the root route rather than replacing
-                          // it. The root route owns the login/shell switch and
-                          // renders the dashboard for the real signed-in user;
-                          // rebuilding the shell here would discard that switch
-                          // (stranding a later logout) and hardcode the name.
-                          Navigator.popUntil(context, (route) => route.isFirst);
-                        }
+                    if (confirmed && context.mounted) {
+                      await di.sl<ActiveOrderStore>().clear();
+                      if (context.mounted) {
+                        // Pop back to the root route rather than replacing
+                        // it. The root route owns the login/shell switch and
+                        // renders the dashboard for the real signed-in user;
+                        // rebuilding the shell here would discard that switch
+                        // (stranding a later logout) and hardcode the name.
+                        Navigator.popUntil(context, (route) => route.isFirst);
                       }
-                    },
+                    }
+                  },
                 ),
               ],
             ),

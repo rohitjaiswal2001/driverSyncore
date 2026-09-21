@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/trip.dart';
 import 'trip_status_chip.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// The dashboard's primary card: everything a driver needs about the shipment
 /// they are currently running, without opening the details page.
@@ -341,68 +342,32 @@ class ActiveTripCard extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: SizedBox(
-            height: 48,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.navy,
-                side: const BorderSide(color: AppColors.border),
-                // / Reduce internal padding
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-              icon: const Icon(Icons.receipt_long_outlined, size: 17),
-              label: const Text(
-                'Details',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-              onPressed: onViewDetails,
-            ),
+          child: AppButton.secondary(
+            label: 'Details',
+            icon: Icons.receipt_long_outlined,
+            size: AppButtonSize.compact,
+            accent: AppColors.navy,
+            onPressed: onViewDetails,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: SizedBox(
-            height: 48,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: status.isTerminal
-                    ? AppColors.accentGreen
-                    : showTrackMap
-                    ? AppColors.primary
-                    : AppColors.primary,
-                foregroundColor: Colors.white,
-                // / Reduce internal padding
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 0,
-              ),
-
-              icon: Icon(
-                status.isTerminal
-                    ? Icons.add_circle_outline_rounded
-                    : showTrackMap
-                    ? Icons.route_rounded
-                    : Icons.play_circle_outline_rounded,
-                size: 17,
-              ),
-              label: Text(
-                status.isTerminal
-                    ? 'New Trip'
-                    : showTrackMap
-                    ? 'Track Status'
-                    : 'Start Shipment',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onPressed: status.isTerminal ? onChangeBooking : onTrackMap,
-            ),
+          child: AppButton(
+            label: status.isTerminal
+                ? 'New Trip'
+                : showTrackMap
+                ? 'Track Status'
+                : 'Start Shipment',
+            icon: status.isTerminal
+                ? Icons.add_circle_outline_rounded
+                : showTrackMap
+                ? Icons.route_rounded
+                : Icons.play_circle_outline_rounded,
+            size: AppButtonSize.compact,
+            accent: status.isTerminal
+                ? AppColors.accentGreen
+                : AppColors.primary,
+            onPressed: status.isTerminal ? onChangeBooking : onTrackMap,
           ),
         ),
       ],

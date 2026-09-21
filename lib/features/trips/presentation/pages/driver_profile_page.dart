@@ -23,6 +23,7 @@ import '../../../auth/presentation/pages/profile_details_page.dart';
 import '../widgets/driver_profile_header.dart';
 import '../widgets/profile_setting_tile.dart';
 import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class DriverProfilePage extends StatefulWidget {
   final String username;
@@ -299,24 +300,13 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
   }
 
   Widget _buildLogoutButton() {
-    return SizedBox(
-      height: 54,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.dangerTint,
-          foregroundColor: AppColors.danger,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        onPressed: _confirmLogout,
-        icon: const Icon(Icons.logout_rounded, size: 19),
-        label: const Text(
-          'Log out',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ),
+    // Outlined rather than filled red: logging out is not destructive, and a
+    // solid danger button here would outweigh everything above it.
+    return AppButton.secondary(
+      label: 'Log out',
+      icon: Icons.logout_rounded,
+      accent: AppColors.danger,
+      onPressed: _confirmLogout,
     );
   }
 
@@ -444,45 +434,23 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
-                  height: 50,
                   width: 190,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.navy,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: _isRefreshing ? null : _handleRefresh,
-                    icon: _isRefreshing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.refresh_rounded, size: 18),
-                    label: Text(
-                      _isRefreshing ? 'Retrying…' : 'Try again',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  child: AppButton(
+                    label: _isRefreshing ? 'Retrying…' : 'Try again',
+                    icon: Icons.refresh_rounded,
+                    size: AppButtonSize.compact,
+                    accent: AppColors.navy,
+                    isLoading: _isRefreshing,
+                    onPressed: _handleRefresh,
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextButton(
+                AppButton.ghost(
+                  label: 'Log out',
+                  size: AppButtonSize.compact,
+                  accent: AppColors.textMedium,
+                  expand: false,
                   onPressed: _confirmLogout,
-                  child: const Text(
-                    'Log out',
-                    style: TextStyle(
-                      color: AppColors.textMedium,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ),
               ],
             ),

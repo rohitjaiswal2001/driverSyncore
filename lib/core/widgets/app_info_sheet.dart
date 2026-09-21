@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../layout/responsive.dart';
+import 'app_button.dart';
 
 /// A tappable row rendered inside [showAppInfoSheet].
 class AppSheetAction {
@@ -91,24 +92,10 @@ Future<void> showAppInfoSheet(
               ],
             ],
             const SizedBox(height: 18),
-            SizedBox(
-              height: 52,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.navy,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(sheetCtx),
-                child: Text(
-                  dismissLabel,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+            AppButton(
+              label: dismissLabel,
+              accent: AppColors.navy,
+              onPressed: () => Navigator.pop(sheetCtx),
             ),
           ],
         ),
