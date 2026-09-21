@@ -5,6 +5,7 @@ import '../../../../core/widgets/truck_illustration.dart';
 import '../../../../core/utils/validators.dart';
 import 'otp_input_field.dart';
 import 'password_input_field.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// OTP + new-password step of the forgot-password flow.
 /// Owns its own OTP/password fields and only reports validated values
@@ -225,24 +226,9 @@ class ResetPasswordFormState extends State<ResetPasswordForm> {
         ),
         const SizedBox(height: 28),
 
-        ElevatedButton(
+        AppButton(
+          label: 'Verify & Reset Password',
           onPressed: isOtpComplete ? _handleVerify : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            disabledBackgroundColor: AppColors.border,
-            minimumSize: const Size.fromHeight(54),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: const Text(
-            'Verify & Reset Password',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
         ),
         const SizedBox(height: 16),
         GestureDetector(

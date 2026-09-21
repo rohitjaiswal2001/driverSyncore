@@ -16,6 +16,8 @@ import '../widgets/route_timeline.dart';
 import '../widgets/trip_documents_card.dart';
 import '../widgets/truck_info_card.dart';
 import 'driver_tracking_page.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class TripDetailsPage extends StatefulWidget {
   final String tripId;
@@ -65,46 +67,11 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.navy,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Trip Details',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        actions: [
-          if (_cachedTrip != null && _cachedTrip!.bookingId.isNotEmpty)
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  "#${_cachedTrip!.bookingId}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ),
-        ],
+      appBar: TintedPageHeader(
+        title: 'Trip Details',
+        badge: _cachedTrip != null && _cachedTrip!.bookingId.isNotEmpty
+            ? HeaderCountPill(label: '#${_cachedTrip!.bookingId}')
+            : null,
       ),
       body: BlocConsumer<TripsBloc, TripsState>(
         listener: (context, state) {
@@ -131,13 +98,14 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   const SizedBox(height: 12),
                   Text(state.errorMessage),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  AppButton(
+                    label: 'Retry',
+                    expand: false,
                     onPressed: () {
                       context.read<TripsBloc>().add(
                         LoadTripDetails(tripId: widget.tripId),
                       );
                     },
-                    child: const Text('Retry'),
                   ),
                 ],
               ),
@@ -404,16 +372,9 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
               // into a 1300pt target.
               child: AdaptiveContainer(
                 heightFactor: 1,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(54),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
+                child: AppButton(
+                  label: buttonText,
+                  icon: Icons.navigation,
                   onPressed: () async {
                     await di.sl<ActiveOrderStore>().set(trip.bookingId);
                     if (!context.mounted) return;
@@ -428,24 +389,6 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                       LoadTripDetails(tripId: widget.tripId),
                     );
                   },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.navigation,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        buttonText,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             );

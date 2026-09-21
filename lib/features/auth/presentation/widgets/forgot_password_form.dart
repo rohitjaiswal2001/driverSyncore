@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/truck_illustration.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// Email-entry step of the forgot-password flow.
 /// Owns its own form state and only reports the validated email upward.
@@ -110,24 +111,7 @@ class _ForgotPasswordFormState extends State<ForgotPasswordForm> {
             ),
           ),
           const SizedBox(height: 28),
-          ElevatedButton(
-            onPressed: _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              minimumSize: const Size.fromHeight(54),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Send Reset Code',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+          AppButton(label: 'Send Reset Code', onPressed: _submit),
           const SizedBox(height: 16),
           Center(
             child: GestureDetector(

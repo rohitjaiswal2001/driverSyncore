@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/active_order_store.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class TripCompletedPage extends StatelessWidget {
   final String bookingId;
@@ -159,35 +160,18 @@ class TripCompletedPage extends StatelessWidget {
                 const Spacer(flex: 2),
 
                 // Primary Actions Row: View Tracking vs New Order ID
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accentGreen,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(Icons.check_circle_outline, size: 20),
-                    label: const Text(
-                      'View Tracking Status',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                AppButton(
+                  label: 'View Tracking Status',
+                  icon: Icons.check_circle_outline,
+                  accent: AppColors.accentGreen,
+                  onPressed: () => Navigator.pop(context, true),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
+                AppButton.secondary(
+                  label: 'New Order ID',
+                  icon: Icons.add_circle_outline_rounded,
+                  accent: AppColors.navy,
+                  onPressed: () async {
                       final confirmed = await showAppConfirmDialog(
                         context,
                         icon: Icons.swap_horiz_rounded,
@@ -211,28 +195,6 @@ class TripCompletedPage extends StatelessWidget {
                         }
                       }
                     },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.navy,
-                      side: const BorderSide(
-                        color: AppColors.border,
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.add_circle_outline_rounded,
-                      size: 20,
-                    ),
-                    label: const Text(
-                      'New Order ID',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),

@@ -12,6 +12,8 @@ import 'package:flutter/gestures.dart';
 import 'otp_verification_page.dart';
 import 'legal_document_page.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class RegisterPage extends StatefulWidget {
   final String? initialRole;
@@ -96,32 +98,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0.5,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: const Text(
-              'Register as Driver',
-              style: TextStyle(
-                color: AppColors.textDark,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            // actions: [
-            //   IconButton(
-            //     icon: const Icon(
-            //       Icons.notifications_none,
-            //       color: AppColors.textDark,
-            //     ),
-            //     onPressed: () {},
-            //   ),
-            //   const SizedBox(width: 8),
-            // ],
-          ),
+          appBar: const TintedPageHeader(title: 'Register as Driver'),
           body: BlocListener<AuthBloc, AuthState>(
             listener: (context, state) {
               if (state is AuthLoading) {
@@ -567,25 +544,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                     const SizedBox(height: 28),
 
                                     // Register Button
-                                    ElevatedButton(
+                                    AppButton(
+                                      label: 'Register',
+                                      accent: themeColor,
                                       onPressed: _submitRegister,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: themeColor,
-                                        minimumSize: const Size.fromHeight(54),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Register',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
                                     ),
                                     const SizedBox(height: 20),
 

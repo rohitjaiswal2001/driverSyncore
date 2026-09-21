@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// Empty-state card asking the driver for a Booking Order ID.
 ///
@@ -269,69 +270,13 @@ class _BookingIdEntryCardState extends State<BookingIdEntryCard> {
             builder: (context, value, _) {
               final canSubmit =
                   value.text.trim().isNotEmpty && !widget.isLoading;
-              return SizedBox(
-                height: 54,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.navy.withValues(
-                      alpha: 0.35,
-                    ),
-                    disabledForegroundColor: Colors.white.withValues(
-                      alpha: 0.85,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: canSubmit ? _submit : null,
-                  child: widget.isLoading
-                      ? const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Flexible(
-                              child: Text(
-                                'Loading shipment…',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                'Get Order Info',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward_rounded, size: 20),
-                          ],
-                        ),
-                ),
+              return AppButton(
+                label: widget.isLoading
+                    ? 'Loading shipment…'
+                    : 'Get Order Info',
+                icon: Icons.arrow_forward_rounded,
+                isLoading: widget.isLoading,
+                onPressed: canSubmit ? _submit : null,
               );
             },
           ),

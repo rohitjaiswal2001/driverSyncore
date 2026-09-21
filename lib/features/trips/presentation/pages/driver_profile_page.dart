@@ -22,6 +22,7 @@ import '../../../auth/presentation/pages/fullscreen_image_viewer.dart';
 import '../../../auth/presentation/pages/profile_details_page.dart';
 import '../widgets/driver_profile_header.dart';
 import '../widgets/profile_setting_tile.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
 
 class DriverProfilePage extends StatefulWidget {
   final String username;
@@ -135,27 +136,7 @@ class _DriverProfilePageState extends State<DriverProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.navy),
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
-        ),
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            color: AppColors.navy,
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
-            letterSpacing: -0.4,
-          ),
-        ),
-      ),
+      appBar: const TintedPageHeader(title: 'Profile'),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: _onAuthStateChanged,
         builder: (context, state) {

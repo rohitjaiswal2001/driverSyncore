@@ -13,6 +13,7 @@ import 'register_page.dart';
 import 'otp_verification_page.dart';
 import 'forgot_password_page.dart';
 import '../../../../core/widgets/top_snack_bar.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -202,38 +203,10 @@ class _LoginPageState extends State<LoginPage> {
                                       const SizedBox(height: 24),
 
                                       // Submit Form Button
-                                      ElevatedButton(
+                                      AppButton(
+                                        label: 'Login',
+                                        icon: Icons.login_rounded,
                                         onPressed: _submitLogin,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primary,
-                                          minimumSize: const Size.fromHeight(
-                                            54,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: const [
-                                            Icon(
-                                              Icons.login_rounded,
-                                              size: 20,
-                                              color: Colors.white,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Login',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
                                       ),
                                       const SizedBox(height: 12),
                                       Center(

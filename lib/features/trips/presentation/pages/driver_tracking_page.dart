@@ -21,6 +21,8 @@ import '../widgets/customer_contact_card.dart';
 import '../widgets/live_tracking_map.dart';
 import 'full_screen_map_page.dart';
 import 'update_status_page.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class DriverTrackingPage extends StatefulWidget {
   final LocationTrackingController? controller;
@@ -520,13 +522,10 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
                 style: const TextStyle(color: AppColors.textMedium),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                ),
+              AppButton(
+                label: 'Retry',
+                expand: false,
                 onPressed: _loadActiveTrip,
-                child: const Text('Retry'),
               ),
             ],
           ),
@@ -830,22 +829,10 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
               ],
             ),
             child: AdaptiveContainer(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 2,
-                ),
+              child: AppButton(
+                label: 'Change Shipment Status',
+                icon: Icons.edit_note_rounded,
                 onPressed: () => _openUpdateStatusSheet(trip),
-                icon: const Icon(Icons.edit_note_rounded, size: 24),
-                label: const Text(
-                  'Change Shipment Status',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
               ),
             ),
           ),
@@ -880,58 +867,16 @@ class _DriverTrackingPageState extends State<DriverTrackingPage>
       titleText = 'Trip In Progress';
     }
 
-    return AppBar(
-      backgroundColor: AppColors.navy,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.maybePop(context),
-      ),
-      title: Text(
-        titleText,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-          letterSpacing: -0.3,
-        ),
-      ),
+    return TintedPageHeader(
+      title: titleText,
+      badge: trip != null ? HeaderCountPill(label: '#${trip.bookingId}') : null,
       actions: [
-        if (trip != null) ...[
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(right: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                "#${trip.bookingId}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ),
-        ],
-        IconButton(
+        HeaderIconButton(
+          icon: Icons.refresh_rounded,
           tooltip: 'Refresh shipment',
-          onPressed: _isLoading ? null : _loadActiveTrip,
-          icon: _isLoading
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Icon(Icons.refresh_rounded, color: Colors.white),
+          onPressed: _loadActiveTrip,
+          busy: _isLoading,
         ),
-        const SizedBox(width: 4),
       ],
     );
   }

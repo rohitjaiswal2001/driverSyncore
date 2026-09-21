@@ -8,6 +8,8 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../widgets/otp_input_field.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class OtpVerificationPage extends StatefulWidget {
   final String email;
@@ -90,21 +92,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Verify OTP',
-          style: TextStyle(
-            color: AppColors.textDark,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+      appBar: TintedPageHeader(
+        title: 'Verify OTP',
+        subtitle: 'Code sent to ${widget.email}',
       ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -217,23 +207,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                     ),
                     const SizedBox(height: 48),
 
-                    ElevatedButton(
+                    AppButton(
+                      label: 'Verify & Proceed',
                       onPressed: _submitOtp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        minimumSize: const Size.fromHeight(54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Verify & Proceed',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
                   ],
                 ),

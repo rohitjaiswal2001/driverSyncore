@@ -8,6 +8,8 @@ import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/layout/responsive.dart';
 import '../../../../core/utils/document_downloader.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// Full-screen in-app PDF reader with native pinch-zoom, pan and page swipe.
 class DocumentViewerPage extends StatefulWidget {
@@ -69,49 +71,17 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        iconTheme: const IconThemeData(color: AppColors.textDark),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.textDark,
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-              ),
-            ),
-            if (_totalPages > 0)
-              Text(
-                'Page ${_currentPage + 1} of $_totalPages',
-                style: const TextStyle(
-                  color: AppColors.textMedium,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 11.5,
-                ),
-              ),
-          ],
-        ),
+      appBar: TintedPageHeader(
+        title: widget.title,
+        subtitle: _totalPages > 0
+            ? 'Page ${_currentPage + 1} of $_totalPages'
+            : null,
         actions: [
-          IconButton(
+          HeaderIconButton(
+            icon: Icons.open_in_new_rounded,
             tooltip: 'Open outside the app',
-            icon: const Icon(
-              Icons.open_in_new_rounded,
-              color: AppColors.textDark,
-            ),
             onPressed: _openExternally,
           ),
-          const SizedBox(width: 4),
         ],
       ),
       body: _buildBody(),
@@ -203,35 +173,20 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                SizedBox(
-                  height: 46,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: _load,
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Try again'),
-                  ),
+                AppButton(
+                  label: 'Try again',
+                  icon: Icons.refresh_rounded,
+                  size: AppButtonSize.compact,
+                  expand: false,
+                  onPressed: _load,
                 ),
-                SizedBox(
-                  height: 46,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: _openExternally,
-                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                    label: const Text('Open in browser'),
-                  ),
+                AppButton.secondary(
+                  label: 'Open in browser',
+                  icon: Icons.open_in_new_rounded,
+                  size: AppButtonSize.compact,
+                  accent: AppColors.textDark,
+                  expand: false,
+                  onPressed: _openExternally,
                 ),
               ],
             ),

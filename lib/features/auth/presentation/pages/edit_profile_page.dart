@@ -14,6 +14,8 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../../domain/entities/user.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -256,21 +258,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0.5,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: const Text(
-              'Edit Profile',
-              style: TextStyle(
-                color: AppColors.textDark,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
+          appBar: const TintedPageHeader(
+            title: 'Edit Profile',
+            subtitle: 'Your name, photo and contact details',
           ),
           body: LoadingOverlay(
             isLoading: isLoading,
@@ -430,16 +420,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       const SizedBox(height: 40),
 
                       // Save Button
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 54),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
+                      AppButton(
+                        label: 'Save Changes',
                         onPressed: () {
                           final isValid =
                               _formKey.currentState?.validate() ?? false;
@@ -467,13 +449,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             );
                           }
                         },
-                        child: const Text(
-                          'Save Changes',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
                       ),
                     ],
                   ),

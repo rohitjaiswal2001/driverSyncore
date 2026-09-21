@@ -12,6 +12,8 @@ import '../widgets/direction_badge.dart';
 import '../widgets/route_timeline.dart';
 import '../widgets/trip_status_chip.dart';
 import 'trip_details_page.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// Lists the shipments this driver has looked up on this device.
 ///
@@ -166,24 +168,15 @@ class _MyTripsPageState extends State<MyTripsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        title: const Text(
-          'My Trips',
-          style: TextStyle(
-            color: AppColors.textDark,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+      appBar: TintedPageHeader(
+        title: 'My Trips',
         actions: [
-          IconButton(
+          HeaderIconButton(
+            icon: Icons.refresh_rounded,
             tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textDark),
-            onPressed: _isLoading ? null : _loadTrips,
+            onPressed: _loadTrips,
+            busy: _isLoading,
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -619,16 +612,10 @@ class _MyTripsPageState extends State<MyTripsPage> {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(48),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            child: AppButton(
+              label: 'View Details',
+              icon: Icons.arrow_forward,
+              size: AppButtonSize.compact,
               onPressed: () async {
                 await Navigator.push(
                   context,
@@ -638,14 +625,6 @@ class _MyTripsPageState extends State<MyTripsPage> {
                 );
                 if (mounted) await _loadTrips();
               },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('View Details'),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, size: 16),
-                ],
-              ),
             ),
           ),
         ],

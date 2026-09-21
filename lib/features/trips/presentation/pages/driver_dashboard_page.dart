@@ -27,6 +27,7 @@ import '../controllers/location_tracking_controller.dart';
 import '../widgets/active_trip_card.dart';
 import '../widgets/booking_id_entry_card.dart';
 import 'trip_details_page.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
 
 class DriverDashboardPage extends StatefulWidget {
   final String username;
@@ -386,25 +387,26 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
 
   Widget _buildHeader(User? user, String driverName) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+      // Same wash as [TintedPageHeader], so the clock and the battery need the
+      // same dark treatment the rest of the app's headers ask for.
+      value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
       ),
       child: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.navy, AppColors.navyDeep],
+        decoration: BoxDecoration(
+          // The greeting header is the shared bar in its fullest form: the
+          // wash, the corner and the shadow all come from [TintedPageHeader]
+          // so the Home tab cannot drift away from every other screen.
+          gradient: headerGradient(AppColors.primary),
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(24),
           ),
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Color(0x331E1B4B),
-              blurRadius: 14,
-              offset: Offset(0, 4),
+              color: AppColors.primary.withValues(alpha: 0.10),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -442,7 +444,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                                     color: AppColors.accentGreen,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: AppColors.navy,
+                                      color: headerWash(AppColors.primary, 0.2),
                                       width: 2,
                                     ),
                                   ),
@@ -458,10 +460,10 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                               children: [
                                 Text(
                                   '${_getSalutation()},',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.white.withValues(alpha: 0.75),
+                                    color: AppColors.textMedium,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -472,7 +474,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w900,
-                                    color: Colors.white,
+                                    color: AppColors.primary,
                                     letterSpacing: -0.4,
                                   ),
                                 ),
@@ -491,6 +493,8 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
                       color: Colors.white,
                       shape: const CircleBorder(),
                       clipBehavior: Clip.antiAlias,
+                      elevation: 1.5,
+                      shadowColor: AppColors.primary.withValues(alpha: 0.25),
                       child: InkWell(
                         onTap: _confirmLogout,
                         child: const SizedBox(

@@ -10,6 +10,8 @@ import '../../../../core/widgets/top_snack_bar.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../../../../core/widgets/tinted_page_header.dart';
+import '../../../../core/widgets/app_button.dart';
 
 /// The account deletion request form.
 ///
@@ -95,34 +97,13 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
           canPop: !isDeleting && !isDeleted,
           child: Scaffold(
             backgroundColor: AppColors.surface,
-            appBar: AppBar(
-              backgroundColor: AppColors.surface,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              surfaceTintColor: Colors.transparent,
-              centerTitle: false,
-              automaticallyImplyLeading: false,
-              leading: isDeleted
-                  ? null
-                  : IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: AppColors.navy,
-                      ),
-                      tooltip: 'Back',
-                      onPressed: isDeleting
-                          ? null
-                          : () => Navigator.maybePop(context),
-                    ),
-              title: Text(
-                isDeleted ? 'Account Deleted' : 'Delete Account',
-                style: TextStyle(
-                  color: AppColors.navy,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 20,
-                  letterSpacing: -0.4,
-                ),
-              ),
+            appBar: TintedPageHeader(
+              title: isDeleted ? 'Account Deleted' : 'Delete Account',
+              accent: AppColors.danger,
+              // Once the account is gone there is nothing behind this page to
+              // go back to, and the back arrow stays away mid-delete so the
+              // request cannot be abandoned half done.
+              automaticallyImplyLeading: !isDeleted && !isDeleting,
             ),
             body: LoadingOverlay(
               isLoading: isDeleting,
@@ -209,54 +190,17 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                SizedBox(
-                  height: 54,
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.navy,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: () => _leaveDeletedScreen(),
-                    icon: const Icon(Icons.login_rounded, size: 19),
-                    label: const Text(
-                      'Go to login',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                AppButton(
+                  label: 'Go to login',
+                  icon: Icons.login_rounded,
+                  accent: AppColors.navy,
+                  onPressed: () => _leaveDeletedScreen(),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 54,
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    onPressed: () => _leaveDeletedScreen(openRegister: true),
-                    icon: const Icon(Icons.person_add_alt_1_outlined, size: 19),
-                    label: const Text(
-                      'Create new account',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                AppButton.secondary(
+                  label: 'Create new account',
+                  icon: Icons.person_add_alt_1_outlined,
+                  onPressed: () => _leaveDeletedScreen(openRegister: true),
                 ),
               ],
             ),
@@ -330,21 +274,10 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
             _buildDeleteButton(),
             const SizedBox(height: 12),
 
-            SizedBox(
-              height: 50,
-              child: TextButton(
-                onPressed: isDeleting
-                    ? null
-                    : () => Navigator.maybePop(context),
-                child: const Text(
-                  'Keep my account',
-                  style: TextStyle(
-                    color: AppColors.textMedium,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
+            AppButton.ghost(
+              label: 'Keep my account',
+              accent: AppColors.textMedium,
+              onPressed: isDeleting ? null : () => Navigator.maybePop(context),
             ),
           ],
         ),
@@ -486,28 +419,10 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
   }
 
   Widget _buildDeleteButton() {
-    final enabled = _canSubmit;
-
-    return SizedBox(
-      height: 54,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.danger,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.dangerTint,
-          disabledForegroundColor: AppColors.danger.withValues(alpha: 0.45),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        onPressed: enabled ? _handleSubmit : null,
-        icon: const Icon(Icons.delete_forever_rounded, size: 20),
-        label: const Text(
-          'Delete my account',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ),
+    return AppButton.danger(
+      label: 'Delete my account',
+      icon: Icons.delete_forever_rounded,
+      onPressed: _canSubmit ? _handleSubmit : null,
     );
   }
 }
