@@ -348,6 +348,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
                   12 + MediaQuery.of(context).padding.bottom,
                 ),
                 child: AdaptiveContainer(
+                  heightFactor: 1,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       vertical: 14,
@@ -402,6 +403,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
               // itself lines up with the cards above rather than stretching
               // into a 1300pt target.
               child: AdaptiveContainer(
+                heightFactor: 1,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,

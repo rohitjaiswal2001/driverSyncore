@@ -98,12 +98,19 @@ class AdaptiveContainer extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final Alignment alignment;
 
+  /// Passed to the underlying [Align]. Leave null to fill the available
+  /// height; set to `1.0` where the parent hands down loose constraints as
+  /// tall as the screen (e.g. `Scaffold.bottomNavigationBar`), otherwise the
+  /// container grows to that full height instead of hugging its child.
+  final double? heightFactor;
+
   const AdaptiveContainer({
     super.key,
     required this.child,
     this.maxWidth = AppContentWidth.content,
     this.padding,
     this.alignment = Alignment.topCenter,
+    this.heightFactor,
   });
 
   /// Preset for single-column forms.
@@ -112,6 +119,7 @@ class AdaptiveContainer extends StatelessWidget {
     required this.child,
     this.padding,
     this.alignment = Alignment.topCenter,
+    this.heightFactor,
   }) : maxWidth = AppContentWidth.form;
 
   /// Preset for content that should use the extra width, e.g. maps.
@@ -120,6 +128,7 @@ class AdaptiveContainer extends StatelessWidget {
     required this.child,
     this.padding,
     this.alignment = Alignment.topCenter,
+    this.heightFactor,
   }) : maxWidth = AppContentWidth.wide;
 
   @override
@@ -130,6 +139,7 @@ class AdaptiveContainer extends StatelessWidget {
 
     return Align(
       alignment: alignment,
+      heightFactor: heightFactor,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: content,
