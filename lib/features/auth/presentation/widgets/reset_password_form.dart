@@ -189,6 +189,10 @@ class ResetPasswordFormState extends State<ResetPasswordForm> {
                 controller: _newPasswordController,
                 hintText: 'Create a new password',
                 prefixIcon: Icons.lock_outline,
+                // Same rules, same wording, and the same live feedback as
+                // the register screen — a password accepted there has to be
+                // accepted here.
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: Validators.validatePassword,
               ),
               const SizedBox(height: 20),
@@ -205,9 +209,10 @@ class ResetPasswordFormState extends State<ResetPasswordForm> {
                 controller: _confirmPasswordController,
                 hintText: 'Re-enter your new password',
                 prefixIcon: Icons.lock_reset,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 validator: (val) {
                   if (val == null || val.isEmpty) {
-                    return 'Confirm your new password';
+                    return 'Confirm your password';
                   }
                   if (val != _newPasswordController.text) {
                     return 'Passwords do not match';

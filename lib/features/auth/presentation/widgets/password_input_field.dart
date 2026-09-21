@@ -9,6 +9,11 @@ class PasswordInputField extends StatefulWidget {
   final String? Function(String?)? validator;
   final TextInputAction textInputAction;
 
+  /// Defaults to validating on submit only. Screens where the user is
+  /// *choosing* a password pass [AutovalidateMode.onUserInteraction] so the
+  /// strength rules show up while typing rather than after a failed tap.
+  final AutovalidateMode? autovalidateMode;
+
   const PasswordInputField({
     super.key,
     required this.controller,
@@ -17,6 +22,7 @@ class PasswordInputField extends StatefulWidget {
     this.prefixIcon = Icons.lock_open_rounded,
     this.validator,
     this.textInputAction = TextInputAction.done,
+    this.autovalidateMode,
   });
 
   @override
@@ -41,6 +47,7 @@ class _PasswordInputFieldState extends State<PasswordInputField> {
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscurePassword,
+      autovalidateMode: widget.autovalidateMode,
       textInputAction: widget.textInputAction,
       style: const TextStyle(
         fontSize: 16,

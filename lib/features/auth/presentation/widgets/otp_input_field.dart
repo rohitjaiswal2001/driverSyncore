@@ -18,39 +18,34 @@ class OtpInputField extends StatefulWidget {
   State<OtpInputField> createState() => OtpInputFieldState();
 }
 
+/// Zero-width space parked in every box so none of them is ever really empty.
+///
+/// A soft keyboard reports nothing at all when backspace is pressed in an
+/// empty field — no key event, no edit — so a box the user tapped into but
+/// never typed in cannot see the press. With this character sitting in the
+/// box there is always something to delete, which turns every backspace into
+/// an ordinary text change this widget can act on. It renders as nothing, and
+/// [_digits] rather than the controllers is what the OTP is read from.
+const String _kEmptyMarker = '​';
+
 class OtpInputFieldState extends State<OtpInputField> {
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
-  // Ancestor nodes that catch backspace bubbling up from an empty field,
-  // without ever taking focus themselves.
-  late final List<FocusNode> _backspaceCatcherNodes;
+
+  /// The digit in each box, or an empty string. Kept alongside the
+  /// controllers because their text also carries [_kEmptyMarker], and because
+  /// a change handler needs to know what the box held *before* the edit.
+  late final List<String> _digits;
 
   @override
   void initState() {
     super.initState();
-    _controllers = List.generate(widget.length, (_) => TextEditingController());
-    _focusNodes = List.generate(
+    _digits = List.filled(widget.length, '');
+    _controllers = List.generate(
       widget.length,
-      (index) => FocusNode(
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              (event.logicalKey == LogicalKeyboardKey.backspace ||
-                  event.logicalKey == LogicalKeyboardKey.delete)) {
-            if (_controllers[index].text.isEmpty && index > 0) {
-              _controllers[index - 1].clear();
-              _focusNodes[index - 1].requestFocus();
-              _notify();
-              return KeyEventResult.handled;
-            }
-          }
-          return KeyEventResult.ignored;
-        },
-      ),
+      (_) => TextEditingController(text: _kEmptyMarker),
     );
-    _backspaceCatcherNodes = List.generate(
-      widget.length,
-      (_) => FocusNode(canRequestFocus: false, skipTraversal: true),
-    );
+    _focusNodes = List.generate(widget.length, (_) => FocusNode());
     for (final controller in _controllers) {
       controller.addListener(_onVisualStateChanged);
     }
@@ -71,19 +66,28 @@ class OtpInputFieldState extends State<OtpInputField> {
     for (final node in _focusNodes) {
       node.dispose();
     }
-    for (final node in _backspaceCatcherNodes) {
-      node.dispose();
-    }
     super.dispose();
   }
 
-  String get code => _controllers.map((c) => c.text).join();
+  String get code => _digits.join();
 
   void clear() {
-    for (final controller in _controllers) {
-      controller.clear();
+    for (var index = 0; index < widget.length; index++) {
+      _setDigit(index, '');
     }
     _focusNodes.first.requestFocus();
+  }
+
+  /// Writes [digit] (or clears the box when it is empty) and leaves the caret
+  /// after the marker, so the next backspace deletes the marker rather than
+  /// landing on an empty selection.
+  void _setDigit(int index, String digit) {
+    _digits[index] = digit;
+    final text = '$_kEmptyMarker$digit';
+    _controllers[index].value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 
   void _notify() {
@@ -95,50 +99,57 @@ class OtpInputFieldState extends State<OtpInputField> {
     }
   }
 
-  // Handles both single-digit typing and pasting a full code into one box.
+  // Handles typing, backspace, and pasting a full code into one box.
   void _handleChanged(int index, String value) {
+    // The marker is gone, so the user backspaced past it.
+    if (value.isEmpty) {
+      _handleBackspace(index);
+      return;
+    }
+
     final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
 
+    // A paste, or a code delivered by the keyboard's SMS autofill.
     if (digits.length > 1) {
       var target = index;
       for (final digit in digits.split('')) {
         if (target >= widget.length) break;
-        _controllers[target].text = digit;
+        _setDigit(target, digit);
         target++;
       }
-      final lastFilled = (target - 1).clamp(0, widget.length - 1);
-      _controllers[lastFilled].selection = TextSelection.collapsed(
-        offset: _controllers[lastFilled].text.length,
-      );
       final nextEmpty = target.clamp(0, widget.length - 1);
       _focusNodes[nextEmpty].requestFocus();
       _notify();
       return;
     }
 
+    // Only the marker is left: the box's own digit was deleted. Focus stays
+    // put, so a second backspace is what steps back to the previous box.
     if (digits.isEmpty) {
-      _controllers[index].clear();
-      if (index > 0) {
-        _focusNodes[index - 1].requestFocus();
-      }
+      _setDigit(index, '');
       _notify();
       return;
     }
 
-    _controllers[index].text = digits;
-    _controllers[index].selection = const TextSelection.collapsed(offset: 1);
+    _setDigit(index, digits);
     if (index < widget.length - 1) {
       _focusNodes[index + 1].requestFocus();
     }
     _notify();
   }
 
-  void _handleBackspaceOnEmpty(int index) {
-    if (index > 0 && _controllers[index].text.isEmpty) {
-      _controllers[index - 1].clear();
+  /// Backspace with nothing left in this box: clear the box before it and put
+  /// the caret there. On the first box there is nowhere to go, so the marker
+  /// is simply restored.
+  void _handleBackspace(int index) {
+    final hadDigit = _digits[index].isNotEmpty;
+    _setDigit(index, '');
+
+    if (!hadDigit && index > 0) {
+      _setDigit(index - 1, '');
       _focusNodes[index - 1].requestFocus();
-      _notify();
     }
+    _notify();
   }
 
   @override
@@ -159,7 +170,7 @@ class OtpInputFieldState extends State<OtpInputField> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(widget.length, (index) {
             final hasFocus = _focusNodes[index].hasFocus;
-            final isFilled = _controllers[index].text.isNotEmpty;
+            final isFilled = _digits[index].isNotEmpty;
 
             return AnimatedContainer(
               duration: const Duration(milliseconds: 160),
@@ -198,49 +209,47 @@ class OtpInputFieldState extends State<OtpInputField> {
               // Center keeps the collapsed field's single line centered in
               // the box at every box height.
               child: Center(
-                child: KeyboardListener(
-                  focusNode: _backspaceCatcherNodes[index],
-                  onKeyEvent: (event) {
-                    if (event is KeyDownEvent &&
-                        event.logicalKey == LogicalKeyboardKey.backspace) {
-                      _handleBackspaceOnEmpty(index);
-                    }
-                  },
-                  child: TextField(
-                    controller: _controllers[index],
-                    focusNode: _focusNodes[index],
-                    textAlign: TextAlign.center,
-                    textAlignVertical: TextAlignVertical.center,
-                    keyboardType: TextInputType.number,
-                    maxLength: widget.length,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    cursorColor: AppColors.primary,
-                    cursorWidth: 2,
-                    cursorHeight: 22,
-                    cursorRadius: const Radius.circular(2),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
+                child: TextField(
+                  controller: _controllers[index],
+                  focusNode: _focusNodes[index],
+                  textAlign: TextAlign.center,
+                  textAlignVertical: TextAlignVertical.center,
+                  keyboardType: TextInputType.number,
+                  // The marker has to survive filtering, or the box would be
+                  // empty again and backspace would go unreported.
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp('[0-9$_kEmptyMarker]'),
                     ),
-                    decoration: const InputDecoration(
-                      counterText: '',
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    onChanged: (value) => _handleChanged(index, value),
-                    onTap: () {
-                      _controllers[index].selection = TextSelection(
-                        baseOffset: 0,
-                        extentOffset: _controllers[index].text.length,
-                      );
-                    },
+                  ],
+                  cursorColor: AppColors.primary,
+                  cursorWidth: 2,
+                  cursorHeight: 22,
+                  cursorRadius: const Radius.circular(2),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
                   ),
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (value) => _handleChanged(index, value),
+                  // Selecting the whole box means a typed digit replaces what
+                  // is there instead of appending to it.
+                  onTap: () {
+                    _controllers[index].selection = TextSelection(
+                      baseOffset: 0,
+                      extentOffset: _controllers[index].text.length,
+                    );
+                  },
                 ),
               ),
             );

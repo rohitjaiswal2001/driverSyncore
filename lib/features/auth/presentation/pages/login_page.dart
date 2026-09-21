@@ -34,6 +34,24 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  /// Empties the form so nothing typed here follows the user onto another
+  /// auth screen, or is still sitting in the fields when they come back.
+  void _resetForm() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _emailController.clear();
+    _passwordController.clear();
+    _formKey.currentState?.reset();
+  }
+
+  /// Pushes another auth screen with a clean form on both the way out and the
+  /// way back.
+  Future<void> _openWithReset(Widget page) async {
+    _resetForm();
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    if (!mounted) return;
+    _resetForm();
+  }
+
   void _submitLogin() {
     FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
@@ -162,15 +180,9 @@ class _LoginPageState extends State<LoginPage> {
                                             ),
                                           ),
                                           GestureDetector(
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      const ForgotPasswordPage(),
-                                                ),
-                                              );
-                                            },
+                                            onTap: () => _openWithReset(
+                                              const ForgotPasswordPage(),
+                                            ),
                                             child: const Text(
                                               'Forgot Password?',
                                               style: TextStyle(
@@ -226,24 +238,11 @@ class _LoginPageState extends State<LoginPage> {
                                       const SizedBox(height: 12),
                                       Center(
                                         child: GestureDetector(
-                                          onTap: () {
-                                            _emailController.clear();
-                                            _passwordController.clear();
-                                            _formKey.currentState?.reset();
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    const RegisterPage(
-                                                      initialRole: 'Driver',
-                                                    ),
-                                              ),
-                                            ).then((_) {
-                                              _emailController.clear();
-                                              _passwordController.clear();
-                                              _formKey.currentState?.reset();
-                                            });
-                                          },
+                                          onTap: () => _openWithReset(
+                                            const RegisterPage(
+                                              initialRole: 'Driver',
+                                            ),
+                                          ),
                                           child: RichText(
                                             text: const TextSpan(
                                               text: "Don't have an account? ",
