@@ -138,18 +138,35 @@ class OtpInputFieldState extends State<OtpInputField> {
     _notify();
   }
 
-  /// Backspace with nothing left in this box: clear the box before it and put
-  /// the caret there. On the first box there is nowhere to go, so the marker
-  /// is simply restored.
+  /// Backspace with nothing left in this box: erase the nearest digit behind
+  /// it and put the caret there.
+  ///
+  /// It walks back over blank boxes rather than stepping into the one
+  /// immediately before, so tapping a box the user never filled and pressing
+  /// backspace still deletes a digit. Stepping one box at a time would look
+  /// like the key had done nothing. With no digits behind it at all, the
+  /// caret just returns to the first box.
   void _handleBackspace(int index) {
     final hadDigit = _digits[index].isNotEmpty;
     _setDigit(index, '');
 
-    if (!hadDigit && index > 0) {
-      _setDigit(index - 1, '');
-      _focusNodes[index - 1].requestFocus();
+    if (!hadDigit) {
+      final previous = _lastFilledBefore(index);
+      if (previous != null) {
+        _setDigit(previous, '');
+        _focusNodes[previous].requestFocus();
+      } else if (index > 0) {
+        _focusNodes.first.requestFocus();
+      }
     }
     _notify();
+  }
+
+  int? _lastFilledBefore(int index) {
+    for (var i = index - 1; i >= 0; i--) {
+      if (_digits[i].isNotEmpty) return i;
+    }
+    return null;
   }
 
   @override

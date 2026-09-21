@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:syntracore_driver/features/auth/presentation/widgets/otp_input_field.dart';
+import 'package:globelink_driver/features/auth/presentation/widgets/otp_input_field.dart';
 
 /// Backspace on a soft keyboard is not a key event: the engine simply sends
 /// the new editing value. These tests drive the field the same way, so they
