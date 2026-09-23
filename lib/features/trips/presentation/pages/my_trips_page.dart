@@ -45,6 +45,11 @@ class _MyTripsPageState extends State<MyTripsPage> {
   String? _loadError;
   List<Trip> _trips = const [];
 
+  /// Whether a load has ever settled. Until it has, the page has nothing to
+  /// show and the spinner takes the screen; after it has, a reload leaves what
+  /// is on screen alone — see [_buildBody].
+  bool _hasLoaded = false;
+
   /// Order IDs remembered locally whose lookup failed this session (deleted
   /// server-side, not approved yet, offline...).
   final Map<String, String> _failedLookups = {};
@@ -74,6 +79,7 @@ class _MyTripsPageState extends State<MyTripsPage> {
         _trips = const [];
         _failedLookups.clear();
         _isLoading = false;
+        _hasLoaded = true;
       });
       return;
     }
@@ -108,6 +114,7 @@ class _MyTripsPageState extends State<MyTripsPage> {
         );
       _trips = results.map((r) => r.trip).whereType<Trip>().toList();
       _isLoading = false;
+      _hasLoaded = true;
       if (_trips.isEmpty && _failedLookups.isNotEmpty) {
         _loadError = _failedLookups.values.first;
       }
@@ -302,12 +309,27 @@ class _MyTripsPageState extends State<MyTripsPage> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    // Only the first load takes the screen. Swapping the list for a centred
+    // spinner on a pull-to-refresh tore the RefreshIndicator out of the tree
+    // mid-gesture: its spinner vanished the instant the finger lifted, and a
+    // full-screen spinner appeared in its place.
+    if (_isLoading && !_hasLoaded) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
+    // Pull-to-refresh wraps every state, not just the populated list. The
+    // empty and failed states are where a driver most wants to pull: a trip
+    // that failed to load has nothing else on screen to act on.
+    return RefreshIndicator(
+      onRefresh: _loadTrips,
+      color: AppColors.primary,
+      child: _buildTrips(),
+    );
+  }
+
+  Widget _buildTrips() {
     if (_trips.isEmpty && _loadError != null) {
       return _buildMessageState(
         icon: Icons.cloud_off_rounded,
@@ -341,24 +363,20 @@ class _MyTripsPageState extends State<MyTripsPage> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadTrips,
-      color: AppColors.primary,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        padding: adaptiveScrollPadding(
-          context,
-          horizontal: 16,
-          top: 16,
-          bottom: 16,
-        ),
-        children: [
-          for (final trip in filtered) _buildTripCard(trip),
-          if (_failedLookups.isNotEmpty) _buildFailedLookups(),
-        ],
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
       ),
+      padding: adaptiveScrollPadding(
+        context,
+        horizontal: 16,
+        top: 16,
+        bottom: 16,
+      ),
+      children: [
+        for (final trip in filtered) _buildTripCard(trip),
+        if (_failedLookups.isNotEmpty) _buildFailedLookups(),
+      ],
     );
   }
 

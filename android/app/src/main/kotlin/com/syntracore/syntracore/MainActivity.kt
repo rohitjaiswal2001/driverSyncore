@@ -20,6 +20,25 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Hands Dart the same key the map SDK reads from the manifest, so it is
+        // configured once, in local.properties.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CONFIG_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getMapsApiKey" -> result.success(readMapsApiKey())
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun readMapsApiKey(): String? = try {
+        packageManager
+            .getApplicationInfo(packageName, PackageManager.GET_META_DATA)
+            .metaData
+            ?.getString("com.google.android.geo.API_KEY")
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
     }
 
     /**
@@ -69,6 +88,7 @@ class MainActivity : FlutterActivity() {
 
     private companion object {
         const val CHANNEL = "globelink/notification_permission"
+        const val CONFIG_CHANNEL = "globelink/config"
         const val REQUEST_CODE = 5001
     }
 }

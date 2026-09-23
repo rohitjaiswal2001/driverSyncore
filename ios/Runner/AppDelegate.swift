@@ -17,5 +17,19 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // Hands Dart the same key GMSServices reads from Info.plist, so it is
+    // configured once, in Secrets.xcconfig.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "GlobelinkConfig") {
+      FlutterMethodChannel(name: "globelink/config", binaryMessenger: registrar.messenger())
+        .setMethodCallHandler { call, result in
+          switch call.method {
+          case "getMapsApiKey":
+            result(Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String)
+          default:
+            result(FlutterMethodNotImplemented)
+          }
+        }
+    }
   }
 }

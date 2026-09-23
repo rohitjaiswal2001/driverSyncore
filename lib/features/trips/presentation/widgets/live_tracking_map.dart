@@ -155,10 +155,17 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   double _currentZoom = 12;
   MapType _mapType = MapType.normal;
 
-  static const String _mapsApiKey = String.fromEnvironment(
-    'MAPS_API_KEY',
-    defaultValue: 'AIzaSyCagA-geXsTnJ7YITQ92FwnCKGkMT9Zt6Y',
-  );
+  /// Key for the Directions and Geocoding calls, read from the native side:
+  /// the same one the map SDK uses, configured in android/local.properties
+  /// and ios/Flutter/Secrets.xcconfig. Fetched once for every map in the app;
+  /// an empty key just skips those lookups.
+  static const MethodChannel _configChannel = MethodChannel('globelink/config');
+  static Future<String>? _mapsApiKeyFuture;
+
+  static Future<String> _mapsApiKey() => _mapsApiKeyFuture ??= _configChannel
+      .invokeMethod<String>('getMapsApiKey')
+      .then((key) => key ?? '')
+      .catchError((Object _) => '');
 
   /// Route geometry is the one thing here that costs a Directions call, so it
   /// is shared across every map in the app: opening this map full screen, or
@@ -382,11 +389,12 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   }
 
   Future<LatLng?> _geocodeViaGoogle(String query) async {
-    if (_mapsApiKey.isEmpty) return null;
+    final apiKey = await _mapsApiKey();
+    if (apiKey.isEmpty) return null;
     try {
       final response = await _apiClient.getExternal(
         'https://maps.googleapis.com/maps/api/geocode/json',
-        queryParameters: {'address': query, 'key': _mapsApiKey},
+        queryParameters: {'address': query, 'key': apiKey},
       );
 
       final data = response.data;
@@ -486,7 +494,8 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     LatLng origin,
     LatLng destination,
   ) async {
-    if (_mapsApiKey.isEmpty) return const [];
+    final apiKey = await _mapsApiKey();
+    if (apiKey.isEmpty) return const [];
 
     final cacheKey =
         '${origin.latitude},${origin.longitude}'
@@ -501,7 +510,7 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
           'origin': '${origin.latitude},${origin.longitude}',
           'destination': '${destination.latitude},${destination.longitude}',
           'mode': 'driving',
-          'key': _mapsApiKey,
+          'key': apiKey,
         },
       );
 
