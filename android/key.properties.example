@@ -3,4 +3,4 @@
 storePassword=CHANGEME
 keyPassword=CHANGEME
 keyAlias=customer-app
-storeFile=android/android-keystores/customer-app-upload-key.jks
+storeFile=android/android-keystores/driver-app-upload-key.jks
