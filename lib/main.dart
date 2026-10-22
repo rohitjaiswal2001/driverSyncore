@@ -4,6 +4,7 @@ import 'core/di/injection_container.dart' as di;
 import 'core/network/api_client.dart';
 import 'core/network/session_expired_handler.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/app_update_alert.dart';
 import 'core/widgets/top_snack_bar.dart';
 import 'features/auth/domain/entities/user.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -134,25 +135,30 @@ class _MyAppState extends State<MyApp> {
         // Sits above the Navigator, so the logout spinner covers pushed pages
         // (profile, tracking) as well as the root route.
         builder: (context, child) {
-          // Tapping anywhere that isn't itself tappable drops focus, so the
-          // keyboard closes on every screen without each page wiring it up.
-          // Text fields and buttons win the gesture arena over this detector,
-          // so tapping them still behaves normally.
-          return GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-            child: BlocBuilder<AuthBloc, AuthState>(
-              buildWhen: (previous, current) =>
-                  previous is AuthLoggingOut || current is AuthLoggingOut,
-              builder: (context, state) {
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ?child,
-                    if (state is AuthLoggingOut) const _LogoutOverlay(),
-                  ],
-                );
-              },
+          // The update prompt lives here too, so no route change — sign-in,
+          // sign-out, the root rebuild — can tear down the store checker.
+          return AppUpdateAlert(
+            navigatorKey: _navigatorKey,
+            // Tapping anywhere that isn't itself tappable drops focus, so the
+            // keyboard closes on every screen without each page wiring it up.
+            // Text fields and buttons win the gesture arena over this
+            // detector, so tapping them still behaves normally.
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: BlocBuilder<AuthBloc, AuthState>(
+                buildWhen: (previous, current) =>
+                    previous is AuthLoggingOut || current is AuthLoggingOut,
+                builder: (context, state) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ?child,
+                      if (state is AuthLoggingOut) const _LogoutOverlay(),
+                    ],
+                  );
+                },
+              ),
             ),
           );
         },
